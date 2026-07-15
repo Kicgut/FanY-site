@@ -1,0 +1,52 @@
+# ============================================
+# Simplified Dockerfile for Nuxt 3 + Prisma
+# Single-stage build to avoid OOM on 1.6GB ECS
+# ============================================
+
+FROM node:22-alpine
+
+WORKDIR /app
+
+# Install build dependencies for native modules
+RUN apk add --no-cache python3 make g++ sqlite-dev tini sqlite wget
+
+# Install pnpm
+RUN corepack enable && corepack prepare pnpm@11.9.0 --activate
+
+# Install dependencies first (better layer caching)
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml .pnpmrc ./
+RUN pnpm install --frozen-lockfile
+
+# Copy Prisma schema and generate client
+COPY prisma ./prisma/
+RUN npx prisma generate
+
+# Copy source code
+COPY . .
+
+# Build Nuxt for production
+RUN npx nuxt build
+
+# Clean up build tools and dev dependencies to reduce image size
+RUN apk del python3 make g++ sqlite-dev &&     pnpm prune --prod &&     pnpm store prune &&     rm -rf /tmp/* /app/.nuxt /app/node_modules/.cache
+
+# Create directories for persistent data
+RUN mkdir -p /app/data /app/public/uploads &&     chown -R node:node /app
+
+# Switch to non-root user
+USER node
+
+# Set environment variables
+ENV NODE_ENV=production
+ENV DATABASE_URL="file:/app/data/prod.db"
+ENV HOST=0.0.0.0
+ENV PORT=3000
+
+# Expose port
+EXPOSE 3000
+
+# Use tini as entrypoint for proper signal handling
+ENTRYPOINT ["/sbin/tini", "--"]
+
+# Run Prisma migrations then start the server
+CMD ["sh", "-c", "npx prisma migrate deploy && node .output/server/index.mjs"]

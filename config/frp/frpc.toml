@@ -1,0 +1,33 @@
+# frpc.toml - frp Client Configuration (on local machine)
+# Place at: ~/.config/frp/frpc.toml or wherever frp is installed
+
+serverAddr = "YOUR_ECS_IP"
+serverPort = 7000
+
+# Authentication (must match frps)
+auth.method = "token"
+auth.token = "change-me-to-random-string"
+
+# Tunnel: SSH access
+[[proxies]]
+name = "ssh"
+type = "tcp"
+localIP = "127.0.0.1"
+localPort = 22
+remotePort = 6000
+
+# Tunnel: Local web service (e.g., development server)
+[[proxies]]
+name = "web"
+type = "tcp"
+localIP = "127.0.0.1"
+localPort = 3000
+remotePort = 8080
+
+# Tunnel: Immich (if running locally)
+[[proxies]]
+name = "immich"
+type = "tcp"
+localIP = "127.0.0.1"
+localPort = 2283
+remotePort = 2283

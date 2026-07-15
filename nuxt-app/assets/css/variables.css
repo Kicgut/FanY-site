@@ -1,0 +1,27 @@
+:root {
+  --color-primary: #409eff;
+  --color-primary-light: #ecf5ff;
+  --color-bg: #ffffff;
+  --color-bg-secondary: #f5f7fa;
+  --color-text: #303133;
+  --color-text-secondary: #606266;
+  --color-text-muted: #909399;
+  --color-border: #e4e7ed;
+  --font-family: 'Helvetica Neue', Helvetica, 'PingFang SC', 'Hiragino Sans GB',
+    'Microsoft YaHei', Arial, sans-serif;
+  --nav-height: 60px;
+  --section-padding: 80px;
+  --max-width: 1200px;
+  --shadow-light: 0 2px 12px rgba(0, 0, 0, 0.06);
+}
+
+/* Page transitions */
+.page-enter-active,
+.page-leave-active {
+  transition: opacity 0.3s ease;
+}
+
+.page-enter-from,
+.page-leave-to {
+  opacity: 0;
+}

@@ -1,0 +1,38 @@
+services:
+  app:
+    image: personal-website:latest
+    container_name: personal-website
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    extra_hosts:
+      - "skills.local:host-gateway"
+    environment:
+      - NODE_ENV=production
+      - DATABASE_URL=file:/app/data/prod.db
+      - JWT_SECRET=${JWT_SECRET:-change-me-in-production}
+      - HOST=0.0.0.0
+      - PORT=3000
+    volumes:
+      - ./data:/app/data
+      - ./uploads:/app/public/uploads
+      - ./backups:/app/backups
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+          cpus: "1.0"
+        reservations:
+          memory: 128M
+          cpus: "0.25"
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://127.0.0.1:3000/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"

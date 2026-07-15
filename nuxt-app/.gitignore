@@ -1,0 +1,39 @@
+# Nuxt dev/build outputs
+.output
+.data
+.nuxt
+.nitro
+.cache
+dist
+
+# Node dependencies
+node_modules
+
+# Logs
+logs
+*.log
+
+# Misc
+.DS_Store
+.fleet
+.idea
+
+# Local env files
+.env
+.env.*
+!.env.example
+
+/generated/prisma
+
+# SQLite databases
+*.db
+*.db-journal
+
+# Docker persistent data
+data/
+uploads/
+backups/
+
+# Photo storage (large files, not in repo)
+/photos/
+thumbnails/

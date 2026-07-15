@@ -1,0 +1,194 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id            Int      @id @default(autoincrement())
+  username      String   @unique
+  password      String
+  name          String
+  role          String   @default("admin")
+  groups        String?
+  status        String   @default("active")
+  aiAccess      Boolean  @default(false)
+  aiAccessLevel String   @default("none")
+  lastLoginAt   DateTime?
+  uploadQuotaMb Int      @default(500)
+  usedQuotaMb   Int      @default(0)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+}
+
+model Article {
+  id          Int       @id @default(autoincrement())
+  title       String
+  slug        String    @unique
+  content     String
+  description String?
+  coverImage  String?
+  status      String    @default("draft")
+  publishedAt DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  tags        Tag[]
+}
+
+model Tag {
+  id       Int       @id @default(autoincrement())
+  name     String    @unique
+  articles Article[]
+}
+
+model Photo {
+  id                   Int      @id @default(autoincrement())
+  title                String
+  description          String?
+  filename             String   @unique
+  originalUrl          String
+  thumbnailUrl         String?
+  mediumUrl            String?
+  width                Int?
+  height               Int?
+  fileSize             Int?
+  mimeType             String?
+  location             String?
+  takenAt              DateTime?
+  status               String   @default("published")  // published / hidden / archived
+  originalPath         String?
+  thumbPath            String?
+  ecsThumbPath         String?
+  visibility           String   @default("private")    // public / friends / private
+  visibleTo            String?
+  reviewStatus         String   @default("pending")    // pending / approved / rejected
+  reviewNote           String?
+  reviewedBy           Int?
+  reviewedAt           DateTime?
+  uploadedBy           Int?
+  storageLocation      String   @default("local")      // 保留兼容，后续用 ecsSyncPolicy
+  ecsSyncPolicy        String   @default("local_only") // synced / local_only / pending / syncing
+  syncedAt             DateTime?
+  syncError            String?
+  checksum             String?
+  archivedAt           DateTime?
+  allowOriginalDownload Boolean @default(false)
+  suggestedTags        String?
+  suggestedLocation    String?
+  suggestedDescription String?
+  analysisStatus       String   @default("none")
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
+  albums               AlbumPhoto[]
+  tags                 PhotoTag[]
+}
+
+model Album {
+  id          Int      @id @default(autoincrement())
+  name        String   @unique
+  description String?
+  coverUrl    String?
+  visibility  String   @default("public")
+  visibleTo   String?
+  reviewStatus String  @default("approved")
+  createdAt   DateTime @default(now())
+  photos      AlbumPhoto[]
+}
+
+model AlbumPhoto {
+  id       Int @id @default(autoincrement())
+  photo    Photo @relation(fields: [photoId], references: [id], onDelete: Cascade)
+  photoId  Int
+  album    Album @relation(fields: [albumId], references: [id], onDelete: Cascade)
+  albumId  Int
+  order    Int @default(0)
+  @@unique([photoId, albumId])
+}
+
+model PhotoTag {
+  id      Int   @id @default(autoincrement())
+  photo   Photo @relation(fields: [photoId], references: [id], onDelete: Cascade)
+  photoId Int
+  name    String
+  @@unique([photoId, name])
+}
+
+model Portfolio {
+  id           Int      @id @default(autoincrement())
+  title        String
+  slug         String   @unique
+  description  String?
+  content      String?
+  coverImage   String?
+  images       String?
+  link         String?
+  tags         String?
+  category     String?
+  featured     Boolean  @default(false)
+  order        Int      @default(0)
+  status       String   @default("draft")
+  reviewStatus String   @default("approved")
+  createdBy    String   @default("owner")
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+}
+
+model AuditLog {
+  id           Int      @id @default(autoincrement())
+  userId       Int?
+  action       String
+  resourceType String
+  resourceId   String?
+  beforeJson   String?
+  afterJson    String?
+  accessSource String?
+  ip           String?
+  userAgent    String?
+  createdAt    DateTime @default(now())
+}
+
+model HermesSkill {
+  id          Int      @id @default(autoincrement())
+  name        String   @unique
+  category    String?
+  description String?
+  path        String
+  author      String?               // frontmatter author
+  project     String?               // frontmatter project (e.g. personal-website)
+  status      String   @default("new")
+  riskLevel   String   @default("low")
+  usageCount  Int      @default(0)
+  lastUsedAt  DateTime?
+  notes       String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  tags        HermesSkillTag[]
+}
+
+model HermesSkillTag {
+  id        Int      @id @default(autoincrement())
+  skillName String
+  tag       String                  // tag label, e.g. "优质", "项目专用", or any custom text
+  tagType   String   @default("custom") // preset / custom
+  createdAt DateTime @default(now())
+  skill     HermesSkill @relation(fields: [skillName], references: [name], onDelete: Cascade)
+  @@unique([skillName, tag])
+  @@index([tag])
+}
+
+model Job {
+  id        Int      @id @default(autoincrement())
+  type      String
+  status    String   @default("pending")
+  payload   String?
+  result    String?
+  createdBy Int?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}

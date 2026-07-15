@@ -1,0 +1,19 @@
+# frps.toml - frp Server Configuration (on ECS)
+# Place at: /opt/frp/frps.toml
+
+bindPort = 7000
+
+# Dashboard (optional, for monitoring)
+webServer.addr = "0.0.0.0"
+webServer.port = 7500
+webServer.user = "admin"
+webServer.password = "change-me"
+
+# Authentication
+auth.method = "token"
+auth.token = "change-me-to-random-string"
+
+# Logging
+log.to = "/var/log/frps.log"
+log.level = "info"
+log.maxDays = 7
