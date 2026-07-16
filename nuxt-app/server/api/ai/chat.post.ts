@@ -1,5 +1,5 @@
 import { requireLogin, canAccessAi, AI_LEVELS } from '~/server/utils/permission'
-import { getAiProvider, validateChatInput } from '~/server/services/ai-gateway'
+import { archiveConversationTurn, getAiProvider, validateChatInput } from '~/server/services/ai-gateway'
 import { prisma } from '~/server/utils/db'
 import { getRequestHeader } from 'h3'
 
@@ -77,6 +77,12 @@ export default defineEventHandler(async (event) => {
     prompt: prompt.trim(),
     conversationId,
   })
+
+  try {
+    await archiveConversationTurn(user.id, result.conversationId, prompt.trim(), result.response)
+  } catch (archiveError) {
+    console.error('[AI Chat] Conversation archive failed:', archiveError)
+  }
 
   // 6. Log to AuditLog
   try {

@@ -17,14 +17,14 @@ const LOCAL_THUMBNAILS_ROOT = '/mnt/data/personal-website/thumbnails'
 
 // ─── Sharp lazy import ──────────────────────────────────────────────────────
 
-let sharpModule: typeof import('sharp') | null = null
+let sharpModule: any = null
 let sharpAvailable: boolean | null = null
 
 async function getSharp() {
   if (sharpAvailable === false) return null
   if (sharpModule) return sharpModule
   try {
-    sharpModule = (await import('sharp')).default
+    sharpModule = (await import('sharp')).default as any
     sharpAvailable = true
     return sharpModule
   } catch {

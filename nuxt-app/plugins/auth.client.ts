@@ -16,15 +16,15 @@ export default defineNuxtPlugin(() => {
 
       const token = localStorage.getItem('token')
       if (token) {
-        if (!options.headers) {
-          options.headers = {}
-        }
-        if (options.headers instanceof Headers) {
+        const existingHeaders = options.headers as unknown
+        if (existingHeaders instanceof Headers) {
           const obj: Record<string, string> = {}
-          options.headers.forEach((v, k) => { obj[k] = v })
-          options.headers = obj
+          existingHeaders.forEach((v, k) => { obj[k] = v })
+          options.headers = obj as unknown as typeof options.headers
+        } else if (!existingHeaders) {
+          options.headers = {} as typeof options.headers
         }
-        ;(options.headers as Record<string, string>).Authorization = `Bearer ${token}`
+        ;(options.headers as unknown as Record<string, string>).Authorization = `Bearer ${token}`
       }
     },
     onResponseError({ response }) {

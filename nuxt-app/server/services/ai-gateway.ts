@@ -1,4 +1,6 @@
 // ─── AI Chat Gateway ──────────────────────────────────────────────────────────
+import { saveConversationMarkdown } from '~/server/services/content-pipeline'
+
 // Abstract AI provider interface + multiple implementations.
 // SECURITY: No shell access, no file system access, no API keys in code.
 // ─────────────────────────────────────────────────────────────────────────────
@@ -47,6 +49,25 @@ interface ConversationMessage {
 
 // In-memory conversation store (keyed by conversationId)
 const conversations = new Map<string, ConversationMessage[]>()
+
+export async function archiveConversationTurn(
+  userId: number,
+  conversationId: string,
+  prompt: string,
+  response: string,
+) {
+  let history = conversations.get(conversationId) || []
+  if (!history.length) {
+    history = [{ role: 'user', content: prompt }, { role: 'assistant', content: response }]
+  } else if (history[history.length - 1]?.content !== response) {
+    if (history[history.length - 1]?.content !== prompt) {
+      history.push({ role: 'user', content: prompt })
+    }
+    history.push({ role: 'assistant', content: response })
+  }
+  conversations.set(conversationId, history.slice(-20))
+  await saveConversationMarkdown(userId, conversationId, conversations.get(conversationId) || [])
+}
 
 class OpenAICompatibleProvider implements AiChatProvider {
   private apiKey: string

@@ -1,0 +1,8 @@
+name: fany-site
+channels:
+  - conda-forge
+dependencies:
+  - nodejs=22
+  - python=3.11
+  - sqlite
+  - pip

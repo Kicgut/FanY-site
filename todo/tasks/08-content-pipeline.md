@@ -1,5 +1,13 @@
 # Phase 8：Hermes 内容流水线
 
+## 当前状态
+
+`in_progress`
+
+Current implementation also includes inbox/raw processing, private AI conversation Markdown archives, a Job-backed processing endpoint, and an opt-in single-instance scheduler. A continuously running worker, multi-instance-safe external scheduling, full YAML frontmatter parsing, real-auth end-to-end testing, and final acceptance review remain outstanding.
+
+第一批已完成数据库候选模型、版本记录、审核状态机、发布为草稿和 AI 候选入口；原始对话归档、每日 Hermes 整理任务、Job worker、完整后台编辑与最终验收仍未完成。
+
 ## 1. 任务目标
 
 建立从 AI 对话、Markdown、纯文本到博客/作品集/知识库候选内容的生产流水线。Hermes 可以整理和生成候选内容，但不能自动公开发布。

@@ -73,6 +73,7 @@ model Photo {
   reviewedAt           DateTime?
   uploadedBy           Int?
   storageLocation      String   @default("local")      // 保留兼容，后续用 ecsSyncPolicy
+  syncStatus           String   @default("pending")
   ecsSyncPolicy        String   @default("local_only") // synced / local_only / pending / syncing
   syncedAt             DateTime?
   syncError            String?
@@ -188,7 +189,68 @@ model Job {
   status    String   @default("pending")
   payload   String?
   result    String?
+  error     String?
+  attempts  Int      @default(0)
+  startedAt DateTime?
+  finishedAt DateTime?
+  availableAt DateTime?
   createdBy Int?
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+}
+
+model ContentCandidate {
+  id                  Int      @id @default(autoincrement())
+  title               String
+  slug                String?
+  content             String
+  description         String?
+  contentType         String   @default("blog")
+  source              String   @default("manual")
+  status              String   @default("draft")
+  tagsJson            String?
+  sourceRef           String?
+  suggestedVisibility String   @default("private")
+  riskLevel           String   @default("low")
+  createdBy           Int?
+  reviewedBy          Int?
+  reviewNote          String?
+  publishedType       String?
+  publishedId         Int?
+  version             Int      @default(1)
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+  revisions           ContentRevision[]
+  publications        ContentPublication[]
+}
+
+model ContentRevision {
+  id           Int      @id @default(autoincrement())
+  candidateId  Int
+  version      Int
+  title        String
+  slug         String?
+  content      String
+  description  String?
+  tagsJson     String?
+  metadataJson String?
+  createdBy    Int?
+  createdAt    DateTime @default(now())
+  candidate    ContentCandidate @relation(fields: [candidateId], references: [id], onDelete: Cascade)
+  @@unique([candidateId, version])
+}
+
+model ContentPublication {
+  id           Int      @id @default(autoincrement())
+  candidateId  Int
+  targetType   String
+  targetId     Int
+  status       String   @default("draft")
+  publishedBy  Int?
+  publishedAt  DateTime?
+  unpublishedAt DateTime?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  candidate    ContentCandidate @relation(fields: [candidateId], references: [id], onDelete: Cascade)
+  @@unique([candidateId, targetType])
 }
