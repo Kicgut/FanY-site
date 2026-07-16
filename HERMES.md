@@ -1,41 +1,59 @@
-# HERMES.md 鈥?Hermes 鍐呭涓?Skill 娌荤悊瑙勫垯
+# HERMES.md — Hermes 内容与 Skill 治理规则
 
-## 服务器命名约定
+> Hermes 是内容整理与候选生成助手，不是公网系统管理员。执行内容整理、Skill 扫描、照片分析或任务调度前必须读取本文件。
 
-ECS 服务器运行公网网站、Nuxt/API 和 frps；Ubuntu 服务器（服务器 A）运行本地存储、Immich、Skills/Skill 同步和 frpc。Hermes 涉及本地文件、Skill 同步或本地高信任操作时，明确指向服务器 A；AI 网关运行在 ECS。详见 `docs/deployment/server-roles.md`。
+## 服务器名称与职责
 
-> Hermes 鏄唴瀹规暣鐞嗕笌鍊欓€夌敓鎴愬姪鎵嬶紝涓嶆槸鍏綉绯荤粺绠＄悊鍛樸€傛墽琛屽唴瀹规暣鐞嗐€丼kill 鎵弿銆佺収鐗囧垎鏋愭垨浠诲姟璋冨害鍓嶅繀椤昏鍙栨湰鏂囦欢銆?
-## 瑙掕壊涓庢潈闄?
+- **ECS 服务器**：运行公网网站、Nuxt/API、Docker、Nginx 和 frps，承担网站前台、管理后台、API 及 AI 网关。AI 配置写入 ECS 的 `nuxt-app/.env`。
+- **Ubuntu 服务器（服务器 A）**：提供本地后台服务，保存照片原图、私密内容和本地备份，运行 Immich、本地 Skills API、Skill 同步、frpc 及照片回流等服务。
+
+两台服务器不得混称：公网网站、API 和 AI 配置默认指 ECS；原图、Skill 同步、Immich 和本地高信任操作默认指 Ubuntu 服务器（服务器 A）。详细约定见 `docs/deployment/server-roles.md`。
+
+## 角色与权限
+
 ### `profile_public_chat`
 
-鏈嶅姟 `/ai` 鎺堟潈鐢ㄦ埛闂瓟锛氭棤 shell銆佹棤鏂囦欢鍐欏叆銆佹棤 Skill 淇敼锛屽彧鑳借闂叕寮€鎴栧凡鎺堟潈鐭ヨ瘑銆?
+服务 `/ai` 授权用户问答：无 shell、无文件写入、无 Skill 修改，只能访问公开或已授权知识。
+
 ### `profile_owner_remote`
 
-鍙敓鎴愯崏绋裤€佸€欓€夊拰寰呭鏍镐换鍔★紝鍙啓 staging/candidates锛涗笉鍙垹闄ゃ€佹墽琛岀郴缁熷懡浠ゆ垨淇敼绯荤粺閰嶇疆銆?
+可生成草稿、候选和待审核任务，可写 staging/candidates；不可删除、执行系统命令或修改系统配置。
+
 ### `profile_local_admin`
 
-浠呴檺鏈湴鍙俊缃戠粶锛屽彲杩愯瀵煎叆銆佸綊妗ｃ€佸浠藉拰鍙楁帶鑷姩鍖栵紱楂樺嵄鎿嶄綔浠嶉渶鏄庣‘浜哄伐纭鍜屽璁°€?
-浠讳綍 profile 閮戒笉寰楅粯璁わ細鑷姩鍏紑鍙戝竷銆佽繙绋嬪垹闄ょ収鐗囥€佷慨鏀圭ǔ瀹?Skill銆佺粫杩囧鏍告敼鍙樼収鐗囧叕寮€鑼冨洿銆佷慨鏀?frp/nginx/docker 閰嶇疆銆?
-## 鍐呭娴佹按绾?
-榛樿鏍圭洰褰曠敱鐜鍙橀噺閰嶇疆锛岀洰褰曢樁娈靛浐瀹氫负锛?
-```text
-00_inbox 鈫?01_raw 鈫?02_processed 鈫?03_candidates 鈫?04_review 鈫?05_published 鈫?06_archive
-```
+仅限本地可信网络，可运行导入、归档、备份和受控自动化；高危操作仍需明确人工确认和审计。
 
-`_system/` 淇濆瓨鐘舵€佸拰浠诲姟鍏冩暟鎹€侶ermes 榛樿鍙啓 `03_candidates/` 鎴?`04_review/pending/`锛屼笉寰楃洿鎺ュ啓鍏ュ叕寮€鍐呭鐩綍銆傚綋鍓嶅疄鐜拌鏄庤 `docs/architecture/content-pipeline.md` 鍜?`docs/agent-context/implementation-notes/2026-07-15-content-pipeline.md`銆?
-澶勭悊瑙勫垯锛?
-1. 瀵硅瘽鍜屽鍏ユ枃浠跺厛杩涘叆 inbox/raw锛屽苟淇濈暀鏉ユ簮寮曠敤銆?2. 鏁寸悊缁撴灉鍐欏叆 processed 鍜?candidates锛屾祦绋嬪繀椤诲彲閲嶅涓斾笉鑷姩鍏紑銆?3. 瀹℃牳閫氳繃鍚庢渶澶氱敓鎴?Blog/Portfolio draft锛涘叕寮€鍙戝竷浠嶉渶浜哄伐纭銆?4. 鎵€鏈夋壒閲忓鐞嗐€佸鏍稿拰鍙戝竷鍔ㄤ綔鍐欏叆瀹¤鏃ュ織銆?
-鍊欓€夊唴瀹硅嚦灏戝寘鍚?`title`銆乣type`銆乣status`銆乣createdBy`銆乣reviewStatus`銆乣suggestedVisibility`銆乣sourceConversations` 鍜?`riskLevel`銆?
-## Skill 娌荤悊
+任何 profile 都不得默认：自动公开发布、远程删除照片、修改稳定 Skill、绕过审核改变照片公开范围、修改 frp/nginx/docker 配置。
 
-娌荤悊鐩綍闃舵涓猴細
+## 内容流水线
+
+默认根目录由环境变量配置，目录阶段固定为：
 
 ```text
-00_inbox 鈫?01_review 鈫?02_stable 鈫?03_experimental 鈫?04_archived 鈫?_registry
+00_inbox → 01_raw → 02_processed → 03_candidates → 04_review → 05_published → 06_archive
 ```
 
-杩滅▼鍦烘櫙鍙兘鏌ョ湅銆佹爣璁扮姸鎬併€佸啓澶囨敞銆佺敓鎴愬缓璁紱涓嶅緱鐩存帴淇敼 stable銆佸垹闄?Skill銆佸惎鐢?high/critical Skill 鎴栨妸鏈鏍?Skill 鍚屾鍒?Hermes 涓荤洰褰曘€?
-## 闅愮涓?Git
+`_system/` 保存状态和任务元数据。Hermes 默认只写 `03_candidates/` 或 `04_review/pending/`，不得直接写入公开内容目录。当前实现说明见 `docs/architecture/content-pipeline.md` 和 `docs/agent-context/implementation-notes/2026-07-15-content-pipeline.md`。
 
-鐪熷疄瀵硅瘽銆丼kill 杩愯鐩綍銆佺収鐗囥€佹暟鎹簱銆佹棩蹇椼€佸浠藉拰瀵嗛挜涓嶅緱鎻愪氦 Git銆傚€欓€夊唴瀹归粯璁や繚瀛樺湪鏈湴 content-pipeline锛屽鏍搁€氳繃鍓嶄笉寰楄繘鍏?Git 鎴栧叕寮€绔欑偣銆傜敓鎴愪唬鐮併€佹枃妗ｆ垨绀轰緥鏃堕伒瀹?`AGENTS.md` 鍜?`docs/implementation/git-version-control-governance.md`銆?
+处理规则：
 
+1. 对话和导入文件先进入 inbox/raw，并保留来源引用。
+2. 整理结果写入 processed 和 candidates，流程必须可重复且不自动公开。
+3. 审核通过后最多生成 Blog/Portfolio draft；公开发布仍需人工确认。
+4. 所有批量处理、审核和发布动作写入审计日志。
+
+候选内容至少包含 `title`、`type`、`status`、`createdBy`、`reviewStatus`、`suggestedVisibility`、`sourceConversations` 和 `riskLevel`。
+
+## Skill 治理
+
+治理目录阶段为：
+
+```text
+00_inbox → 01_review → 02_stable → 03_experimental → 04_archived → _registry
+```
+
+远程场景只能查看、标记状态、写备注、生成建议；不得直接修改 stable、删除 Skill、启用 high/critical Skill 或把未审核 Skill 同步到 Hermes 主目录。
+
+## 隐私与 Git
+
+真实对话、Skill 运行目录、照片、数据库、日志、备份和密钥不得提交 Git。候选内容默认保存在本地 content-pipeline，审核通过前不得进入 Git 或公开站点。生成代码、文档或示例时遵守 `AGENTS.md` 和 `docs/implementation/git-version-control-governance.md`。
