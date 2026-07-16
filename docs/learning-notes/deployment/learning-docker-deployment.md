@@ -170,7 +170,7 @@ git push origin master
 ### 3.3 ECS：拉取代码
 
 ```bash
-ssh root@120.26.231.150
+ssh yyh-ecs
 cd /opt/personal-website
 git pull origin master
 ```
@@ -371,7 +371,7 @@ docker compose build        # 重新构建
 ```
 ┌─────────────────────────────────────────────┐
 │                ECS 服务器                     │
-│  120.26.231.150 (2C/1.6GB)                   │
+│  ECS (2C/1.6GB)                              │
 │                                              │
 │  ┌─────────────┐    ┌─────────────────────┐ │
 │  │    Nginx     │    │    Docker 容器       │ │
@@ -394,7 +394,7 @@ docker compose build        # 重新构建
 ```
 
 **请求流程**：
-1. 用户访问 `http://120.26.231.150`
+1. 用户访问 ECS 网站入口
 2. Nginx（端口 80）接收请求
 3. Nginx 转发到 `localhost:3000`
 4. Docker 容器里的 Nuxt 3 处理请求

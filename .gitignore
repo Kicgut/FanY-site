@@ -17,6 +17,7 @@ uploads/
 backups/
 logs/
 *.log
+*.tar.gz
 
 # === Hermes 运行时数据 ===
 .hermes/

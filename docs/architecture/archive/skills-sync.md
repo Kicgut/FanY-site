@@ -244,19 +244,19 @@ Skills 不显示时，按以下顺序排查：
 curl http://localhost:9800/
 
 # 2. frp 隧道是否连通？（从 ECS 测试）
-ssh root@120.26.231.150 "curl -s http://skills.local:7080/ | head -1"
+ssh yyh-ecs "curl -s http://skills.local:7080/ | head -1"
 
 # 3. 容器内能否访问？（需要 Host header）
-ssh root@120.26.231.150 "docker exec personal-website wget -q -O- http://skills.local:7080/ | head -1"
+ssh yyh-ecs "docker exec personal-website wget -q -O- http://skills.local:7080/ | head -1"
 
 # 4. 数据库有多少条？
-ssh root@120.26.231.150 "docker exec personal-website node -e \"
+ssh yyh-ecs "docker exec personal-website node -e \"
   const p = new (require(@prisma/client).PrismaClient)();
   p.hermesSkill.count().then(c => { console.log(c); p.\\\$disconnect(); });
 \""
 
 # 5. 手动触发同步
-curl -X POST http://120.26.231.150:3000/api/admin/skills/sync \
+curl -X POST http://<ECS_HOST>:3000/api/admin/skills/sync \
   -H "Authorization: Bearer <token>"
 ```
 

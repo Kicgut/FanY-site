@@ -158,7 +158,7 @@ echo '/swapfile none swap sw 0 0' >> /etc/fstab
 **解决方案**：SSH 反向隧道
 ```bash
 # 本地执行（让 ECS 通过本地代理访问 GitHub）
-ssh -R 17897:127.0.0.1:7897 root@120.26.231.150 -N -f
+ssh -R 17897:127.0.0.1:7897 yyh-ecs -N -f
 
 # ECS 上配置 git 代理
 git config --global http.proxy http://127.0.0.1:17897
@@ -353,13 +353,13 @@ model Article {
 ### 问题 4：frp 端口访问方式误解
 
 **时间**：2026-07-06 23:30
-**现象**：直接访问 `http://120.26.231.150:7080/api/articles` 返回 404
+**现象**：直接访问 ECS 的 `:7080/api/articles` 返回 404
 **原因**：7080 是 frp 内部端口，不对外暴露
 
 **正确的访问路径**：
 ```
-✓ http://120.26.231.150/api/articles        (通过 Nginx:80)
-✗ http://120.26.231.150:7080/api/articles   (frp 内部端口)
+✓ ECS `/api/articles`        (通过 Nginx:80)
+✗ ECS `:7080/api/articles`   (frp 内部端口)
 ```
 
 **架构理解**：

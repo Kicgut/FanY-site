@@ -13,6 +13,8 @@ tags:
 
 # 项目文档入口
 
+> 经常修改文档时，先阅读 [`documentation-guide.md`](documentation-guide.md)，其中说明目录职责、修改顺序和文档使用逻辑。
+
 ## 阅读顺序
 
 1. 根目录 `AGENTS.md`：所有代码代理的安全与项目边界。

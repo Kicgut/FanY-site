@@ -25,7 +25,7 @@ const { data, status, error, refresh } = await useAsyncData(
 )
 
 const currentUser = ref<{ id: number; username: string; role: string } | null>(null)
-const users = computed(() => data.value?.data ?? [])
+const users = computed(() => data.value?.data?.users ?? [])
 
 onMounted(() => {
   try {
@@ -77,12 +77,9 @@ async function handleSave() {
     return
   }
   try {
-    await authFetch('/api/admin/users', {
+    await authFetch(`/api/admin/users/${editUser.value.id}`, {
       method: 'PUT',
-      body: {
-        id: editUser.value.id,
-        ...editForm.value,
-      },
+      body: editForm.value,
     })
     ElMessage.success('用户已更新')
     editDialogVisible.value = false

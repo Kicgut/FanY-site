@@ -34,7 +34,7 @@ tags:
 │            │ 上传              │ 浏览              │                              │
 │            ▼                  ▼                   │                              │
 │  ┌─────────────────────────────────────────┐     │                              │
-│  │  ECS (120.26.231.150)                    │     │                              │
+│  │  ECS                                     │     │                              │
 │  │                                         │     │                              │
 │  │  ┌───────────┐    ┌──────────────────┐ │     │                              │
 │  │  │ Nginx :80 │───→│ Nuxt App :3000   │ │     │                              │
@@ -578,10 +578,10 @@ uploadedBy = 当前用户ID
 
 ```bash
 # 检查 ECS 容器状态
-ssh root@120.26.231.150 "docker ps | grep personal"
+ssh yyh-ecs "docker ps | grep personal"
 
 # 检查 API 是否可达
-curl http://120.26.231.150/api/photos/sync?action=stats
+curl http://<ECS_HOST>/api/photos/sync?action=stats
 ```
 
 ### 照片状态一直是 "syncing"

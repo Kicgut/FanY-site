@@ -1,3 +1,5 @@
+import { presentPhoto } from '~/server/utils/photo-presentation'
+
 export default defineEventHandler(async (event) => {
   try {
     const albums = await prisma.album.findMany({
@@ -25,17 +27,17 @@ export default defineEventHandler(async (event) => {
           .filter((ap) => ap.photo && ap.photo.visibility === 'public' && ap.photo.status === 'published' && ap.photo.reviewStatus === 'approved')
           .slice(0, 4)
 
+        const firstPhoto = publicPhotos[0]?.photo ? presentPhoto(publicPhotos[0].photo) : null
         return {
           id: album.id,
           name: album.name,
           description: album.description,
-          coverUrl: album.coverUrl || publicPhotos[0]?.photo?.thumbnailUrl || null,
-          photoCount: album._count.photos,
-          previewPhotos: publicPhotos.map((ap) => ({
-            id: ap.photo.id,
-            title: ap.photo.title,
-            thumbnailUrl: ap.photo.thumbnailUrl || ap.photo.mediumUrl || ap.photo.originalUrl,
-          })),
+          coverUrl: album.coverUrl || firstPhoto?.thumbnailUrl || firstPhoto?.mediumUrl || firstPhoto?.originalUrl || null,
+          photoCount: publicPhotos.length,
+          previewPhotos: publicPhotos.map((ap) => {
+            const photo = presentPhoto(ap.photo)
+            return { id: photo.id, title: photo.title, thumbnailUrl: photo.thumbnailUrl || photo.mediumUrl || photo.originalUrl }
+          }),
           createdAt: album.createdAt,
         }
       })

@@ -34,7 +34,7 @@ ECS = 轻量入口 + 公开内容展示（空间小 ~20GB）
                               │
                     ┌─────────┴─────────┐
                     │   ECS (入口服务器)   │
-                    │   120.26.231.150    │
+                    │   ECS              │
                     │   Ubuntu 22.04      │
                     │   2C / 1.6GB / ~20GB│
                     │                     │
@@ -739,43 +739,60 @@ status: published
 ### 11.1 架构
 
 ```
-ECS frp 客户端 ──────→ 本地 frp 服务端
-  (120.26.231.150)        (ASUS TUF, 内网IP)
+服务器 A frpc ──────→ ECS frps
+  (内网 Ubuntu)          (公网入口)
        │                       │
-       │   SSH 隧道            │
-       └───────────────────────┘
-
-frp 隧道映射：
-  ECS localhost:3001 → 本地 localhost:3001（照片服务）
-  ECS localhost:2222 → 本地 localhost:22  （SSH，可选）
+       └─ 服务器 A:22 → ECS:6022
+                               │
+本机 ssh yyh-ubuntu-a ─────────┘
+       │
+       └─ 通过 ECS:22 的 ProxyCommand 转发到 ECS:127.0.0.1:6022
 ```
 
-### 11.2 frp 服务端配置（本地）
+服务器 A 主动连接 ECS 建立 frp 隧道。ECS 的 `6022` 仅作为 frps 内部代理端口，当前不开放公网；本机先通过 SSH 密钥连接 ECS，再由 ECS 的 SSH 转发访问该端口。
 
-```ini
-# /opt/frp/frps.ini
-bindPort = 7000
-auth.token = "your-secure-token-here"
-```
+### 11.2 服务器 A 的 frpc 配置
 
-### 11.3 frp 客户端配置（ECS）
-
-```ini
-# /opt/frp/frpc.ini
-serverAddr = "127.0.0.1"
+```toml
+# /etc/frp/frpc.toml
+serverAddr = "<ECS_HOST>"
 serverPort = 7000
-auth.token = "your-secure-token-here"
+auth.method = "token"
+auth.token = "<FRP_TOKEN>"
 
 [[proxies]]
-name = "photo-server"
+name = "server-a-ssh"
 type = "tcp"
 localIP = "127.0.0.1"
-localPort = 3001
-remotePort = 3001
+localPort = 22
+remotePort = 6022
+transport.tls.enable = true
 ```
 
-> 注：ECS 的 frp 客户端通过之前建立的 SSH 反向隧道连接本地的 frp 服务端。
-> 或者直接在 ECS 上运行 frp 客户端，本地运行 frp 服务端（需要本地有公网 IP 或通过路由器端口转发）。
+### 11.3 本机 SSH 配置
+
+```sshconfig
+Host yyh-ubuntu-a
+  HostName 127.0.0.1
+  Port 6022
+  User aloof
+  IdentityFile ~/.ssh/yyh-ubuntu-a
+  IdentitiesOnly yes
+  ProxyCommand ssh yyh-ecs -W %h:%p
+```
+
+连接：
+
+```bash
+ssh yyh-ubuntu-a
+```
+
+备用的手动等价方式：
+
+```bash
+ssh -N -L 22022:127.0.0.1:6022 yyh-ecs
+ssh -i ~/.ssh/yyh-ubuntu-a aloof@127.0.0.1 -p 22022
+```
 
 ---
 

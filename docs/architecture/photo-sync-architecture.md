@@ -368,10 +368,10 @@ cd /mnt/data/personal-website
 **解决**：
 ```bash
 # 检查 ECS 服务
-ssh root@120.26.231.150 "docker ps | grep personal"
+ssh yyh-ecs "docker ps | grep personal"
 
 # 检查 API
-curl http://120.26.231.150/api/photos/sync?action=stats
+curl http://<ECS_HOST>/api/photos/sync?action=stats
 ```
 
 ### 问题：照片状态一直是 "syncing"

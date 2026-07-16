@@ -1,4 +1,5 @@
 import { getRequestUser, getAccessOrigin, ROLES } from '~/server/utils/permission'
+import { presentPhoto } from '~/server/utils/photo-presentation'
 
 export default defineEventHandler(async (event) => {
   const id = Number(getRouterParam(event, 'id'))
@@ -50,7 +51,7 @@ export default defineEventHandler(async (event) => {
       if (p.visibility === 'private' && p.uploadedBy === user.id) return true
       return false
     })
-    .map((ap) => ({
+    .map((ap) => presentPhoto({
       id: ap.photo.id,
       title: ap.photo.title,
       description: ap.photo.description,
@@ -61,6 +62,9 @@ export default defineEventHandler(async (event) => {
       width: ap.photo.width,
       height: ap.photo.height,
       tags: ap.photo.tags,
+      originalPath: ap.photo.originalPath,
+      thumbPath: ap.photo.thumbPath,
+      ecsThumbPath: ap.photo.ecsThumbPath,
     }))
 
   return {
@@ -70,7 +74,7 @@ export default defineEventHandler(async (event) => {
         id: album.id,
         name: album.name,
         description: album.description,
-        coverUrl: album.coverUrl,
+        coverUrl: album.coverUrl || photos[0]?.thumbnailUrl || photos[0]?.mediumUrl || null,
         visibility: album.visibility,
       },
       photos,

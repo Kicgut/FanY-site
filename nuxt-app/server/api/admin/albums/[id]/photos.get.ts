@@ -35,12 +35,10 @@ export default defineEventHandler(async (event) => {
 
   return {
     success: true,
-    data: {
-      album: { id: album.id, name: album.name, description: album.description, visibility: album.visibility, coverUrl: album.coverUrl },
-      photos: albumPhotos.map((ap) => ({ ...ap.photo, albumOrder: ap.order })),
-      total,
-      page,
-      limit,
-    },
+    album: { id: album.id, name: album.name, description: album.description, visibility: album.visibility, coverUrl: album.coverUrl, photoCount: total },
+    photos: albumPhotos.map((ap) => ({ ...ap.photo, albumOrder: ap.order })),
+    total,
+    page,
+    limit,
   }
 })

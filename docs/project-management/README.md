@@ -28,6 +28,7 @@ tags:
 ## 相关入口
 
 - 总文档入口：`../README.md`
+- 文档使用指南：`../documentation-guide.md`
 - 任务总索引：`tasks/00-task-index.md`
 - 目标方案索引：`plans/00-index.md`
 - 环境部署：`../deployment/development-environment.md`

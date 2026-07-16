@@ -26,6 +26,8 @@ tags:
 /login
 ```
 
+说明：`/portfolio` 是富文本作品内容；`/albums` 才是照片相册。两者分别使用 `/api/portfolio` 和 `/api/albums/public`。
+
 ## 2. Logged-in user
 
 ```text
@@ -61,6 +63,7 @@ tags:
 - `/friends/*`：登录。
 - `/upload`：登录 + quota 未超限。
 - `/admin/*`：owner/admin。
+- `/admin/photos`：照片资产管理；不存在时应先检查 Nuxt 路由/API，而不是把 404 归因于 FRP。
 - 本地高危操作按钮：只有 local_trusted 显示可操作。
 
 ## 5. 待审核页面

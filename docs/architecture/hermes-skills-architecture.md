@@ -28,7 +28,7 @@ Hermes Skills 是 Hermes Agent 的可复用技能库。每个 Skill 是一个 `S
 ## 整体架构
 
 ```
-本地服务器 (ASUS TUF, Ubuntu)                    ECS (阿里云, 120.26.231.150)
+本地服务器 (ASUS TUF, Ubuntu)                    ECS (阿里云)
 ┌──────────────────────────────────────┐        ┌──────────────────────────────────────┐
 │                                      │        │                                      │
 │  ~/.hermes/skills/                   │        │  Docker: personal-website            │

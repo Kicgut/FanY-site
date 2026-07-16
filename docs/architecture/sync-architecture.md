@@ -35,7 +35,7 @@ tags:
                                                           │
 ┌─────────────────────────────────────────────────────────┼───────────┐
 │                       阿里云 ECS                            │           │
-│                       120.26.231.150 / Ubuntu 22.04        │           │
+│                       ECS / Ubuntu 22.04                  │           │
 │                                                             │           │
 │  ┌──────────────────┐  ┌──────────────────────────────────┘           │
 │  │ frps :7000       │←←│ frp server                                    │
@@ -83,11 +83,11 @@ tags:
 
 ```toml
 # ~/.config/frp/frpc.toml
-serverAddr = "120.26.231.150"
+serverAddr = "<ECS_HOST>"
 serverPort = 7000
 
 auth.method = "token"
-auth.token = "HDgVMX3P1aL28oXR4FQp7bXzYhEnxYvQertw64FPq28"
+auth.token = "<FRP_TOKEN>"
 
 [[proxies]]
 name = "skills-api"
@@ -102,6 +102,14 @@ type = "http"
 localIP = "127.0.0.1"
 localPort = 3000
 customDomains = ["local.localhost"]
+
+[[proxies]]
+name = "server-a-ssh"
+type = "tcp"
+localIP = "127.0.0.1"
+localPort = 22
+remotePort = 6022
+transport.tls.enable = true
 ```
 
 ### frps (ECS)
@@ -127,6 +135,22 @@ services:
 **关键点**: Docker 容器内无法直接解析 `skills.local`，需要 `extra_hosts` 映射到宿主机网关。
 frps 根据 HTTP `Host: skills.local` 头进行 vhost 路由。
 
+### 服务器 A SSH 访问
+
+服务器 A 没有公网地址，通过 frpc 将 `127.0.0.1:22` 映射到 ECS 的内部代理端口 `6022`。本机通过 ECS 的 SSH `ProxyCommand` 访问：
+
+```bash
+ssh yyh-ubuntu-a
+```
+
+本机 `~/.ssh/config` 中的 `yyh-ubuntu-a` 使用服务器 A 专用密钥，并执行：
+
+```sshconfig
+ProxyCommand ssh yyh-ecs -W %h:%p
+```
+
+公网 `6022` 不应加入安全组；只有 ECS SSH 连接本身作为入口。服务器 A 使用用户 `aloof`，关闭密码认证和 root 登录。
+
 ## 部署流程
 
 ```
@@ -142,7 +166,7 @@ frps 根据 HTTP `Host: skills.local` 头进行 vhost 路由。
     │
     ├→ ECS: docker load + docker compose up -d
     │
-    └→ 验证: curl http://120.26.231.150:3000
+    └→ 验证: curl http://<ECS_HOST>:3000
 ```
 
 **注意**: ECS 内存仅 1.6GB，无法在 ECS 上构建 Docker 镜像，必须本地 build 后上传。

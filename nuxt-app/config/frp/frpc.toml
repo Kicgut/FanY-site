@@ -1,20 +1,21 @@
 # frpc.toml - frp Client Configuration (on local machine)
 # Place at: ~/.config/frp/frpc.toml or wherever frp is installed
 
-serverAddr = "120.26.231.150"
+serverAddr = "<ECS_HOST>"
 serverPort = 7000
 
 # Authentication (must match frps)
 auth.method = "token"
 auth.token = "change-me-to-random-string"
 
-# Tunnel: SSH access
+# Tunnel: SSH access to server A (use through ECS SSH forwarding)
 [[proxies]]
-name = "ssh"
+name = "server-a-ssh"
 type = "tcp"
 localIP = "127.0.0.1"
 localPort = 22
-remotePort = 6000
+remotePort = 6022
+transport.tls.enable = true
 
 # Tunnel: Local web service (e.g., development server)
 [[proxies]]

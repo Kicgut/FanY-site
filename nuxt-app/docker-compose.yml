@@ -11,6 +11,11 @@ services:
       - NODE_ENV=production
       - DATABASE_URL=file:/app/data/prod.db
       - JWT_SECRET=${JWT_SECRET:-change-me-in-production}
+      - AI_PROVIDER=${AI_PROVIDER:-mock}
+      - AI_API_KEY=${AI_API_KEY:-}
+      - AI_BASE_URL=${AI_BASE_URL:-}
+      - AI_MODEL=${AI_MODEL:-}
+      - AI_MAX_TOKENS=${AI_MAX_TOKENS:-2048}
       - HOST=0.0.0.0
       - PORT=3000
     volumes:

@@ -372,16 +372,16 @@ export const PHOTO_SYNC_STATUS = {
 
 ```bash
 # 1. 标记为正在同步
-curl -X POST http://120.26.231.150/api/photos/backflow \
+curl -X POST http://<ECS_HOST>/api/photos/backflow \
   -H "Content-Type: application/json" \
   -d '{"action": "backflow-single", "photoId": 1}'
 
 # 2. 手动复制文件
-ssh root@120.26.231.150 "docker cp personal-website:/app/data/photos/private/2026-07/uuid1_original.jpg /tmp/"
-scp root@120.26.231.150:/tmp/uuid1_original.jpg /mnt/data/personal-website/photos/private/2026-07/
+ssh yyh-ecs "docker cp personal-website:/app/data/photos/private/2026-07/uuid1_original.jpg /tmp/"
+scp yyh-ecs:/tmp/uuid1_original.jpg /mnt/data/personal-website/photos/private/2026-07/
 
 # 3. 标记完成
-curl -X POST http://120.26.231.150/api/photos/backflow/complete \
+curl -X POST http://<ECS_HOST>/api/photos/backflow/complete \
   -H "Content-Type: application/json" \
   -d '{"photoId": 1, "localPath": "/mnt/data/personal-website/photos/private/2026-07/uuid1_original.jpg"}'
 ```
@@ -397,10 +397,10 @@ curl -X POST http://120.26.231.150/api/photos/backflow/complete \
 **解决**：
 ```bash
 # 检查 ECS 服务
-ssh root@120.26.231.150 "docker ps | grep personal"
+ssh yyh-ecs "docker ps | grep personal"
 
 # 检查 API
-curl http://120.26.231.150/api/photos/backflow?action=stats
+curl http://<ECS_HOST>/api/photos/backflow?action=stats
 ```
 
 ### 问题：照片状态一直是 "syncing"

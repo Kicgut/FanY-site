@@ -152,7 +152,7 @@ tags:
 ```
 
 **注意**：
-- 通过 Nginx 80 端口访问：`http://120.26.231.150/api/articles?export=md`
+- 通过 Nginx 80 端口访问 ECS：`/api/articles?export=md`
 - 不要直接访问 frp 端口 7080
 
 ---
@@ -177,7 +177,7 @@ tags:
 - 生成 MD 备份（所有状态都写，不只是 published）
 
 **访问方式**：
-- 后台管理：`http://120.26.231.150/admin/blog/new`
+- 后台管理：ECS `/admin/blog/new`
 - 本地浏览器和手机浏览器完全相同，无区别
 
 ---
@@ -303,10 +303,10 @@ sudo docker build -t personal-website:latest .
 sudo docker save personal-website:latest | gzip > /tmp/personal-website-latest.tar.gz
 
 # 5. 上传到 ECS
-scp /tmp/personal-website-latest.tar.gz root@120.26.231.150:/tmp/
+scp /tmp/personal-website-latest.tar.gz yyh-ecs:/tmp/
 
 # 6. ECS 上加载并重启
-ssh root@120.26.231.150 "docker load < /tmp/personal-website-latest.tar.gz && \
+ssh yyh-ecs "docker load < /tmp/personal-website-latest.tar.gz && \
   docker tag personal-website:latest personal-website:v3 && \
   docker rm -f personal-website && \
   cd /opt/personal-website && docker compose up -d"
@@ -354,7 +354,7 @@ ECS:80 (Nginx)
 **重要**：
 - 所有 API 通过 Nginx 80 端口访问
 - frp 端口 7080 是内部端口，不对外暴露
-- 测试 URL：`http://120.26.231.150/api/articles`
+- 测试 URL：ECS `/api/articles`
 
 ---
 
@@ -370,7 +370,7 @@ ls /mnt/data/personal-website/docs/new-folder/
 ./scripts/import-blogs.sh ./docs/new-folder
 
 # 3. 验证
-curl -s "http://120.26.231.150/api/articles" | jq '.total'
+curl -s "http://<ECS_HOST>/api/articles" | jq '.total'
 ```
 
 ### 7.2 导出所有博客为冷存储
@@ -388,7 +388,7 @@ cat ./blog-cold-storage/$(date +%Y-%m)/export-report.md
 
 ### 7.3 从后台创建博客
 
-1. 访问 `http://120.26.231.150/admin/blog/new`
+1. 访问 ECS `/admin/blog/new`
 2. 填写标题、内容、标签
 3. 选择状态（draft/published）
 4. 点击"创建文章"
@@ -414,8 +414,8 @@ cat ./blog-cold-storage/$(date +%Y-%m)/export-report.md
 **解决**：
 ```bash
 # 检查 ECS 服务状态
-ssh root@120.26.231.150 "docker ps | grep personal"
-ssh root@120.26.231.150 "systemctl status nginx"
+ssh yyh-ecs "docker ps | grep personal"
+ssh yyh-ecs "systemctl status nginx"
 ```
 
 ### 问题：导入时提示 "Article already exists"
@@ -433,10 +433,10 @@ ssh root@120.26.231.150 "systemctl status nginx"
 **解决**：
 ```bash
 # 查看日志
-ssh root@120.26.231.150 "docker logs personal-website"
+ssh yyh-ecs "docker logs personal-website"
 
 # 强制重建
-ssh root@120.26.231.150 "docker rm -f personal-website && cd /opt/personal-website && docker compose up -d"
+ssh yyh-ecs "docker rm -f personal-website && cd /opt/personal-website && docker compose up -d"
 ```
 
 ---
