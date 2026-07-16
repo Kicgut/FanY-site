@@ -1,10 +1,11 @@
----
+﻿---
 title: "frp 隧道配置详解"
-created: 2026-07-16
-updated: 2026-07-16
+created: 2026-07-16 00:00
+updated: 2026-07-15 23:29
 status: final
 purpose: "详细说明 frp 隧道的工作原理、配置方式和使用场景"
 scope: "部署与运维"
+related: []
 tags:
   - frp
   - 隧道
@@ -230,5 +231,5 @@ curl http://local.localhost
 ## 相关文档
 
 - [部署进度](deployment-progress.md)
-- [Docker 部署学习笔记](learning-docker-deployment.md)
-- [照片回流架构](photo-backflow-architecture.md)
+- [Docker 部署学习笔记](../learning-notes/deployment/learning-docker-deployment.md)
+- [照片回流架构](../architecture/photo-backflow-architecture.md)

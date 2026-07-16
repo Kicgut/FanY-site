@@ -1,10 +1,11 @@
----
+﻿---
 title: "待办/改进清单（Backlog）"
-created: 2026-07-04
-updated: 2026-07-04
-status: final
+created: 2026-07-04 00:00
+updated: 2026-07-15 23:29
+status: active
 purpose: "> 每个小阶段发现的不完善或未实现的功能增量追加。"
 scope: "全阶段"
+related: []
 tags:
   - project-management
 ---

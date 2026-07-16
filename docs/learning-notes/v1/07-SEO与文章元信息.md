@@ -1,10 +1,11 @@
----
+﻿---
 title: "阶段 2.4 — SEO 与文章元信息"
-created: 2026-07-04
-updated: 2026-07-04
+created: 2026-07-04 00:00
+updated: 2026-07-15 23:29
 status: archived
 purpose: "- ✅ useHead() 动态设置页面标题"
 scope: "v1 阶段"
+related: []
 tags:
   - learning-notes
 ---

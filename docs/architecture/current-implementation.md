@@ -1,10 +1,11 @@
----
+﻿---
 title: "现有项目技术分析"
-created: 2026-07-05
-updated: 2026-07-05
+created: 2026-07-05 00:00
+updated: 2026-07-15 23:29
 status: final
 purpose: "> 📅 分析日期：2026-07-04"
 scope: "全阶段"
+related: []
 tags:
   - architecture
 ---

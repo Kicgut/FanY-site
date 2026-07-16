@@ -1,10 +1,11 @@
----
+﻿---
 title: "架构升级方案 —— 照片服务 + 数据备份 + 资源管理"
-created: 2026-07-04
-updated: 2026-07-04
+created: 2026-07-04 00:00
+updated: 2026-07-15 23:29
 status: final
 purpose: "文档: architecture/architecture.md"
 scope: "全阶段"
+related: []
 tags:
   - architecture
 ---

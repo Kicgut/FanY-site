@@ -1,12 +1,12 @@
----
+﻿---
 title: "Hermes Skills 系统架构"
-created: 2026-07-08
-updated: 2026-07-08
+created: 2026-07-08 00:00
+updated: 2026-07-15 23:29
 status: final
 purpose: "Hermes Skills 的完整架构文档：数据流、存储、API、前端页面、踩坑记录"
 scope: "全阶段"
 related:
-  - path: "architecture/skills-sync.md"
+  - path: "archive/skills-sync.md"
     relation: "supersedes"
 tags:
   - architecture

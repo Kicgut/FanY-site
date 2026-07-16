@@ -1,10 +1,11 @@
----
+﻿---
 title: "阶段 2.1 — Nuxt Content 与 Markdown 基础"
-created: 2026-07-04
-updated: 2026-07-04
+created: 2026-07-04 00:00
+updated: 2026-07-15 23:29
 status: archived
 purpose: "- ✅ @nuxt/content v3.15.0 安装配置"
 scope: "v1 阶段"
+related: []
 tags:
   - learning-notes
 ---

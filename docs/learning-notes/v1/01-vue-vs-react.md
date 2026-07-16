@@ -1,10 +1,11 @@
----
+﻿---
 title: "Vue vs React 详细对比 —— 从零理解两大前端框架"
-created: 2026-07-04
-updated: 2026-07-04
+created: 2026-07-04 00:00
+updated: 2026-07-15 23:29
 status: archived
 purpose: "Vue 和 React 都是 **前端 UI 框架/库**，用来解决同一个问题："
 scope: "v1 阶段"
+related: []
 tags:
   - learning-notes
 ---

@@ -1,10 +1,11 @@
----
+﻿---
 title: "28 小阶段详细规划（教学 + 实战）"
-created: 2026-07-04
-updated: 2026-07-04
+created: 2026-07-04 00:00
+updated: 2026-07-15 23:29
 status: archived
 purpose: "> 每个小阶段 = 一个独立可交付的里程碑 + 对应的知识教学"
 scope: "全阶段"
+related: []
 tags:
   - project-management
 ---

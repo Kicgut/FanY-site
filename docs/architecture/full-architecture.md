@@ -1,10 +1,11 @@
----
+﻿---
 title: "个人网站 + 照片服务 —— 完整架构与计划"
-created: 2026-07-04
-updated: 2026-07-04
+created: 2026-07-04 00:00
+updated: 2026-07-15 23:29
 status: final
 purpose: "```"
 scope: "全阶段"
+related: []
 tags:
   - architecture
 ---

@@ -1,3 +1,14 @@
+﻿---
+title: "Development and verification environment"
+created: 2026-07-15 23:29
+updated: 2026-07-15 23:29
+status: final
+purpose: "项目架构、设计、实现或运维参考文档。"
+scope: "全项目"
+related: []
+tags:
+  - deployment
+---
 # Development and verification environment
 
 The project runtime is the Nuxt application under `nuxt-app/`. Use the Conda environment in the repository root to keep the Node, Python, and SQLite toolchain consistent across machines.

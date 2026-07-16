@@ -1,10 +1,11 @@
----
+﻿---
 title: "阶段 3.2 — API 路由与 CRUD 接口"
-created: 2026-07-04
-updated: 2026-07-04
+created: 2026-07-04 00:00
+updated: 2026-07-15 23:29
 status: archived
 purpose: "- ✅ GET /api/articles（列表+筛选+分页）"
 scope: "v1 阶段"
+related: []
 tags:
   - learning-notes
 ---

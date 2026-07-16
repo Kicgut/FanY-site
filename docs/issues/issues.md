@@ -1,10 +1,11 @@
----
+﻿---
 title: "踩坑日志（问题记录）"
-created: 2026-07-07
-updated: 2026-07-07
+created: 2026-07-07 00:00
+updated: 2026-07-15 23:29
 status: final
 purpose: "> 每个小阶段遇到的问题增量追加，通用性高的问题写详细，后续阶段可按需查阅。"
 scope: "全阶段"
+related: []
 tags:
   - issues
 ---

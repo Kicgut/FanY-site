@@ -1,10 +1,11 @@
----
+﻿---
 title: "阶段 2.3 — 文章详情页与 Markdown 渲染"
-created: 2026-07-04
-updated: 2026-07-04
+created: 2026-07-04 00:00
+updated: 2026-07-15 23:29
 status: archived
 purpose: "- ✅ pages/blog/[...slug].vue 动态路由"
 scope: "v1 阶段"
+related: []
 tags:
   - learning-notes
 ---

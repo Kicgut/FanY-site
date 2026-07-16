@@ -1,3 +1,14 @@
+﻿---
+title: "Content Pipeline implementation note"
+created: 2026-07-15 23:29
+updated: 2026-07-15 23:29
+status: final
+purpose: "项目架构、设计、实现或运维参考文档。"
+scope: "全项目"
+related: []
+tags:
+  - agent-context
+---
 # Content Pipeline implementation note
 
 ## Scope

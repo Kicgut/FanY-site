@@ -1,10 +1,11 @@
----
+﻿---
 title: "照片系统全架构：导入、回流、同步与展示"
-created: 2026-07-07
-updated: 2026-07-07
+created: 2026-07-07 00:00
+updated: 2026-07-15 23:29
 status: final
 purpose: "> 📅 创建日期：2026-07-07"
 scope: "全阶段"
+related: []
 tags:
   - architecture
 ---
@@ -13,7 +14,7 @@ tags:
 
 > 📅 创建日期：2026-07-07
 > 🎯 用途：一站式了解照片从上传到展示的完整生命周期，涵盖 ECS 与本地服务器之间的所有数据流
-> 📎 关联文档：`deployment/photo-sync-architecture.md`（同步细节）、`deployment/photo-backflow-architecture.md`（回流细节）
+> 📎 关联文档：`photo-sync-architecture.md`（同步细节）、`photo-backflow-architecture.md`（回流细节）
 
 ---
 

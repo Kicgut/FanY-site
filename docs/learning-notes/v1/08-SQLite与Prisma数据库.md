@@ -1,10 +1,11 @@
----
+﻿---
 title: "阶段 3.1 — SQLite + Prisma 数据库基础"
-created: 2026-07-04
-updated: 2026-07-04
+created: 2026-07-04 00:00
+updated: 2026-07-15 23:29
 status: archived
 purpose: "- ✅ Prisma 7 + SQLite 安装配置"
 scope: "v1 阶段"
+related: []
 tags:
   - learning-notes
 ---

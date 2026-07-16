@@ -1,50 +1,47 @@
----
-title: "📚 个人网站项目 —— 文档索引"
-created: 2026-07-04
-updated: 2026-07-04
-status: final
-purpose: "基于 Nuxt 3 + Vue 3 的个人网站 + 照片服务，部署在阿里云 ECS（2核2G/30GB）+ 本地服务器。"
-scope: "全阶段"
+﻿---
+title: "当前项目计划与文档导航"
+created: 2026-07-04 00:00
+updated: 2026-07-15 23:29
+status: active
+purpose: "提供当前项目状态、下一步工作和文档入口；不重复维护具体架构细节。"
+scope: "全项目"
+related:
+  - path: "README.md"
+    relation: "index"
+  - path: "tasks/00-task-index.md"
+    relation: "execution-plan"
+  - path: "plans/00-index.md"
+    relation: "target-design"
 tags:
   - project-management
+  - roadmap
 ---
 
-# 📚 个人网站项目 —— 文档索引
+# 当前项目计划与文档导航
 
-## 项目
+## 当前事实
 
-基于 Nuxt 3 + Vue 3 的个人网站 + 照片服务，部署在阿里云 ECS（2核2G/30GB）+ 本地服务器。
+- Nuxt 3、Vue 3、TypeScript、Prisma、SQLite 和 JWT 主体已在 `nuxt-app/` 中运行。
+- 内容流水线已完成候选、审核、草稿投影、AI 归档、inbox/raw 处理和 Job API；限制见 `../architecture/content-pipeline.md`。
+- Conda 部署环境见 `../deployment/development-environment.md`，环境文件为根目录 `environment.yml`。
+- 任务 13、14 仍未开始；Phase 8 仍需真实认证端到端验收和多实例调度方案。
 
-## 文档导航
+## 下一步顺序
 
-| 文档 | 说明 |
-|------|------|
-| [完整架构与计划](full-architecture.md) | ⭐ **从这里开始** —— 架构图、技术栈、全部计划 |
-| [系统架构详解](architecture.md) | 混合部署方案、带宽分析、方案对比 |
-| [存储与带宽方案](storage-bandwidth-plan.md) | 30GB 分配、分层存储、图片优化 |
-| [Vue vs React](learning-notes/01-vue-vs-react.md) | 学习笔记 01 |
+1. 完成照片状态与 ECS 同步策略：`tasks/13-photo-status-sync-policy.md`。
+2. 完成用户上传查看与重新提交：`tasks/14-user-upload-resubmit.md`。
+3. 执行 `tasks/12-final-integration-acceptance.md` 的整体验收。
+4. 将验收结果写入 `../agent-context/verification/`，并同步更新架构和任务文档。
 
-## 开发阶段
+## 文档入口
 
-| 阶段 | 内容 | 时间 | 状态 |
-|------|------|------|------|
-| ① 环境搭建 + 首页 | Nuxt 3 项目 + Element Plus + 首页 | Day 1-2 | ⏳ 待开始 |
-| ② 博客系统 | Nuxt Content + Markdown 博客 | Day 3-4 | ⏳ 待开始 |
-| ③ 后台管理 | SQLite + Prisma + JWT + 管理页面 | Day 5-7 | ⏳ 待开始 |
-| ④ 照片画廊 | 上传处理 + 画廊展示 + 筛选检索 | Day 8-10 | ⏳ 待开始 |
-| ⑤ Docker 容器化 | Dockerfile + Compose | Day 11-12 | ⏳ 待开始 |
-| ⑥ ECS 部署 | Docker + Nginx + 上线 | Day 13-15 | ⏳ 待开始 |
-| ⑦ 本地服务 + 备份 | frp + Immich + rsync | Day 16-18 | ⏳ 待开始 |
-
-## 技术栈速览
-
-```
-Nuxt 3 + Vue 3 + Element Plus + Tailwind CSS
-Nuxt Content (博客) + SQLite + Prisma (数据库)
-sharp (图片处理) + JWT (认证)
-Docker + Nginx + frp + rsync + Immich
-```
-
----
-
-*创建时间：2026-07-04*
+| 目的 | 入口 |
+| --- | --- |
+| 所有文档 | `../README.md` |
+| 当前架构 | `../architecture/` |
+| 设计规范 | `../design/` |
+| 实现和安全规范 | `../implementation/` |
+| 运维和部署 | `../operations/`、`../deployment/` |
+| 执行任务 | `tasks/` |
+| 目标方案 | `plans/` |
+| 待办项 | `backlog.md` |

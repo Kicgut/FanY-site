@@ -14,29 +14,27 @@ docker compose up -d
 
 ## 架构与 Agent 文档入口
 
-所有设计文档、任务拆分和执行规则位于 `todo/` 目录：
+所有设计文档、任务拆分和执行规则位于 [`docs/README.md`](docs/README.md)：
 
-- **阅读起点**：`todo/00-index.md`
-- **总体架构**：`todo/01-overall-architecture.md`
-- **任务拆分**：`todo/tasks/00-task-index.md`（12 个可执行阶段）
+- **阅读起点**：`docs/README.md`
+- **当前架构**：`docs/architecture/`
+- **任务拆分**：`docs/project-management/tasks/00-task-index.md`
 - **Agent 规则**：`AGENTS.md`（通用）、`HERMES.md`（Hermes）、`CODEX.md`（Codex）
 
 ### 文档目录
 
 ```
-todo/
-├── 00-index.md                    # 文档索引（从这里开始）
-├── 01-overall-architecture.md     # 总体架构设计
-├── 02-current-to-target-adjustments.md  # 现状→目标调整
-├── agent-context/                 # Agent 上下文
-├── architecture/                  # 架构文档（8 篇）
-├── design/                        # 设计文档（5 篇）
-├── implementation/                # 实施文档（5 篇）
-├── operations/                    # 运维文档（3 篇）
-└── tasks/                         # 可执行任务（12 阶段）
-    ├── 00-task-index.md           # 任务总索引
-    ├── 01 ~ 12                    # 各阶段任务文档
-    └── README.md                  # 任务目录说明
+docs/
+├── architecture/                   # 当前架构
+├── design/                         # 数据、API、页面与流程设计
+├── implementation/                 # 编码、安全、测试与 Git 规范
+├── operations/                     # 备份、监控、同步与恢复
+├── deployment/                     # 环境和部署操作手册
+├── project-management/tasks/       # 分阶段执行任务
+├── project-management/plans/       # 目标方案与未完成计划
+├── agent-context/                  # 决策、实现和验证记录
+├── learning-notes/                 # 学习和阶段复盘
+└── templates/                      # 文档模板
 ```
 
 ### 执行记录
@@ -58,7 +56,7 @@ todo/
 ```
 nuxt-app/          # Nuxt 3 主应用
 docs/              # 文档（按子目录分类）
-todo/              # V2 架构设计与任务
+docs/              # 架构、设计、实现、运维和项目管理文档
 config/            # 配置文件模板
 scripts/           # 运维脚本
 AGENTS.md          # Agent 通用规则

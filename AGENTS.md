@@ -1,97 +1,53 @@
-# AGENTS.md - 项目通用代码代理规则
+# AGENTS.md — 项目通用代理规则
 
-> 本文件放在项目根目录，供 Hermes、Codex、Claude Code、Cursor Agent 等代码代理优先读取。
+> 适用于 Codex、Hermes、Claude Code、Cursor Agent 及其他代码代理。先读本文件，再按任务读取 `CODEX.md`、`HERMES.md` 和 `docs/README.md`。
 
-## 1. 项目定位
+## 项目定位
 
-本项目不是普通个人网站，而是：
-
-```text
-个人公开网站 + 照片资产管理系统 + Hermes 内容生产中枢 + 私密内容安全网关
-```
+本项目由四部分组成：公开网站、照片资产管理、Hermes 内容生产中枢、私密内容安全网关。
 
 核心原则：
 
-1. 你本人优先，其次家人朋友，最后普通访客。
-2. ECS 只做轻量入口和公开展示，不长期保存大量原图。
-3. 本地服务器保存原图、私密内容、Hermes 主实例和最高权限操作。
-4. 公开内容、朋友内容、私人内容必须分层隔离。
-5. AI/Hermes 只能生成候选内容，不能默认直接公开发布。
-6. 远程 owner 登录也不是最高权限；本地可信访问才有最高破坏性权限。
+1. 公开、朋友、私人内容必须分层隔离。
+2. 本地服务器保存原图、私密内容、Hermes 主实例和最高权限操作；ECS 只承担入口和公开展示。
+3. AI/Hermes 只能生成候选内容，不能绕过人工审核自动公开。
+4. 远程 owner 不是最高权限；删除、shell、Skill 修改等破坏性操作必须要求 `local_trusted`。
 
-## 2. 当前技术栈
+## 权威文档与阅读顺序
 
-- Nuxt 3
-- Vue 3
-- TypeScript
-- Element Plus
-- Nuxt Content
-- Prisma
-- SQLite
-- JWT
-- Docker
-- Nginx
-- frp
-- Node.js
+- 文档入口和目录：`docs/README.md`
+- 当前架构：`docs/architecture/`
+- 设计、实现、运维规范：`docs/design/`、`docs/implementation/`、`docs/operations/`
+- 任务和未完成计划：`docs/project-management/tasks/`、`docs/project-management/plans/`
+- Codex 专用约束：`CODEX.md`
+- Hermes 专用约束：`HERMES.md`
 
-## 3. 必须遵守的安全边界
+任务开始前先确认当前实现，再区分“已实现”“计划中”“历史记录”；不要把计划文档当作代码事实。
 
-任何代码代理不得实现以下行为，除非明确标注为“仅本地最高权限”并经过人工确认：
+## 安全边界
 
-- 从公网直接暴露 Hermes WebUI 的完整能力。
-- 允许远程执行 shell 命令。
-- 允许远程永久删除照片、冷存储文件或数据库。
-- 让 Hermes 自动修改已固化 skill 源文件。
-- 让 AI 生成内容后自动公开发布。
-- 让朋友上传内容后直接公开展示。
-- 绕过 Nuxt API 权限校验直接暴露 friends/private 原图路径。
-- 把真实 `.env`、JWT_SECRET、frp token、API key 写进仓库或文档。
+代理不得实现以下行为，除非明确标注为仅本地最高权限并获得人工确认：
 
-## 4. 权限模型原则
+- 公网暴露 Hermes WebUI 完整能力或远程执行 shell。
+- 远程永久删除照片、冷存储文件或数据库。
+- 自动修改稳定 Skill、系统配置或 frp/nginx/docker 配置。
+- AI 生成后自动公开发布，或让用户上传后直接公开展示。
+- 绕过 Nuxt API 权限校验暴露 friends/private 原图或元数据。
+- 将真实 `.env`、JWT_SECRET、frp token、API key、数据库、照片、对话、日志或备份写入 Git。
 
-所有敏感操作必须同时考虑：
+## 实现规则
 
-```text
-身份权限：user.role / user.groups
-访问来源：local_trusted / remote_owner / remote_user / public
-操作类型：view / upload / edit / publish / delete / execute
-```
+- 新 API 必须执行认证、权限校验、输入校验，并通过 service 层访问数据库或文件系统。
+- 文件路径只能由数据库 ID 或白名单根目录解析，必须防止 `..` 逃逸和 symlink 绕过。
+- 批量操作要支持 dry-run 或返回影响范围，并记录 audit log。
+- 照片、内容和 Skill 的状态流转必须显式，禁止隐式发布。
+- 新 Prisma 字段必须有 migration、验证方式和回滚说明。
+- 统一响应：成功为 `{ success: true, data }`，失败为 `{ success: false, code, message }`。
 
-高危操作必须要求 `local_trusted`。
+## 修改后的最低验证
 
-## 5. 代码生成规则
+根据风险选择并记录验证结果，至少覆盖：权限拒绝、越权隔离、待审核不公开、路径边界、批量审计日志；数据库修改还需执行 Prisma 校验和迁移验证，前端/服务修改还需执行类型检查与构建。
 
-- 所有新 API 必须有权限校验。
-- 所有文件路径必须从数据库或白名单根目录解析，禁止直接拼接用户输入。
-- 所有批量操作必须支持 dry-run 或至少返回影响范围。
-- 所有批量操作必须写 audit log。
-- 照片、内容、skill 的状态流转必须显式，不允许隐式发布。
-- 新增 Prisma 字段必须提供 migration 和回滚说明。
-- 新增后台页面必须说明用户能看到什么、能操作什么、不能操作什么。
-- 公开页面不得引用 private/friends 永久 URL。
-- Hermes 相关实现必须经过 gateway，不得直接从公网访问 Hermes 主进程。
+## Git 边界
 
-## 6. 代码风格
-
-- TypeScript 优先使用显式类型。
-- Server API 中抽出 service 层，不要把权限、数据库、文件操作全部写在 handler 中。
-- 统一错误格式：`{ success: false, code, message }`。
-- 统一成功格式：`{ success: true, data }`。
-- 状态字符串集中定义常量，避免散落硬编码。
-
-## 7. 验证要求
-
-每次修改至少检查：
-
-1. 未登录访问是否被拒绝。
-2. 普通用户是否不能越权访问 private/friends 内容。
-3. 远程 owner 是否不能执行本地最高权限操作。
-4. 待审核内容是否不会出现在公开页面。
-5. 公开照片是否只展示 `visibility=public && status=active && reviewStatus=approved`。
-6. friends 照片是否校验 `visibleTo`。
-7. 文件操作是否限制在允许目录下。
-8. 批量操作是否记录日志。
-
-## Git / GitHub 文件边界
-
-所有 Agent 在创建或修改文件后，必须参考 `docs/implementation/git-version-control-governance.md` 判断文件是否允许进入 Git。代码、文档、配置模板、迁移和测试应进入 Git；真实照片、真实数据库、真实 Hermes 对话、运行日志、密钥、`.env`、上传文件和冷存储内容不得进入 GitHub。
+代码、文档、配置模板、migration 和测试进入 Git；真实数据、密钥、运行时目录和备份不得进入 Git。提交前参考 `docs/implementation/git-version-control-governance.md`。
