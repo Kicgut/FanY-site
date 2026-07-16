@@ -196,6 +196,7 @@ useHead({ title: computed(() => album.value ? `管理 - ${album.value.name}` : '
     <el-tabs v-model="activeTab" class="album-tabs">
       <!-- Tab 1: Album Photos -->
       <el-tab-pane label="相册照片" name="album-photos">
+        <p class="tab-help">这里是已经属于当前相册的照片。点击“移除”只会解除相册关系，不会删除照片文件。</p>
         <div v-loading="albumPhotosStatus === 'pending'" class="photos-grid">
           <el-empty v-if="albumPhotosStatus !== 'pending' && albumPhotos.length === 0" description="相册中暂无照片" />
 
@@ -233,7 +234,8 @@ useHead({ title: computed(() => album.value ? `管理 - ${album.value.name}` : '
       </el-tab-pane>
 
       <!-- Tab 2: Photo Library -->
-      <el-tab-pane label="照片库" name="photo-library">
+      <el-tab-pane label="添加照片" name="photo-library">
+        <p class="tab-help">从全部照片中挑选素材加入当前相册；照片本身仍保留在照片库，可被多个相册复用。</p>
         <div class="library-toolbar">
           <el-input
             v-model="searchInputValue"
@@ -352,6 +354,7 @@ useHead({ title: computed(() => album.value ? `管理 - ${album.value.name}` : '
   border-radius: 10px;
   padding: 16px 20px;
 }
+.tab-help { margin: -2px 0 16px; color: #57606a; font-size: .86rem; line-height: 1.6; }
 
 /* Photos Grid */
 .photos-grid {

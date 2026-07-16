@@ -19,6 +19,11 @@ ECS_USER="root"
 ECS_CONTAINER="personal-website"
 API_BASE="http://120.26.231.150"
 LOCAL_PHOTOS_DIR="/mnt/data/personal-website/photos"
+PHOTO_BACKFLOW_TOKEN="${PHOTO_BACKFLOW_TOKEN:-}"
+BACKFLOW_AUTH_ARGS=()
+if [ -n "$PHOTO_BACKFLOW_TOKEN" ]; then
+  BACKFLOW_AUTH_ARGS=(-H "x-photo-backflow-token: ${PHOTO_BACKFLOW_TOKEN}")
+fi
 
 # 颜色
 GREEN='\033[0;32m'
@@ -45,7 +50,7 @@ check_deps() {
 # 显示统计
 show_stats() {
   log_info "正在获取回流统计..."
-  local response=$(curl -s "${API_BASE}/api/photos/backflow?action=stats")
+  local response=$(curl -s "${BACKFLOW_AUTH_ARGS[@]}" "${API_BASE}/api/photos/backflow?action=stats")
   local success=$(echo "$response" | jq -r '.success // false')
   
   if [ "$success" != "true" ]; then
@@ -64,7 +69,7 @@ show_stats() {
 # 重置失败的照片
 reset_failed() {
   log_info "正在重置失败的照片..."
-  local response=$(curl -s -X POST "${API_BASE}/api/photos/backflow" \
+  local response=$(curl -s -X POST "${BACKFLOW_AUTH_ARGS[@]}" "${API_BASE}/api/photos/backflow" \
     -H "Content-Type: application/json" \
     -d '{"action": "reset-failed"}')
   
@@ -81,7 +86,7 @@ reset_failed() {
 # 获取待回流照片列表
 get_pending_photos() {
   local limit=${1:-50}
-  curl -s "${API_BASE}/api/photos/backflow?limit=${limit}" | jq -r '.data.photos'
+  curl -s "${BACKFLOW_AUTH_ARGS[@]}" "${API_BASE}/api/photos/backflow?limit=${limit}" | jq -r '.data.photos'
 }
 
 # 从 ECS 复制原图到本地
@@ -121,7 +126,7 @@ mark_completed() {
   local photo_id=$1
   local local_path=$2
   
-  local response=$(curl -s -X POST "${API_BASE}/api/photos/backflow/complete" \
+  local response=$(curl -s -X POST "${BACKFLOW_AUTH_ARGS[@]}" "${API_BASE}/api/photos/backflow/complete" \
     -H "Content-Type: application/json" \
     -d "{\"photoId\": ${photo_id}, \"localPath\": \"${local_path}\"}")
   
@@ -139,7 +144,7 @@ mark_failed() {
   local photo_id=$1
   local error_msg=$2
   
-  curl -s -X POST "${API_BASE}/api/photos/backflow/fail" \
+  curl -s -X POST "${BACKFLOW_AUTH_ARGS[@]}" "${API_BASE}/api/photos/backflow/fail" \
     -H "Content-Type: application/json" \
     -d "{\"photoId\": ${photo_id}, \"error\": \"${error_msg}\"}" > /dev/null
 }
@@ -165,8 +170,8 @@ process_photo() {
   # 构建本地路径
   # ECS路径格式: /app/data/photos/{visibility}/{YYYY-MM}/{uuid}_original.jpg
   # 本地路径格式: /mnt/data/personal-website/photos/{visibility}/{YYYY-MM}/{uuid}_original.jpg
-  local relative_path=$(echo "$original_path" | sed 's|^/app/data/||')
-  local local_path="${LOCAL_PHOTOS_DIR}/${relative_path}"
+  local relative_path=$(echo "$original_path" | sed 's|^/app/public/uploads/photos/||; s|^/app/data/photos/||')
+  local local_path="${LOCAL_PHOTOS_DIR}/${visibility}/${relative_path}"
   
   # 从 ECS 复制原图
   if copy_original_from_ecs "$photo_id" "$original_path" "$local_path"; then

@@ -29,7 +29,7 @@ COPY . .
 RUN npx nuxt build
 
 # 清理：移除编译工具 + 开发依赖 + 缓存
-RUN apk del python3 make g++ sqlite-dev &&     pnpm prune --prod &&     pnpm store prune &&     rm -rf /tmp/* /app/.nuxt /app/node_modules/.cache /app/.data
+RUN apk del python3 make g++ sqlite-dev &&     pnpm prune --prod &&     rm -rf /tmp/* /app/.nuxt /app/node_modules/.cache /app/.data
 
 # 创建持久化目录
 RUN mkdir -p /app/data /app/public/uploads &&     chown -R node:node /app
@@ -45,5 +45,6 @@ EXPOSE 3000
 
 ENTRYPOINT ["/sbin/tini", "--"]
 COPY scripts/start.sh /app/start.sh
+RUN sed -i 's/\r$//' /app/start.sh
 
 CMD ["sh", "/app/start.sh"]

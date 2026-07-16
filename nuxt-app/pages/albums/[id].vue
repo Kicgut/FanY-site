@@ -35,6 +35,14 @@ const { data, pending, error } = await useFetch<AlbumResponse>(`/api/albums/publ
 
 const album = computed(() => data.value?.data?.album ?? null)
 const photos = computed(() => data.value?.data?.photos ?? [])
+const search = ref('')
+const selectedTag = ref('')
+const originalLoaded = ref(false)
+const tags = computed(() => [...new Set(photos.value.flatMap(p => p.tags?.map(t => t.name) ?? []))])
+const filteredPhotos = computed(() => photos.value.filter(p => {
+  const q = search.value.trim().toLowerCase()
+  return (!q || `${p.title} ${p.description ?? ''}`.toLowerCase().includes(q)) && (!selectedTag.value || p.tags?.some(t => t.name === selectedTag.value))
+}))
 
 // Lightbox
 const lightboxVisible = ref(false)
@@ -42,6 +50,7 @@ const currentPhoto = ref<Photo | null>(null)
 
 const openLightbox = (photo: Photo) => {
   currentPhoto.value = photo
+  originalLoaded.value = false
   lightboxVisible.value = true
 }
 
@@ -52,17 +61,17 @@ const closeLightbox = () => {
 
 const currentIndex = computed(() => {
   if (!currentPhoto.value) return -1
-  return photos.value.findIndex(p => p.id === currentPhoto.value!.id)
+  return filteredPhotos.value.findIndex(p => p.id === currentPhoto.value!.id)
 })
 
 const hasPrev = computed(() => currentIndex.value > 0)
-const hasNext = computed(() => currentIndex.value < photos.value.length - 1)
+const hasNext = computed(() => currentIndex.value < filteredPhotos.value.length - 1)
 
 const goPrev = () => {
-  if (hasPrev.value) currentPhoto.value = photos.value[currentIndex.value - 1]
+  if (hasPrev.value) currentPhoto.value = filteredPhotos.value[currentIndex.value - 1]
 }
 const goNext = () => {
-  if (hasNext.value) currentPhoto.value = photos.value[currentIndex.value + 1]
+  if (hasNext.value) currentPhoto.value = filteredPhotos.value[currentIndex.value + 1]
 }
 
 const handleKeydown = (e: KeyboardEvent) => {
@@ -122,7 +131,7 @@ useSeoMeta({
             <NuxtLink to="/albums" class="back-link">← 返回相册列表</NuxtLink>
             <h1 class="album-title">{{ album.name }}</h1>
             <p v-if="album.description" class="album-desc">{{ album.description }}</p>
-            <span class="album-count">{{ album.photoCount }} 张照片</span>
+            <div class="album-meta"><span class="album-count">{{ album.photoCount }} 张照片</span><span class="meta-dot">·</span><span>缩略图浏览，点击查看大图</span></div>
           </el-col>
         </el-row>
       </section>
@@ -130,17 +139,19 @@ useSeoMeta({
       <section class="photos-section">
         <el-row justify="center">
           <el-col :xs="24" :sm="22" :md="20" :lg="18">
+            <div class="photo-tools"><div class="photo-search">⌕<input v-model="search" placeholder="搜索照片标题或描述" /></div><el-select v-if="tags.length" v-model="selectedTag" clearable placeholder="按标签筛选" size="small"><el-option v-for="tag in tags" :key="tag" :label="tag" :value="tag" /></el-select><span class="result-count">{{ filteredPhotos.length }} 张</span></div>
             <el-empty v-if="photos.length === 0" description="相册中暂无照片" />
+            <el-empty v-else-if="filteredPhotos.length === 0" description="没有符合条件的照片" />
 
             <div v-else class="photo-grid">
               <div
-                v-for="photo in photos"
+                v-for="photo in filteredPhotos"
                 :key="photo.id"
                 class="photo-card"
                 @click="openLightbox(photo)"
               >
                 <img
-                  :src="photo.mediumUrl || photo.originalUrl"
+                  :src="photo.thumbnailUrl || photo.mediumUrl || photo.originalUrl"
                   :alt="photo.title"
                   loading="lazy"
                   class="photo-img"
@@ -181,10 +192,11 @@ useSeoMeta({
 
           <div class="lightbox-content">
             <img
-              :src="currentPhoto.originalUrl"
+              :src="originalLoaded ? currentPhoto.originalUrl : (currentPhoto.mediumUrl || currentPhoto.originalUrl)"
               :alt="currentPhoto.title"
               class="lightbox-img"
             />
+            <button v-if="!originalLoaded && currentPhoto.originalUrl !== currentPhoto.mediumUrl" class="original-button" @click="originalLoaded = true">加载原图</button>
             <div class="lightbox-info">
               <h3 class="lightbox-title">{{ currentPhoto.title }}</h3>
               <p v-if="currentPhoto.description" class="lightbox-desc">
@@ -220,7 +232,7 @@ useSeoMeta({
 /* Album Header */
 .album-header {
   padding: 40px 20px 32px;
-  background: linear-gradient(135deg, var(--color-primary-light) 0%, var(--color-bg) 100%);
+  background: radial-gradient(circle at 80% 10%, #d7c6a8 0, transparent 30%), var(--color-bg);
 }
 
 .back-link {
@@ -257,6 +269,13 @@ useSeoMeta({
   font-weight: 500;
 }
 
+.album-meta { display:flex; align-items:center; gap:10px; font-size:.82rem; color:var(--color-text-muted); }
+.meta-dot { color:var(--color-primary); }
+.photo-tools { display:flex; align-items:center; gap:10px; flex-wrap:wrap; margin-bottom:22px; }
+.photo-search { display:flex; align-items:center; gap:8px; flex:1; max-width:420px; padding:10px 12px; border:1px solid var(--color-border); border-radius:8px; background:#fff; color:var(--color-primary); }
+.photo-search input { flex:1; min-width:0; border:0; outline:0; background:transparent; }
+.result-count { margin-left:auto; font:12px var(--font-mono); color:var(--color-text-muted); }
+
 /* Photos Section */
 .photos-section {
   padding: 40px 20px 80px;
@@ -271,11 +290,11 @@ useSeoMeta({
 .photo-card {
   break-inside: avoid;
   margin-bottom: 16px;
-  border-radius: 10px;
+  border-radius: 4px;
   overflow: hidden;
   position: relative;
   cursor: pointer;
-  box-shadow: var(--shadow-light, 0 2px 8px rgba(0,0,0,0.06));
+  box-shadow: 0 1px 2px rgba(30,33,29,.08);
   transition: transform 0.25s ease, box-shadow 0.25s ease;
 }
 
@@ -333,7 +352,7 @@ useSeoMeta({
   position: fixed;
   inset: 0;
   z-index: 2000;
-  background: rgba(0, 0, 0, 0.88);
+  background: rgba(20, 23, 20, 0.94);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -408,6 +427,7 @@ useSeoMeta({
   color: rgba(255, 255, 255, 0.7);
   margin: 0;
 }
+.original-button { margin-top:10px; padding:7px 12px; border:1px solid rgba(255,255,255,.35); border-radius:6px; color:#fff; background:rgba(255,255,255,.12); cursor:pointer; font-size:12px; }
 
 /* Transitions */
 .lightbox-enter-active,

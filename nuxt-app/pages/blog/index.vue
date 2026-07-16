@@ -162,18 +162,21 @@ const clearFilter = () => {
 <style scoped>
 .page-wrapper {
   min-height: 80vh;
-  padding: var(--section-padding) 20px;
+  max-width: 980px;
+  margin: 0 auto;
+  padding: clamp(64px, 10vw, 120px) 24px;
 }
 
 .page-title {
   font-size: 2.2rem;
-  text-align: center;
+  text-align: left;
+  letter-spacing: -.07em;
   margin: 0 0 8px;
   color: var(--color-text);
 }
 
 .page-desc {
-  text-align: center;
+  text-align: left;
   color: var(--color-text-secondary);
   font-size: 1.05rem;
   margin: 0 0 32px;
@@ -183,7 +186,7 @@ const clearFilter = () => {
 .tags-filter {
   display: flex;
   flex-wrap: wrap;
-  justify-content: center;
+  justify-content: flex-start;
   gap: 8px;
   margin-bottom: 32px;
 }
@@ -206,9 +209,9 @@ const clearFilter = () => {
 }
 
 .post-card {
-  background: var(--color-bg);
+  background: var(--color-surface);
   border: 1px solid var(--color-border);
-  border-radius: 12px;
+  border-radius: 4px;
   overflow: hidden;
   transition: all 0.3s ease;
 }
@@ -216,7 +219,7 @@ const clearFilter = () => {
 .post-card:hover {
   transform: translateY(-2px);
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
-  border-color: var(--color-primary);
+  border-color: var(--color-accent);
 }
 
 .post-link {

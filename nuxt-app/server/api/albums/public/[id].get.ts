@@ -74,7 +74,7 @@ export default defineEventHandler(async (event) => {
         id: album.id,
         name: album.name,
         description: album.description,
-        coverUrl: album.coverUrl || photos[0]?.thumbnailUrl || photos[0]?.mediumUrl || null,
+        coverUrl: presentPhoto({ originalUrl: album.coverUrl }).originalUrl || photos[0]?.thumbnailUrl || photos[0]?.mediumUrl || null,
         visibility: album.visibility,
       },
       photos,

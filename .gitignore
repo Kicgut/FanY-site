@@ -7,6 +7,13 @@
 photos/
 thumbnails/
 uploads/
+# These are source directories, not uploaded media.
+!nuxt-app/pages/admin/photos/
+!nuxt-app/pages/admin/photos/index.vue
+!nuxt-app/server/api/photos/
+!nuxt-app/server/api/photos/index.get.ts
+!nuxt-app/server/api/photos/[id].get.ts
+!nuxt-app/server/api/photos/[id].patch.ts
 
 # === 数据库和运行时 ===
 *.db
@@ -18,6 +25,7 @@ backups/
 logs/
 *.log
 *.tar.gz
+*.tar
 
 # === Hermes 运行时数据 ===
 .hermes/

@@ -13,6 +13,7 @@ const inputText = ref('')
 const conversationId = ref<string | undefined>(undefined)
 const messages = reactive<ChatMessage[]>([])
 const chatContainer = ref<HTMLElement | null>(null)
+const authFetch = useAuthFetch()
 
 const hasAccess = computed(() => user.value?.aiAccess === true)
 const accessLevel = computed(() => user.value?.aiAccessLevel || 'none')
@@ -27,11 +28,21 @@ const ACCESS_LEVEL_LABELS: Record<string, string> = {
 
 const accessLevelLabel = computed(() => ACCESS_LEVEL_LABELS[accessLevel.value] || accessLevel.value)
 
-onMounted(() => {
+onMounted(async () => {
   try {
     user.value = JSON.parse(localStorage.getItem('user') || 'null')
   } catch {
     user.value = null
+  }
+
+  // Refresh permissions from the server so stale localStorage cannot hide
+  // a newly enabled AI account or show an outdated configuration state.
+  try {
+    const res = await authFetch<{ success: boolean; data: { user: any } }>('/api/auth/me')
+    user.value = res.data.user
+    localStorage.setItem('user', JSON.stringify(user.value))
+  } catch {
+    // The global auth middleware will handle an expired token.
   }
 
   if (hasAccess.value) {
@@ -42,7 +53,7 @@ onMounted(() => {
 
 async function fetchAiStatus() {
   try {
-    const res = await $fetch<{ success: boolean; data: { provider: string; model: string; status: string } }>('/api/ai/status')
+    const res = await authFetch<{ success: boolean; data: { provider: string; model: string; status: string } }>('/api/ai/status')
     aiStatus.value = res.data
   } catch {
     // ignore
@@ -81,7 +92,7 @@ async function sendMessage() {
   loading.value = true
 
   try {
-    const data = await $fetch<{ success: boolean; data: { response: string; conversationId: string } }>('/api/ai/chat', {
+    const data = await authFetch<{ success: boolean; data: { response: string; conversationId: string } }>('/api/ai/chat', {
       method: 'POST',
       body: {
         prompt,
