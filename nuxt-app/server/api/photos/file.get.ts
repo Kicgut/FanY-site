@@ -60,7 +60,7 @@ export default defineEventHandler(async (event) => {
 
   // Originals may live on Ubuntu after the ECS temporary copy is removed.
   if (type === 'original' && process.env.PHOTO_ORIGINALS_BASE_URL) {
-    const target = `${process.env.PHOTO_ORIGINALS_BASE_URL.replace(/\/$/, '')}/api/photos/${id}/original`
+    const target = `${process.env.PHOTO_ORIGINALS_BASE_URL.replace(/\/$/, '')}/api/photos/file?id=${encodeURIComponent(String(id))}&type=original`
     return sendRedirect(event, target, 307)
   }
   throw createError({ statusCode: 404, message: '图片文件暂不可用' })
