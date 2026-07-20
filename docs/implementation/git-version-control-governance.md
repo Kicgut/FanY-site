@@ -716,7 +716,8 @@ Hermes、Codex 或其他 Agent 必须遵守：
 ```text
 GitHub 仓库使用 private。
 代码和架构文档进 Git。
-公开博客 Markdown 可以进 Git。
-Hermes 候选内容不进 Git，审核通过后再进入 content/blog。
+动态发布的博客正文存放在生产挂载卷 `data/blog-md`，不进 Git。
+内容流水线的原始材料、候选和审核数据存放在 `data/content-pipeline`，不进 Git。
+审核通过后，流水线只生成站内 Blog draft，不自动写入 `content/blog` 或创建 Git 提交。
 真实图片不进 Git，不使用 Git LFS 存真实照片。
 ```

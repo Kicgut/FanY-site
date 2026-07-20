@@ -54,11 +54,13 @@ tags:
 
 ## 二、存储位置说明
 
+当前正式文章不存放在仓库的 `content/blog` 目录。后台/API 发布的文章正文位于 `/app/data/blog-md/<slug>.md`，文章元数据和发布状态位于 SQLite 的 `Article` 表；内容流水线的输入、候选、审核和归档文件位于 `/app/data/content-pipeline/`。这两个 `data` 路径均映射到 ECS 宿主机的持久化运行时卷，并被 Git 忽略，不会随镜像构建进入 Git，也不会由 ECS 自动提交。
+
 ### ECS 容器内
 
 ```
 /app/
-├── data/
+├── data/                      ← 持久化挂载卷，不纳入 Git
 │   ├── prod.db              ← 数据库（所有文章）
 │   └── blog-md/             ← MD 备份目录
 │       ├── article-1.md

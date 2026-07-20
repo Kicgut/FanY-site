@@ -15,10 +15,12 @@ tags:
 
 用途：长文、技术笔记、生活思考、架构文档。
 
-存储：
+说明：博客正文由后台/API 运行时管理，不使用仓库内的 `content/blog` 目录作为发布目录。
+正文存储：
 
 ```text
-content/blog/*.md
+data/blog-md/<slug>.md       # ECS 挂载卷，Git 忽略
+data/content-pipeline/       # 草稿、候选和审核材料，ECS 挂载卷，Git 忽略
 ```
 
 生成方式：

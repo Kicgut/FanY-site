@@ -40,7 +40,7 @@ tags:
 ### 禁止改动
 
 - 不允许 Hermes 直接发布 public 博客。
-- 不允许候选内容自动进入正式 content/blog。
+- 不允许候选内容自动写入 `content/blog`、`data/blog-md` 的公开文章或 Git。
 - 不允许公开私人对话原文。
 
 ## 4. 目录结构
@@ -128,13 +128,7 @@ createdAt: ""
 candidate → review approved → published draft → 人工确认 public
 ```
 
-建议第一版发布到：
-
-```text
-content/blog/_drafts/
-```
-
-而不是直接进入公开博客目录。
+发布动作只创建站内 Blog draft：数据库写入 `Article`，正文写入运行时挂载卷 `data/blog-md/<slug>.md`；不会写入 `content/blog`，也不会创建 Git 提交。
 
 ## 11. 验收标准
 

@@ -46,7 +46,7 @@ releases/
 *.mov
 *.mp4
 
-# === 内容流水线运行时输入/候选，不等同于已发布博客源码 ===
+# === Runtime article/content-pipeline data; mounted volumes, never tracked ===
 content/inbox/
 content/raw/
 content/generated/

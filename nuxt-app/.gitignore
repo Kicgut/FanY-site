@@ -41,7 +41,7 @@ releases/
 thumbnails/
 originals/
 
-# Runtime content pipeline input/candidates. Published content/blog remains tracked.
+# Runtime article and content-pipeline data. Both are mounted volumes and never tracked.
 content/inbox/
 content/raw/
 content/generated/

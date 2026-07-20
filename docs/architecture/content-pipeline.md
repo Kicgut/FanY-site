@@ -19,6 +19,15 @@ tags:
 
 内容流水线负责把 AI 对话、Markdown 和纯文本转成可审核的 Blog、Portfolio 或 Knowledge 候选。AI/Hermes 可以整理和生成候选，但不能自动公开发布。
 
+## 文章存储位置
+
+当前文章不使用 `content/blog` 作为发布目录。运行中的文章分为两个位置：
+
+1. **文章正文与数据库投影**：`nuxt-app/data/blog-md/<slug>.md`，同时在 SQLite 的 `Article` 表保存标题、状态、标签等元数据。后台文章 API 创建或更新文章时写入这里。
+2. **内容流水线材料**：`nuxt-app/data/content-pipeline/`，按 `00_inbox` 到 `06_archive` 保存原始输入、处理结果、候选、审核和归档材料。
+
+这两个 `data` 目录都是生产容器挂载的运行时数据卷，已在根目录和 `nuxt-app/.gitignore` 中忽略，不会进入 Git，也不应通过生产服务器提交。当前不自动把文章转移到 `content/blog`。
+
 ## 数据流
 
 ```text

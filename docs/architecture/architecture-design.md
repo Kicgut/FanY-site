@@ -210,7 +210,8 @@ ECS ~20GB 空间，使用约 20%，留有充足余量。
 │   └── backup-db.sh                         # 数据库备份
 │
 └── nuxt-app/                                # 开发环境
-    ├── content/blog/                        # 博客 Markdown 文件
+    ├── data/blog-md/                        # 运行时博客 Markdown（挂载卷，Git 忽略）
+    ├── data/content-pipeline/               # 草稿/候选/审核数据（挂载卷，Git 忽略）
     ├── pages/                               # 页面组件
     ├── server/                              # API 路由
     ├── prisma/                              # 数据库模型
@@ -571,7 +572,7 @@ server {
 
 内容同步（rsync）：
   # 同步博客 Markdown
-  rsync -avz content/blog/ root@ECS:/opt/personal-website/content/blog/
+    # 动态博客不通过仓库目录同步；备份 ECS 挂载卷中的 data/blog-md/
 
   # 同步公开照片缩略图
   rsync -avz thumbnails/ root@ECS:/opt/personal-website/public/uploads/photos/
@@ -682,7 +683,7 @@ ECS 告警（~20GB 总空间）：
 
 ### 10.1 博客文章
 
-**存储方式**：Markdown 文件（`content/blog/`）+ 数据库元信息
+**存储方式**：运行时 Markdown 文件（`data/blog-md/<slug>.md`）+ 数据库元信息；`data` 为 ECS 持久化挂载卷并被 Git 忽略。内容流水线材料位于 `data/content-pipeline/`，同样不纳入 Git。
 
 **添加方式**：
 

@@ -75,7 +75,8 @@ nuxt-app/
 │   │   └── jwt.ts             # JWT 密钥工具函数
 │   └── api/                   # ⬇️ 详见"API 端点"章节
 │
-├── content/blog/              # Markdown 博客文章（6 篇示例）
+├── data/blog-md/              # 运行时文章 Markdown（挂载卷，Git 忽略）
+├── data/content-pipeline/     # 运行时内容流水线数据（挂载卷，Git 忽略）
 ├── prisma/
 │   ├── schema.prisma          # 数据库模型定义
 │   └── migrations/            # 数据库迁移文件
