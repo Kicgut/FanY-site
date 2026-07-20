@@ -7,6 +7,9 @@
 photos/
 thumbnails/
 uploads/
+public/uploads/
+nuxt-app/public/uploads/
+originals/
 # These are source directories, not uploaded media.
 !nuxt-app/pages/admin/photos/
 !nuxt-app/pages/admin/photos/index.vue
@@ -19,6 +22,9 @@ uploads/
 *.db
 *.db-journal
 *.sqlite
+*.sqlite3
+*.dump
+*.backup
 
 # === 备份和日志 ===
 backups/
@@ -26,6 +32,27 @@ logs/
 *.log
 *.tar.gz
 *.tar
+releases/
+
+# === 用户上传与运行时媒体（任意目录） ===
+*.jpg
+*.jpeg
+*.png
+*.webp
+*.gif
+*.heic
+*.raw
+*.dng
+*.mov
+*.mp4
+
+# === 内容流水线运行时输入/候选，不等同于已发布博客源码 ===
+content/inbox/
+content/raw/
+content/generated/
+content/drafts/
+data/blog-md/
+data/content-pipeline/
 
 # === Hermes 运行时数据 ===
 .hermes/

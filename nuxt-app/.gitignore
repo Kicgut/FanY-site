@@ -33,7 +33,30 @@ logs
 data/
 uploads/
 backups/
+public/uploads/
+releases/
 
 # Photo storage (large files, not in repo)
 /photos/
 thumbnails/
+originals/
+
+# Runtime content pipeline input/candidates. Published content/blog remains tracked.
+content/inbox/
+content/raw/
+content/generated/
+content/drafts/
+data/blog-md/
+data/content-pipeline/
+
+# Uploaded media regardless of the directory where a runtime service writes it.
+*.jpg
+*.jpeg
+*.png
+*.webp
+*.gif
+*.heic
+*.raw
+*.dng
+*.mov
+*.mp4
