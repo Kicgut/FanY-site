@@ -1,6 +1,6 @@
 # ============================================
 # Nuxt 3 + Prisma Dockerfile (Fixed)
-# @nuxt/content 依赖 better-sqlite3（原生模块），需要编译工具
+# Prisma、sharp 等原生依赖需要编译工具
 # 适用：1.6GB RAM ECS + 4GB Swap
 # ============================================
 

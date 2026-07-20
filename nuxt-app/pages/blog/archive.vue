@@ -1,16 +1,16 @@
 <script setup lang="ts">
-const { data: posts } = await useAsyncData('blog-archive', () => {
-  return queryCollection('blog')
-    .order('date', 'DESC')
-    .all()
+const { data: articlesData } = await useFetch('/api/articles', {
+  query: { status: 'published', limit: 100 },
 })
+
+const posts = computed(() => articlesData.value?.articles || [])
 
 // Group posts by year-month
 const groupedPosts = computed(() => {
   if (!posts.value) return []
   const groups: Record<string, typeof posts.value> = {}
   for (const post of posts.value) {
-    const date = new Date(post.date)
+    const date = new Date(post.publishedAt || post.createdAt)
     const key = `${date.getFullYear()}年${date.getMonth() + 1}月`
     if (!groups[key]) groups[key] = []
     groups[key].push(post)
@@ -55,12 +55,12 @@ useSeoMeta({
               <ul class="archive-list">
                 <li
                   v-for="post in items"
-                  :key="post.path"
+                  :key="post.slug"
                   class="archive-item"
                 >
-                  <NuxtLink :to="post.path" class="archive-link">
+                  <NuxtLink :to="`/blog/${post.slug}`" class="archive-link">
                     <span class="archive-item-title">{{ post.title }}</span>
-                    <span class="archive-item-date">{{ formatDate(post.date) }}</span>
+                    <span class="archive-item-date">{{ formatDate(post.publishedAt || post.createdAt) }}</span>
                   </NuxtLink>
                 </li>
               </ul>

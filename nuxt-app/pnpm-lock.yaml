@@ -11,9 +11,6 @@ importers:
       '@element-plus/nuxt':
         specifier: ^1.1.5
         version: 1.1.5(@element-plus/icons-vue@2.3.2(vue@3.5.39(typescript@5.9.3)))(element-plus@2.14.2(vue@3.5.39(typescript@5.9.3)))(esbuild@0.28.1)(magicast@0.5.3)(rollup@4.62.2)(vite@7.3.6(@types/node@26.1.0)(jiti@2.7.0)(terser@5.48.0)(yaml@2.9.0))
-      '@nuxt/content':
-        specifier: ^3.15.0
-        version: 3.15.0(@electric-sql/pglite@0.4.1)(better-sqlite3@12.11.1)(esbuild@0.28.1)(magicast@0.5.3)(mysql2@3.15.3)(rollup@4.62.2)(valibot@1.2.0(typescript@5.9.3))(vite@7.3.6(@types/node@26.1.0)(jiti@2.7.0)(terser@5.48.0)(yaml@2.9.0))
       '@prisma/client':
         specifier: ^6.19.3
         version: 6.19.3(prisma@6.19.3(magicast@0.5.3)(typescript@5.9.3))(typescript@5.9.3)

@@ -1,7 +1,7 @@
 export default defineNuxtConfig({
   compatibilityDate: '2025-07-04',
   ssr: true,
-  modules: ['@element-plus/nuxt', '@nuxt/content'],
+  modules: ['@element-plus/nuxt'],
   css: ['~/assets/css/variables.css'],
   app: {
     head: {
@@ -12,9 +12,6 @@ export default defineNuxtConfig({
         { name: 'description', content: 'A personal portfolio website showcasing projects, skills, and blog posts.' },
       ],
     },
-  },
-  content: {
-    // Nuxt Content configuration
   },
   // Production optimizations
   nitro: {
