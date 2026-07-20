@@ -7,6 +7,28 @@ description: 项目两台服务器的职责边界、照片数据流、SSH 连接
 
 本 skill 用于处理本项目的 ECS 网站服务器与 Ubuntu 原图服务器。执行任何远程命令前，先判断目标机器和操作范围，不能把两台服务器视为同一台主机。
 
+## 共享仓库与部署模型
+
+本项目是一个同时服务两台生产服务器的 monorepo。两台服务器都可以拉取同一个 Git 仓库，但不要求运行仓库中的全部代码：
+
+- ECS 运行网站、API、Docker、Nginx、frps，以及 ECS 需要的照片缩略图/临时原图能力。
+- Ubuntu 运行原图服务、备份、Skills API、frpc 和其他本地高信任服务。
+- 仓库允许存在对另一台服务器有用但当前机器不运行的冗余代码；代码归属通过配置、systemd、Docker Compose 和启动命令决定。
+- 开发机是主要构建环境。ECS 资源紧张，生产镜像应在开发机完成 `docker build`，再通过受控传输把镜像/构建产物送到 ECS 部署。
+- Ubuntu 资源相对充足，且网站主进程不在 Ubuntu；Ubuntu 可以拉取仓库代码，并只启用需要的 systemd 服务。
+
+生产机器应尽量保持少量本地修改：代码、脚本、service 模板和 compose 配置进入 Git；真实 `.env`、token、数据库、照片、日志和备份留在服务器外部配置/数据目录。
+
+推荐发布路径：
+
+```text
+开发机修改 → 本地验证 → Git commit/push
+                         ├─ ECS：开发机 build 镜像 → 传输镜像 → compose 部署
+                         └─ Ubuntu：git pull → 安装/重载需要的 service → 验证
+```
+
+不要在 ECS 上直接 `npm install`、`pnpm build` 或编译大型依赖；不要在 Ubuntu 上启动公网网站容器。
+
 ## 服务器职责
 
 ### `you-ecs`（公网网站服务器）
@@ -103,4 +125,3 @@ ssh yyh-ubuntu-a "systemctl is-active frpc; journalctl -u frpc -n 80 --no-pager"
 2. Ubuntu：原图服务进程/端口、`/mnt/data` 挂载、照片文件权限和磁盘空间。
 3. 链路：ECS `frps`、Ubuntu `frpc`、代理名称/域名和对应端口。
 4. 应用：确认 API 返回的是受控 URL，而不是 `/app/...` 或 `/mnt/data/...` 内部路径。
-
