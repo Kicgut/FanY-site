@@ -21,14 +21,13 @@ services:
       - PHOTO_ORIGINALS_BASE_URL=${PHOTO_ORIGINALS_BASE_URL:-http://photos.local:7080}
       - PHOTO_ORIGINALS_TOKEN=${PHOTO_ORIGINALS_TOKEN:-}
       - PHOTO_BACKFLOW_TOKEN=${PHOTO_BACKFLOW_TOKEN:-}
-      - PHOTO_ORIGINALS_BASE_URL=${PHOTO_ORIGINALS_BASE_URL:-http://local.localhost:7080}
       - HOST=0.0.0.0
       - PORT=3000
     volumes:
-      - ./data:/app/data
-      - ./uploads:/app/public/uploads
-      - ./uploads:/app/.output/public/uploads
-      - ./backups:/app/backups
+      - ../data:/app/data
+      - ../uploads:/app/public/uploads
+      - ../uploads:/app/.output/public/uploads
+      - ../backups:/app/backups
     deploy:
       resources:
         limits:
