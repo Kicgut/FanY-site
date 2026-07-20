@@ -26,7 +26,7 @@ description: 项目两台服务器的职责边界、照片数据流、SSH 连接
 - `photos/`、`thumbnails/`、`uploads/`、`public/uploads/`、`data/`、`backups/`、`releases/` 和数据库文件默认不跟踪。
 - JPG、PNG、WebP、RAW、视频等用户媒体扩展名全局忽略，防止上传文件被误加到 Git。
 - `content/inbox/`、`content/raw/`、`content/generated/`、`content/drafts/` 和 `data/content-pipeline/` 是运行时输入或候选内容，默认不跟踪。
-- 已审核发布的 `content/blog/` Markdown 仍可进入 Git；未发布候选不能直接写入该目录。
+- 动态博客正文位于 ECS 挂载卷 `data/blog-md/`，内容流水线位于 `data/content-pipeline/`，两者都不进入 Git；当前不使用 `content/blog/` 作为发布目录。
 - 修改 ignore 规则后必须用 `git check-ignore -v <path>` 验证，并检查 `git status --ignored`，不能只凭目录名称猜测。
 
 推荐发布路径：
