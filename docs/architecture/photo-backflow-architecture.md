@@ -248,7 +248,9 @@ cd /mnt/data/personal-website
 
 ### 4.2 Ubuntu 自动调度
 
-仓库提供 `scripts/photo-backflow.service` 和 `scripts/photo-backflow.timer`。安装到 Ubuntu 后，每 5 分钟运行一次，使用 `/etc/default/photo-backflow` 保存真实 token 和 ECS API 地址；systemd 服务不在 ECS 上运行。
+仓库提供 `scripts/photo-backflow.service` 和 `scripts/photo-backflow.timer`。安装到 Ubuntu 后，每 5 分钟运行一次，使用环境文件保存真实 token 和 ECS API 地址；systemd 服务不在 ECS 上运行。
+
+如果 Ubuntu 运维账号具备 root 权限，安装到 `/etc/systemd/system/` 并使用 `/etc/default/photo-backflow`；当前 `yyh-ubuntu-a` 的 `aloof` 账号无 sudo，因此使用 user systemd：单元放在 `~/.config/systemd/user/`，环境文件放在 `~/.config/personal-website/photo-backflow.env`，并通过 `systemctl --user enable --now photo-backflow.timer` 启用。该账号已开启 linger，登出后 timer 仍会运行。
 4. 显示处理结果和统计
 
 ---
