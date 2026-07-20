@@ -98,6 +98,24 @@ export function parseGroups(raw: string | null | undefined): string[] {
   }
 }
 
+/** Parse the legacy visibleTo field without substring-based authorization. */
+export function parseVisibleTo(raw: string | null | undefined): string[] {
+  if (!raw) return []
+  try {
+    const parsed = JSON.parse(raw)
+    if (Array.isArray(parsed)) return parsed.map(String).map((value) => value.trim()).filter(Boolean)
+  } catch {
+    // Older rows may contain comma-separated values.
+  }
+  return raw.split(',').map((value) => value.trim()).filter(Boolean)
+}
+
+export function canAccessVisibleTo(raw: string | null | undefined, user: AuthUser | null | undefined): boolean {
+  if (!user) return false
+  const allowed = new Set(parseVisibleTo(raw))
+  return allowed.has(user.username) || user.groups.some((group) => allowed.has(`group:${group}`) || allowed.has(group))
+}
+
 /** Build an AuthUser from a raw Prisma User row */
 export function toAuthUser(user: {
   id: number

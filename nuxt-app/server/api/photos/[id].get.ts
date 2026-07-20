@@ -1,4 +1,4 @@
-import { getRequestUser, getAccessOrigin, ROLES } from '~/server/utils/permission'
+import { canAccessVisibleTo, getRequestUser, getAccessOrigin, ROLES } from '~/server/utils/permission'
 import { presentPhoto } from '~/server/utils/photo-presentation'
 
 export default defineEventHandler(async (event) => {
@@ -10,10 +10,11 @@ export default defineEventHandler(async (event) => {
   const allowed = user?.role === ROLES.ADMIN || (user && getAccessOrigin(event, user) === 'local_trusted') || (
     photo.status === 'published' && photo.reviewStatus === 'approved' && (
       photo.visibility === 'public' ||
-      (user && photo.visibility === 'friends' && photo.visibleTo?.includes(user.username)) ||
+      (user && photo.visibility === 'friends' && canAccessVisibleTo(photo.visibleTo, user)) ||
       (user && photo.visibility === 'private' && photo.uploadedBy === user.id)
     )
   )
   if (!allowed) throw createError({ statusCode: 404, message: '照片不存在' })
-  return presentPhoto(photo)
+  const isPrivileged = user?.role === ROLES.ADMIN || getAccessOrigin(event, user) === 'local_trusted'
+  return presentPhoto(photo, { includeOriginal: isPrivileged, includeAdminMeta: isPrivileged })
 })

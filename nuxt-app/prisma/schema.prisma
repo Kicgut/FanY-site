@@ -57,9 +57,18 @@ model Photo {
   mediumUrl            String?
   width                Int?
   height               Int?
+  orientation          Int?
   fileSize             Int?
   mimeType             String?
   location             String?
+  gpsLatitude          Float?
+  gpsLongitude         Float?
+  cameraMake           String?
+  cameraModel          String?
+  lens                 String?
+  iso                  Int?
+  focalLength          Float?
+  keywords             String?
   takenAt              DateTime?
   status               String   @default("published")  // published / hidden / archived
   originalPath         String?
@@ -78,6 +87,10 @@ model Photo {
   syncedAt             DateTime?
   syncError            String?
   checksum             String?
+  thumbnailStatus      String   @default("ready") // pending / processing / ready / failed
+  thumbnailError       String?
+  thumbnailAttempts    Int      @default(0)
+  thumbnailProcessedAt DateTime?
   archivedAt           DateTime?
   allowOriginalDownload Boolean @default(false)
   suggestedTags        String?
@@ -88,6 +101,9 @@ model Photo {
   updatedAt            DateTime @updatedAt
   albums               AlbumPhoto[]
   tags                 PhotoTag[]
+  @@index([visibility, status, reviewStatus, createdAt])
+  @@index([takenAt])
+  @@index([uploadedBy, visibility])
 }
 
 model Album {
@@ -100,6 +116,7 @@ model Album {
   reviewStatus String  @default("approved")
   createdAt   DateTime @default(now())
   photos      AlbumPhoto[]
+  @@index([visibility, createdAt])
 }
 
 model AlbumPhoto {
@@ -110,6 +127,7 @@ model AlbumPhoto {
   albumId  Int
   order    Int @default(0)
   @@unique([photoId, albumId])
+  @@index([albumId, order])
 }
 
 model PhotoTag {
@@ -118,6 +136,7 @@ model PhotoTag {
   photoId Int
   name    String
   @@unique([photoId, name])
+  @@index([name])
 }
 
 model Portfolio {

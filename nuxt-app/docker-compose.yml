@@ -7,6 +7,7 @@ services:
       - "3000:3000"
     extra_hosts:
       - "skills.local:host-gateway"
+      - "photos.local:host-gateway"
       - "local.localhost:host-gateway"
     environment:
       - NODE_ENV=production
@@ -17,6 +18,8 @@ services:
       - AI_BASE_URL=${AI_BASE_URL:-}
       - AI_MODEL=${AI_MODEL:-}
       - AI_MAX_TOKENS=${AI_MAX_TOKENS:-2048}
+      - PHOTO_ORIGINALS_BASE_URL=${PHOTO_ORIGINALS_BASE_URL:-http://photos.local:7080}
+      - PHOTO_ORIGINALS_TOKEN=${PHOTO_ORIGINALS_TOKEN:-}
       - PHOTO_BACKFLOW_TOKEN=${PHOTO_BACKFLOW_TOKEN:-}
       - PHOTO_ORIGINALS_BASE_URL=${PHOTO_ORIGINALS_BASE_URL:-http://local.localhost:7080}
       - HOST=0.0.0.0

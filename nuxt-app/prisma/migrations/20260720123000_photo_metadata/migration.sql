@@ -1,0 +1,9 @@
+ALTER TABLE "Photo" ADD COLUMN "orientation" INTEGER;
+ALTER TABLE "Photo" ADD COLUMN "gpsLatitude" REAL;
+ALTER TABLE "Photo" ADD COLUMN "gpsLongitude" REAL;
+ALTER TABLE "Photo" ADD COLUMN "cameraMake" TEXT;
+ALTER TABLE "Photo" ADD COLUMN "cameraModel" TEXT;
+ALTER TABLE "Photo" ADD COLUMN "lens" TEXT;
+ALTER TABLE "Photo" ADD COLUMN "iso" INTEGER;
+ALTER TABLE "Photo" ADD COLUMN "focalLength" REAL;
+ALTER TABLE "Photo" ADD COLUMN "keywords" TEXT;

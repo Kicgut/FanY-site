@@ -4,6 +4,7 @@ import { saveUploadedPhoto } from '~/server/services/photo-storage'
 import { ALLOWED_MIME_TYPES, MAX_FILE_SIZE } from '~/server/services/photo-review'
 import { presentPhoto } from '~/server/utils/photo-presentation'
 import { PHOTO_STORAGE_LOCATION, PHOTO_SYNC_STATUS } from '~/server/services/photo-backflow'
+import { extractPhotoMetadata } from '~/server/services/photo-metadata'
 
 export default defineEventHandler(async (event) => {
   const user = await requireLogin(event)
@@ -18,15 +19,23 @@ export default defineEventHandler(async (event) => {
   const visibility = String(visibilityPart?.data?.toString() || 'private')
   if (!['public', 'friends', 'private'].includes(visibility)) throw createError({ statusCode: 400, message: '可见范围无效' })
   const title = String(titlePart?.data?.toString() || file.filename.replace(/\.[^.]+$/, ''))
-  const stored = await saveUploadedPhoto(file.data, file.type || 'image/jpeg', visibility)
+  const metadata = await extractPhotoMetadata(file.data)
+  const stored = await saveUploadedPhoto(file.data, file.type || 'image/jpeg', visibility, metadata.takenAt)
   const photo = await prisma.photo.create({
     data: {
       title, filename: stored.filename, mimeType: file.type, fileSize: file.data.length,
       originalUrl: stored.originalPath, thumbnailUrl: stored.thumbPath, mediumUrl: stored.mediumPath,
       originalPath: stored.originalPath, thumbPath: stored.thumbPath,
+      width: metadata.width, height: metadata.height, orientation: metadata.orientation,
+      takenAt: metadata.takenAt, location: metadata.location,
+      gpsLatitude: metadata.gpsLatitude, gpsLongitude: metadata.gpsLongitude,
+      cameraMake: metadata.cameraMake, cameraModel: metadata.cameraModel, lens: metadata.lens,
+      iso: metadata.iso, focalLength: metadata.focalLength, keywords: metadata.keywords,
+      checksum: metadata.checksum,
       visibility, uploadedBy: user.id, status: 'hidden', reviewStatus: 'pending',
       storageLocation: PHOTO_STORAGE_LOCATION.ECS_ONLY, syncStatus: PHOTO_SYNC_STATUS.PENDING,
       ecsSyncPolicy: 'local_only',
+      thumbnailStatus: stored.thumbPath && stored.mediumPath ? 'ready' : 'pending',
     },
   })
   return { success: true, data: presentPhoto(photo), message: '上传成功，等待审核和原图回流' }

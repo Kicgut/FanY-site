@@ -92,8 +92,8 @@ export async function saveUploadedPhoto(
   takenAt?: Date | null,
 ): Promise<{
   originalPath: string
-  thumbPath: string
-  mediumPath: string
+  thumbPath: string | null
+  mediumPath: string | null
   filename: string
   yearMonth: string
 }> {
@@ -115,15 +115,21 @@ export async function saveUploadedPhoto(
   const thumbPath = join(thumbDir, thumbFilename)
   const mediumPath = join(thumbDir, mediumFilename)
 
+  if (process.env.PHOTO_THUMBNAIL_ASYNC === 'true') {
+    return { originalPath, thumbPath: null, mediumPath: null, filename, yearMonth }
+  }
+
   const sharp = await getSharp()
   if (sharp) {
     try {
       await sharp(originalPath)
+        .rotate()
         .resize(400, undefined, { withoutEnlargement: true })
         .jpeg({ quality: 80 })
         .toFile(thumbPath)
 
       await sharp(originalPath)
+        .rotate()
         .resize(1200, undefined, { withoutEnlargement: true })
         .jpeg({ quality: 85 })
         .toFile(mediumPath)

@@ -125,10 +125,11 @@ copy_original_from_ecs() {
 mark_completed() {
   local photo_id=$1
   local local_path=$2
+  local checksum=$3
   
   local response=$(curl -s -X POST "${BACKFLOW_AUTH_ARGS[@]}" "${API_BASE}/api/photos/backflow/complete" \
     -H "Content-Type: application/json" \
-    -d "{\"photoId\": ${photo_id}, \"localPath\": \"${local_path}\"}")
+    -d "{\"photoId\": ${photo_id}, \"localPath\": \"${local_path}\", \"checksum\": \"${checksum}\"}")
   
   local success=$(echo "$response" | jq -r '.success // false')
   if [ "$success" != "true" ]; then
@@ -170,15 +171,17 @@ process_photo() {
   # 构建本地路径
   # ECS路径格式: /app/data/photos/{visibility}/{YYYY-MM}/{uuid}_original.jpg
   # 本地路径格式: /mnt/data/personal-website/photos/{visibility}/{YYYY-MM}/{uuid}_original.jpg
-  local relative_path=$(echo "$original_path" | sed 's|^/app/public/uploads/photos/||; s|^/app/data/photos/||')
-  local local_path="${LOCAL_PHOTOS_DIR}/${visibility}/${relative_path}"
+  local year_month=$(echo "$original_path" | sed -nE 's|.*/(20[0-9]{2}-[0-9]{2})/[^/]+$|\1|p')
+  if [ -z "$year_month" ]; then year_month=$(date +%Y-%m); fi
+  local local_path="${LOCAL_PHOTOS_DIR}/${visibility}/${year_month}/${filename}"
   
   # 从 ECS 复制原图
   if copy_original_from_ecs "$photo_id" "$original_path" "$local_path"; then
     log_info "原图已复制到: $local_path"
     
     # 标记完成
-    if mark_completed "$photo_id" "$local_path"; then
+    local checksum=$(sha256sum "$local_path" | awk '{print $1}')
+    if mark_completed "$photo_id" "$local_path" "$checksum"; then
       log_info "照片 #${photo_id} 回流完成 ✓"
       return 0
     else

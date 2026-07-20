@@ -1,49 +1,55 @@
-import { presentPhoto } from '~/server/utils/photo-presentation'
+import { presentPhoto, publicPhotoUrl } from '~/server/utils/photo-presentation'
 
-export default defineEventHandler(async (event) => {
+const publicPhotoWhere = {
+  photo: {
+    visibility: 'public',
+    status: 'published',
+    reviewStatus: 'approved',
+  },
+} as const
+
+export default defineEventHandler(async () => {
   try {
     const albums = await prisma.album.findMany({
-      where: {
-        visibility: 'public',
-      },
-      include: {
-        _count: { select: { photos: true } },
-        photos: {
-          include: {
-            photo: {
-              include: { tags: true },
-            },
-          },
-          orderBy: { order: 'asc' },
-        },
+      where: { visibility: 'public' },
+      select: {
+        id: true,
+        name: true,
+        description: true,
+        coverUrl: true,
+        createdAt: true,
       },
       orderBy: { createdAt: 'desc' },
     })
 
-    const result = albums
-      .map((album) => {
-        // Filter to only public+active+approved photos in memory
-        const publicPhotos = album.photos
-          .filter((ap) => ap.photo && ap.photo.visibility === 'public' && ap.photo.status === 'published' && ap.photo.reviewStatus === 'approved')
-          .slice(0, 4)
+    const result = await Promise.all(albums.map(async (album) => {
+      const [photoCount, previews] = await Promise.all([
+        prisma.albumPhoto.count({ where: { albumId: album.id, ...publicPhotoWhere } }),
+        prisma.albumPhoto.findMany({
+          where: { albumId: album.id, ...publicPhotoWhere },
+          select: { photo: { include: { tags: true } } },
+          orderBy: { order: 'asc' },
+          take: 4,
+        }),
+      ])
 
-        const firstPhoto = publicPhotos[0]?.photo ? presentPhoto(publicPhotos[0].photo) : null
-        return {
-          id: album.id,
-          name: album.name,
-          description: album.description,
-          coverUrl: album.coverUrl || firstPhoto?.thumbnailUrl || firstPhoto?.mediumUrl || firstPhoto?.originalUrl || null,
-          photoCount: publicPhotos.length,
-          previewPhotos: publicPhotos.map((ap) => {
-            const photo = presentPhoto(ap.photo)
-            return { id: photo.id, title: photo.title, thumbnailUrl: photo.thumbnailUrl || photo.mediumUrl || photo.originalUrl }
-          }),
-          createdAt: album.createdAt,
-        }
+      const previewPhotos = previews.map(({ photo }) => {
+        const presented = presentPhoto(photo)
+        return { id: presented.id, title: presented.title, thumbnailUrl: presented.thumbnailUrl || presented.mediumUrl }
       })
-      .filter((a) => a.photoCount > 0)
 
-    return { success: true, data: result }
+      return {
+        id: album.id,
+        name: album.name,
+        description: album.description,
+        coverUrl: publicPhotoUrl(album.coverUrl) || previewPhotos[0]?.thumbnailUrl || null,
+        photoCount,
+        previewPhotos,
+        createdAt: album.createdAt,
+      }
+    }))
+
+    return { success: true, data: result.filter((album) => album.photoCount > 0) }
   } catch (error: any) {
     console.error('Failed to fetch public albums:', error)
     throw createError({ statusCode: 500, message: 'Failed to fetch public albums' })

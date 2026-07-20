@@ -1,0 +1,21 @@
+[Unit]
+Description=Personal Website Photo Original API
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=aloof
+Group=aloof
+EnvironmentFile=/etc/default/photo-original-api
+ExecStart=/usr/bin/python3 /opt/personal-website/scripts/photo-original-api.py
+Restart=on-failure
+RestartSec=5
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadOnlyPaths=/mnt/data/personal-website/photos
+
+[Install]
+WantedBy=multi-user.target

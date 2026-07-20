@@ -1,5 +1,5 @@
-import { getRequestUser, getAccessOrigin, ROLES } from '~/server/utils/permission'
-import { presentPhoto } from '~/server/utils/photo-presentation'
+import { canAccessVisibleTo, getRequestUser, getAccessOrigin, ROLES } from '~/server/utils/permission'
+import { presentPhoto, publicPhotoUrl } from '~/server/utils/photo-presentation'
 
 export default defineEventHandler(async (event) => {
   const id = Number(getRouterParam(event, 'id'))
@@ -16,38 +16,62 @@ export default defineEventHandler(async (event) => {
   const user = await getRequestUser(event)
   const origin = getAccessOrigin(event, user)
   const isAdmin = user?.role === ROLES.ADMIN
+  const page = Math.max(1, Number(getQuery(event).page) || 1)
+  const limit = Math.min(100, Math.max(1, Number(getQuery(event).limit) || 50))
+  const photoWhere: any = { status: 'published', reviewStatus: 'approved' }
+
+  if (!isAdmin && origin !== 'local_trusted') {
+    photoWhere.OR = album.visibility === 'public'
+      ? [{ visibility: 'public' }]
+      : user
+      ? [
+          { visibility: 'public' },
+          { visibility: 'friends' },
+          { visibility: 'private', uploadedBy: user.id },
+        ]
+      : [{ visibility: 'public' }]
+  }
 
   // Check if viewer can see this album
   if (album.visibility === 'private' && !isAdmin) {
     throw createError({ statusCode: 404, message: 'Album not found' })
   }
-  if (album.visibility === 'friends' && !user) {
+  if (album.visibility === 'friends' && (!user || !canAccessVisibleTo(album.visibleTo, user))) {
     throw createError({ statusCode: 404, message: 'Album not found' })
   }
 
-  // Fetch all album photos (no nested where — filter in memory instead)
-  const albumPhotos = await prisma.albumPhoto.findMany({
-    where: { albumId: id },
-    include: {
+  const [albumPhotos, total] = await prisma.$transaction([
+    prisma.albumPhoto.findMany({
+    where: { albumId: id, photo: photoWhere },
+    select: {
+      order: true,
       photo: {
-        include: { tags: true },
+        select: {
+          id: true, title: true, description: true, filename: true,
+          originalUrl: true, thumbnailUrl: true, mediumUrl: true,
+          width: true, height: true, originalPath: true, thumbPath: true,
+          ecsThumbPath: true, visibility: true, visibleTo: true, uploadedBy: true,
+          tags: true,
+        },
       },
     },
     orderBy: { order: 'asc' },
-  })
+    skip: (page - 1) * limit,
+    take: limit,
+    }),
+    prisma.albumPhoto.count({ where: { albumId: id, photo: photoWhere } }),
+  ])
 
   // Filter photos based on viewer permissions
   const photos = albumPhotos
     .filter((ap) => {
       const p = ap.photo
       if (!p) return false
-      if (p.status !== 'published' || p.reviewStatus !== 'approved') return false
-
       if (isAdmin) return true
       if (!user) return p.visibility === 'public'
       if (origin === 'local_trusted') return true
       if (p.visibility === 'public') return true
-      if (p.visibility === 'friends' && p.visibleTo?.includes(user.username)) return true
+      if (p.visibility === 'friends' && canAccessVisibleTo(p.visibleTo, user)) return true
       if (p.visibility === 'private' && p.uploadedBy === user.id) return true
       return false
     })
@@ -74,11 +98,15 @@ export default defineEventHandler(async (event) => {
         id: album.id,
         name: album.name,
         description: album.description,
-        coverUrl: presentPhoto({ originalUrl: album.coverUrl }).originalUrl || photos[0]?.thumbnailUrl || photos[0]?.mediumUrl || null,
+        coverUrl: publicPhotoUrl(album.coverUrl) || photos[0]?.thumbnailUrl || photos[0]?.mediumUrl || null,
         visibility: album.visibility,
+        photoCount: total,
       },
       photos,
-      total: photos.length,
+      total,
+      page,
+      limit,
+      hasMore: page * limit < total,
     },
   }
 })
