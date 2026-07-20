@@ -21,6 +21,14 @@ description: 项目两台服务器的职责边界、照片数据流、SSH 连接
 
 禁止直接在 ECS 上进行源码开发或大规模修改。只有紧急、低风险的配置或文本修复才可临时修改；修改后必须立即记录原因、执行 `git diff`、提交到独立提交并 push，不能让生产工作区长期漂移。ECS 的运行目录必须保持仓库的 `nuxt-app/` 布局，不得把应用代码平铺到仓库根目录运行。
 
+## Git 忽略边界
+
+- `photos/`、`thumbnails/`、`uploads/`、`public/uploads/`、`data/`、`backups/`、`releases/` 和数据库文件默认不跟踪。
+- JPG、PNG、WebP、RAW、视频等用户媒体扩展名全局忽略，防止上传文件被误加到 Git。
+- `content/inbox/`、`content/raw/`、`content/generated/`、`content/drafts/` 和 `data/content-pipeline/` 是运行时输入或候选内容，默认不跟踪。
+- 已审核发布的 `content/blog/` Markdown 仍可进入 Git；未发布候选不能直接写入该目录。
+- 修改 ignore 规则后必须用 `git check-ignore -v <path>` 验证，并检查 `git status --ignored`，不能只凭目录名称猜测。
+
 推荐发布路径：
 
 ```text
