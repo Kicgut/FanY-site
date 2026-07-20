@@ -1,0 +1,14 @@
+[Unit]
+Description=Personal Website photo backflow from ECS to Ubuntu
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+User=aloof
+Group=aloof
+EnvironmentFile=-/etc/default/photo-backflow
+WorkingDirectory=/mnt/data/personal-website
+ExecStart=/mnt/data/personal-website/nuxt-app/scripts/photo-backflow.sh --limit 20
+NoNewPrivileges=true
+PrivateTmp=true

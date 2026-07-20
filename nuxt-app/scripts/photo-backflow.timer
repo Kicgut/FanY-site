@@ -1,0 +1,11 @@
+[Unit]
+Description=Run Personal Website photo backflow periodically
+
+[Timer]
+OnBootSec=5min
+OnUnitActiveSec=5min
+Persistent=true
+Unit=photo-backflow.service
+
+[Install]
+WantedBy=timers.target

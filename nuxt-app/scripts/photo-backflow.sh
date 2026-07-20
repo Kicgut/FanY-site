@@ -14,12 +14,13 @@
 set -euo pipefail
 
 # 配置
-ECS_HOST="120.26.231.150"
-ECS_USER="root"
-ECS_CONTAINER="personal-website"
-API_BASE="http://120.26.231.150"
+ECS_HOST="${ECS_HOST:-120.26.231.150}"
+ECS_USER="${ECS_USER:-root}"
+ECS_CONTAINER="${ECS_CONTAINER:-personal-website}"
+API_BASE="${PHOTO_BACKFLOW_API_BASE:-http://120.26.231.150}"
 LOCAL_PHOTOS_DIR="/mnt/data/personal-website/photos"
 PHOTO_BACKFLOW_TOKEN="${PHOTO_BACKFLOW_TOKEN:-}"
+LOCK_FILE="${PHOTO_BACKFLOW_LOCK_FILE:-/run/lock/personal-website-photo-backflow.lock}"
 BACKFLOW_AUTH_ARGS=()
 if [ -n "$PHOTO_BACKFLOW_TOKEN" ]; then
   BACKFLOW_AUTH_ARGS=(-H "x-photo-backflow-token: ${PHOTO_BACKFLOW_TOKEN}")
@@ -87,6 +88,14 @@ reset_failed() {
 get_pending_photos() {
   local limit=${1:-50}
   curl -s "${BACKFLOW_AUTH_ARGS[@]}" "${API_BASE}/api/photos/backflow?limit=${limit}" | jq -r '.data.photos'
+}
+
+claim_photo() {
+  local photo_id=$1
+  local response
+  response=$(curl -fsS -X POST "${BACKFLOW_AUTH_ARGS[@]}" "${API_BASE}/api/photos/backflow/claim" \
+    -H "Content-Type: application/json" -d "{\"photoId\": ${photo_id}}") || return 1
+  [ "$(echo "$response" | jq -r '.claimed // false')" = "true" ]
 }
 
 # 从 ECS 复制原图到本地
@@ -158,6 +167,11 @@ process_photo() {
   local filename=$(echo "$photo_json" | jq -r '.filename')
   local original_path=$(echo "$photo_json" | jq -r '.originalPath // empty')
   local visibility=$(echo "$photo_json" | jq -r '.visibility // "private"')
+
+  if ! claim_photo "$photo_id"; then
+    log_debug "photo ${photo_id} already claimed, skipping"
+    return 0
+  fi
   
   log_info "处理照片 #${photo_id}: ${filename}"
   
@@ -198,6 +212,12 @@ process_photo() {
 # 主函数
 main() {
   check_deps
+  mkdir -p "$(dirname "$LOCK_FILE")"
+  exec 9>"$LOCK_FILE"
+  if ! flock -n 9; then
+    log_warn "another backflow worker is already running"
+    exit 0
+  fi
   
   # 解析参数
   local limit=50

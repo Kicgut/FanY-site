@@ -168,7 +168,13 @@ ECS 容器内:
 }
 ```
 
-### 3.3 触发回流操作
+### 3.3 原子领取照片
+
+**接口**：`POST /api/photos/backflow/claim`
+
+回流 worker 必须先提交 `{ "photoId": 1 }`。只有 `ecs_only + pending` 的记录会被原子更新为 `syncing`，重复 worker 会收到 `claimed: false` 并跳过，避免同一原图被重复复制。
+
+### 3.4 触发回流操作
 
 **接口**：`POST /api/photos/backflow`
 
@@ -185,7 +191,7 @@ ECS 容器内:
 - `backflow-batch` — 批量回流（需 limit）
 - `reset-failed` — 重置失败的照片
 
-### 3.4 标记回流完成
+### 3.5 标记回流完成
 
 **接口**：`POST /api/photos/backflow/complete`
 
@@ -197,7 +203,7 @@ ECS 容器内:
 }
 ```
 
-### 3.5 标记回流失败
+### 3.6 标记回流失败
 
 **接口**：`POST /api/photos/backflow/fail`
 
@@ -236,8 +242,13 @@ cd /mnt/data/personal-website
 
 **脚本功能**：
 1. 从 API 获取待回流照片列表
-2. 通过 SSH 从 ECS 容器复制原图到本地
-3. 调用 API 标记完成/失败
+2. 原子领取照片，避免并发重复处理
+3. 通过 SSH 从 ECS 容器的 `/app/public/uploads/photos/ecs-originals/` 复制临时原图到 Ubuntu
+4. 校验 SHA-256 后调用 API 标记完成；API 验证成功后删除 ECS 临时原图
+
+### 4.2 Ubuntu 自动调度
+
+仓库提供 `scripts/photo-backflow.service` 和 `scripts/photo-backflow.timer`。安装到 Ubuntu 后，每 5 分钟运行一次，使用 `/etc/default/photo-backflow` 保存真实 token 和 ECS API 地址；systemd 服务不在 ECS 上运行。
 4. 显示处理结果和统计
 
 ---
