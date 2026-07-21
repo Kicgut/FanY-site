@@ -171,7 +171,7 @@ nuxt-app/
 
 | 方法 | 路径 | 认证 | 功能 |
 |------|------|------|------|
-| GET | /api/articles | ❌ | 文章列表（分页、状态/标签筛选） |
+| GET | /api/articles | ❌ | 文章列表（分页、状态/标签/关键词 `q` 筛选） |
 | POST | /api/articles | ✅ | 创建文章（自动生成 slug） |
 | GET | /api/articles/:id | ❌ | 文章详情 |
 | PUT | /api/articles/:id | ✅ | 更新文章 |

@@ -19,6 +19,19 @@ ECS 资源紧张，禁止在 ECS 上执行 `pnpm install`、`pnpm build` 或 Doc
 
 ## ECS 镜像发布
 
+### 构建目录约定
+
+构建机上的临时目录和导出文件统一放在仓库外的 `E:\FanY-site-build\`（Linux 构建机对应 `$HOME/FanY-site-build/`）：
+
+```text
+FanY-site-build/
+└── <commit>/
+    ├── source/       # git archive 导出的源码快照
+    └── artifacts/    # Docker 镜像 tar.gz 与 .sha256
+```
+
+`FanY-site-build-<commit>` 是旧流程留下的源码快照目录，`.zip` 是源码压缩包；`personal-website-<commit>.tar.gz` 才是 Docker 镜像导出包。两者都不是 Git 内容，不能混为“历史镜像目录”。
+
 在构建机固定一个 Git commit，执行 `pnpm install --frozen-lockfile`、`npx prisma validate`、`npx tsc --noEmit`、`pnpm build`，然后执行 `docker build -t personal-website:<commit> .`、`docker save personal-website:<commit> | gzip > personal-website-<commit>.tar.gz` 和 `sha256sum`。构建机可以是开发机、Ubuntu 或 CI 主机，不要求必须是 ECS。
 
 将 tar 包和 sha256 文件通过 `scp` 传到 ECS `/opt/personal-website/releases/`。ECS 只执行 `sha256sum -c`、`docker load`、打 tag、`./scripts/backup-db.sh`、`docker compose run --rm app npx prisma migrate deploy`、`docker compose up -d app` 和健康检查。失败时恢复上一个已验证 image tag；不得删除 `data/`、`uploads/`、`backups/`。

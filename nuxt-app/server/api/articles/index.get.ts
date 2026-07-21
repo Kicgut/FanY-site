@@ -6,6 +6,7 @@ export default defineEventHandler(async (event) => {
 
   const status = query.status as string | undefined
   const tag = query.tag as string | undefined
+  const search = String(query.q || '').trim()
 
   const where: any = {}
   if (status) {
@@ -13,6 +14,13 @@ export default defineEventHandler(async (event) => {
   }
   if (tag) {
     where.tags = { some: { name: tag } }
+  }
+  if (search) {
+    where.OR = [
+      { title: { contains: search } },
+      { description: { contains: search } },
+      { content: { contains: search } },
+    ]
   }
 
   try {

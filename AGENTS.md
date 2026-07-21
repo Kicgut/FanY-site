@@ -65,3 +65,12 @@
 ## Git 边界
 
 代码、文档、配置模板、migration 和测试进入 Git；真实数据、密钥、运行时目录和备份不得进入 Git。提交前参考 `docs/implementation/git-version-control-governance.md`。
+
+## 镜像构建目录与产物
+
+- 所有 Docker 构建临时目录、Git 源码快照、源码快照压缩包、镜像导出包和 SHA-256 校验文件必须放在仓库外的 `E:\FanY-site-build\` 下，不要散落在 `E:\` 根目录。
+- 建议按提交组织：`E:\FanY-site-build\<commit>\source\`、`E:\FanY-site-build\<commit>\artifacts\`。
+- `FanY-site-build-<commit>` 目录是 Git 源码构建快照，不是 Docker 镜像；`FanY-site-build-<commit>.zip` 是源码快照压缩包。
+- `personal-website-<commit>.tar.gz` 是 `docker save` 导出的镜像包，`.sha256` 是传输校验文件。镜像包传输到 ECS 并 `docker load` 后才成为 ECS 本地镜像。
+- 构建完成并确认 ECS 部署成功后，可以清理旧的源码快照和本地镜像包，但必须保留正在运行版本对应的镜像包，或先确认已有远程/冷备份。
+- ECS 禁止构建；构建机使用固定 Git commit 导出源码快照、构建镜像、保存镜像包，再通过校验后传输。
