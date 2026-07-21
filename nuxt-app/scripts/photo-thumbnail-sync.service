@@ -1,0 +1,12 @@
+[Unit]
+Description=Personal Website thumbnail sync to ECS
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+EnvironmentFile=%h/.config/personal-website/photo-backflow.env
+WorkingDirectory=/mnt/data/personal-website
+ExecStart=%h/.local/bin/personal-website-photo-thumbnail-sync
+NoNewPrivileges=true
+PrivateTmp=true

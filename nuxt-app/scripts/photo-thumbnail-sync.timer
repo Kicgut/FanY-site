@@ -1,0 +1,11 @@
+[Unit]
+Description=Run Personal Website thumbnail sync periodically
+
+[Timer]
+OnBootSec=10min
+OnUnitActiveSec=10min
+Persistent=true
+Unit=photo-thumbnail-sync.service
+
+[Install]
+WantedBy=timers.target
