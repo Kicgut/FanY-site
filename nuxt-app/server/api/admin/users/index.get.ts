@@ -33,7 +33,7 @@ export default defineEventHandler(async (event) => {
   return {
     success: true,
     data: {
-      users: users.map((u) => ({ ...u, role: u.role === 'admin' ? 'admin' : 'user', groups: parseGroups(u.groups) })),
+      users: users.map((u) => ({ ...u, role: u.role === 'superadmin' ? 'superadmin' : u.role === 'admin' ? 'admin' : 'user', groups: parseGroups(u.groups) })),
     },
   }
 })

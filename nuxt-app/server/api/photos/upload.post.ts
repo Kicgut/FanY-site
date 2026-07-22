@@ -37,7 +37,7 @@ export default defineEventHandler(async (event) => {
       iso: metadata.iso, focalLength: metadata.focalLength, keywords: metadata.keywords,
       checksum: metadata.checksum,
       visibility, visibleTo: visibility === 'groups' ? JSON.stringify(groups.map((group) => `group:${group}`)) : null,
-      uploadedBy: user.id, status: user.role === 'admin' ? 'published' : 'hidden', reviewStatus: user.role === 'admin' ? 'approved' : 'pending',
+      uploadedBy: user.id, status: user.role === 'admin' || user.role === 'superadmin' ? 'published' : 'hidden', reviewStatus: user.role === 'admin' || user.role === 'superadmin' ? 'approved' : 'pending',
       storageLocation: PHOTO_STORAGE_LOCATION.ECS_ONLY, syncStatus: PHOTO_SYNC_STATUS.PENDING,
       ecsSyncPolicy: 'local_only',
       thumbnailStatus: stored.thumbPath && stored.mediumPath ? 'ready' : 'pending',

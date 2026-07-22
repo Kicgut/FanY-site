@@ -20,7 +20,10 @@ export default defineEventHandler(async (event) => {
       ...album,
       visibleTo: album.visibleTo ? (() => { try { return JSON.parse(album.visibleTo) } catch { return [] } })() : [],
       photoCount: album._count.photos,
-      coverUrl: publicPhotoUrl(album.coverUrl) || (album.photos[0]?.photo ? presentPhoto(album.photos[0].photo).thumbnailUrl : null),
+      coverUrl: publicPhotoUrl(album.coverUrl) || (album.photos[0]?.photo ? (() => {
+        const photo = presentPhoto(album.photos[0].photo, { includeOriginal: true, includeAdminMeta: true })
+        return photo.thumbnailUrl || photo.mediumUrl || photo.originalUrl || null
+      })() : null),
       photos: undefined,
       _count: undefined,
     }))

@@ -4,7 +4,7 @@ import { ElMessage } from 'element-plus'
 definePageMeta({ layout: 'admin' })
 
 const authFetch = useAuthFetch()
-const isAdmin = computed(() => { try { return JSON.parse(localStorage.getItem('user') || '{}').role === 'admin' } catch { return false } })
+const isAdmin = computed(() => { try { const role = JSON.parse(localStorage.getItem('user') || '{}').role; return role === 'admin' || role === 'superadmin' } catch { return false } })
 
 const search = ref('')
 const statusFilter = ref('')

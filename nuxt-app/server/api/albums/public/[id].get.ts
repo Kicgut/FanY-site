@@ -15,7 +15,7 @@ export default defineEventHandler(async (event) => {
   // Determine visibility based on viewer
   const user = await getRequestUser(event)
   const origin = getAccessOrigin(event, user)
-  const isAdmin = user?.role === ROLES.ADMIN
+  const isAdmin = user?.role === ROLES.ADMIN || user?.role === ROLES.SUPERADMIN
   const page = Math.max(1, Number(getQuery(event).page) || 1)
   const limit = Math.min(100, Math.max(1, Number(getQuery(event).limit) || 50))
   const photoWhere: any = { status: 'published', reviewStatus: 'approved' }

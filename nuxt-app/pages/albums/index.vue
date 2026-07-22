@@ -77,9 +77,14 @@ useHead({ title: '照片相册' })
   <div class="albums-page">
     <section class="albums-hero">
       <div class="shell hero-grid">
-        <div>
+        <div class="hero-copy">
           <div class="eyebrow">PHOTO INDEX / PUBLIC ARCHIVE</div>
-          <h1>照片相册</h1>
+          <div class="hero-heading-row">
+            <h1>照片相册</h1>
+            <el-button v-if="loggedIn" class="upload-trigger" aria-label="上传照片" title="上传照片" @click="uploadDialogVisible = true">
+              <el-icon><Upload /></el-icon>
+            </el-button>
+          </div>
           <p>
             适合快速浏览、搜索和进入单个相册的公开影像入口。
             先从相册层面筛选，再进入单图查看。
@@ -94,9 +99,6 @@ useHead({ title: '照片相册' })
           <div class="hero-stat">
             <strong>{{ stats.photos }}</strong>
             <span>张公开照片</span>
-          </div>
-          <div class="hero-note">
-            支持名称搜索、描述搜索、按照片数排序。移动端会自动切换为单列布局。
           </div>
         </div>
       </div>
@@ -118,7 +120,7 @@ useHead({ title: '照片相册' })
         />
       </div>
 
-      <el-button v-if="loggedIn" type="primary" class="upload-trigger" @click="uploadDialogVisible = true">上传照片</el-button>
+      <p class="albums-helper">支持名称搜索、描述搜索、按照片数排序。</p>
       <el-dialog v-model="uploadDialogVisible" title="上传照片" width="min(560px, 92vw)">
         <div class="upload-row">
           <input type="file" accept="image/jpeg,image/png,image/webp,image/gif" @change="handleFileChange" />
@@ -243,22 +245,23 @@ useHead({ title: '照片相册' })
 }
 
 .hero-panel {
-  display: grid;
-  gap: 12px;
-  padding: 18px;
-  border-radius: var(--radius-xl);
-  border: 1px solid rgba(208, 213, 221, .85);
-  background: rgba(255, 255, 255, .84);
-  box-shadow: var(--shadow-light);
+  display: flex;
+  flex-wrap: wrap;
+  align-items: stretch;
+  gap: 10px;
 }
 
 .hero-stat {
   display: flex;
-  align-items: baseline;
-  justify-content: space-between;
-  gap: 12px;
+  flex: 0 0 auto;
+  min-width: 132px;
+  min-height: 88px;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: center;
+  gap: 4px;
   padding: 14px 16px;
-  border-radius: 16px;
+  border-radius: 18px;
   background: var(--color-surface-2);
 }
 
@@ -267,15 +270,44 @@ useHead({ title: '照片相册' })
   letter-spacing: -.05em;
 }
 
-.hero-stat span,
-.hero-note {
+.hero-stat span {
   color: var(--color-text-secondary);
   font-size: 13px;
   line-height: 1.5;
 }
 
-.hero-note {
-  padding: 2px 2px 0;
+.hero-heading-row {
+  display: flex;
+  align-items: flex-end;
+  gap: 16px;
+}
+
+.hero-heading-row h1 {
+  margin-bottom: 0;
+}
+
+.upload-trigger {
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  margin-bottom: 8px;
+  border: 0;
+  border-radius: 12px;
+  color: #fff;
+  background: #111827;
+}
+
+.upload-trigger:hover,
+.upload-trigger:focus-visible {
+  color: #fff;
+  background: #374151;
+}
+
+.albums-helper {
+  margin: -4px 0 18px;
+  color: var(--color-text-secondary);
+  font-size: 12px;
+  line-height: 1.5;
 }
 
 .albums-content {

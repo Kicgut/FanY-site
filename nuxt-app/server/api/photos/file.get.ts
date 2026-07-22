@@ -21,8 +21,8 @@ function asSafeLocalPath(value: string | null | undefined) {
   return absolute === root || absolute.startsWith(`${root}/`) ? absolute : null
 }
 
-function candidates(photo: any, type: string) {
-  if (type === 'thumbnail') return [photo.thumbPath, photo.ecsThumbPath, photo.thumbnailUrl]
+function candidates(photo: any, type: string, allowOriginalFallback = false) {
+  if (type === 'thumbnail') return [photo.thumbPath, photo.ecsThumbPath, photo.thumbnailUrl, photo.mediumUrl, ...(allowOriginalFallback ? [photo.originalPath, photo.originalUrl] : [])]
   if (type === 'medium') return [photo.mediumUrl, photo.thumbPath, photo.ecsThumbPath, photo.thumbnailUrl]
   return [photo.originalPath, photo.originalUrl]
 }
@@ -38,7 +38,7 @@ export default defineEventHandler(async (event) => {
   if (!photo) throw createError({ statusCode: 404, message: '照片不存在' })
   const user = await getRequestUser(event)
   const isTrusted = getAccessOrigin(event, user) === 'local_trusted'
-  const allowed = user?.role === ROLES.ADMIN || isTrusted || (
+  const allowed = user?.role === ROLES.ADMIN || user?.role === ROLES.SUPERADMIN || isTrusted || (
     photo.status === 'published' && photo.reviewStatus === 'approved' && (
       photo.visibility === 'public' ||
       Boolean(user && photo.visibility === 'friends' && canAccessVisibleTo(photo.visibleTo, user)) ||
@@ -47,11 +47,12 @@ export default defineEventHandler(async (event) => {
     )
   )
   if (!allowed) throw createError({ statusCode: 404, message: '照片不存在' })
-  if (type === 'original' && user?.role !== ROLES.ADMIN && !isTrusted && !photo.allowOriginalDownload) {
+  if (type === 'original' && user?.role !== ROLES.ADMIN && user?.role !== ROLES.SUPERADMIN && !isTrusted && !photo.allowOriginalDownload) {
     throw createError({ statusCode: 403, message: '原图下载未开放' })
   }
 
-  for (const value of candidates(photo, type)) {
+  const allowOriginalFallback = Boolean(user?.role === ROLES.ADMIN || user?.role === ROLES.SUPERADMIN || isTrusted)
+  for (const value of candidates(photo, type, allowOriginalFallback)) {
     const path = asSafeLocalPath(value)
     if (!path) continue
     try {

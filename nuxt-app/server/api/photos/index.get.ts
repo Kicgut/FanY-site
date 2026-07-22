@@ -4,7 +4,7 @@ import { presentPhoto } from '~/server/utils/photo-presentation'
 export default defineEventHandler(async (event) => {
   const query = getQuery(event)
   const user = await getRequestUser(event)
-  const isAdmin = user?.role === ROLES.ADMIN
+  const isAdmin = user?.role === ROLES.ADMIN || user?.role === ROLES.SUPERADMIN
   const page = Math.max(1, Number(query.page) || 1)
   const limit = Math.min(100, Math.max(1, Number(query.limit) || 50))
   const cursor = Number(query.cursor)

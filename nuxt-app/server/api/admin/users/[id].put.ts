@@ -32,6 +32,10 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 404, message: 'User not found' })
   }
 
+  if (actor.role !== ROLES.SUPERADMIN && (target.role === ROLES.SUPERADMIN || id !== actor.id && target.role === ROLES.ADMIN)) {
+    throw createError({ statusCode: 403, message: '普通管理员不能修改管理员账号' })
+  }
+
   // Capture before state for audit
   const beforeState = {
     name: target.name,
@@ -49,7 +53,9 @@ export default defineEventHandler(async (event) => {
 
   for (const field of allowedFields) {
     if (body[field] !== undefined) {
-      updateData[field] = field === 'role' ? (body[field] === 'admin' ? 'admin' : 'user') : body[field]
+      updateData[field] = field === 'role'
+        ? (body[field] === ROLES.SUPERADMIN ? ROLES.SUPERADMIN : body[field] === ROLES.ADMIN ? ROLES.ADMIN : ROLES.USER)
+        : body[field]
     }
   }
 
@@ -67,9 +73,15 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 400, message: 'Cannot change your own role from admin' })
   }
 
+  if (actor.role !== ROLES.SUPERADMIN && (updateData.role !== undefined || updateData.groups !== undefined)) {
+    throw createError({ statusCode: 403, message: '普通管理员不能修改角色或分组' })
+  }
+
   // Serialize groups to JSON if provided as array
   if (updateData.groups && Array.isArray(updateData.groups)) {
-    updateData.groups = JSON.stringify([...new Set(updateData.groups.map(String).map((v) => v.trim()).filter(Boolean))])
+    const groups = [...new Set(updateData.groups.map(String).map((v) => v.trim()).filter(Boolean))]
+    if (actor.role !== ROLES.SUPERADMIN && groups.some((group) => !actor.groups.includes(group))) throw createError({ statusCode: 403, message: '只能分配自己所属的分组' })
+    updateData.groups = JSON.stringify(groups)
   }
 
   const updated = await prisma.user.update({

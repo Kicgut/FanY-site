@@ -23,7 +23,7 @@ export type AccessOrigin = 'local_trusted' | 'remote_owner' | 'remote_user' | 'p
 // ─── Constants ───────────────────────────────────────────────────────────────
 
 export const STATUS = { ACTIVE: 'active', DISABLED: 'disabled', PENDING: 'pending' } as const
-export const ROLES = { ADMIN: 'admin', USER: 'user' } as const
+export const ROLES = { SUPERADMIN: 'superadmin', ADMIN: 'admin', USER: 'user' } as const
 export const AI_LEVELS = { NONE: 'none', CHAT: 'chat', LIMITED: 'limited', OWNER: 'owner' } as const
 export const GROUPS = {} as const
 
@@ -112,6 +112,7 @@ export function parseVisibleTo(raw: string | null | undefined): string[] {
 
 export function canAccessVisibleTo(raw: string | null | undefined, user: AuthUser | null | undefined): boolean {
   if (!user) return false
+  if (user.role === ROLES.SUPERADMIN || user.groups.includes('all')) return true
   const allowed = new Set(parseVisibleTo(raw))
   return allowed.has(user.username) || user.groups.some((group) => allowed.has(`group:${group}`) || allowed.has(group))
 }
@@ -120,7 +121,7 @@ export function canAccessVisibleTo(raw: string | null | undefined, user: AuthUse
  * and group visibility matches any group assigned to the user. `friends` is kept as
  * a legacy alias for group:friends during migration. */
 export function canAccessVisibility(visibility: string | null | undefined, visibleTo: string | null | undefined, user: AuthUser | null | undefined, ownerId?: number | null): boolean {
-  if (user?.role === ROLES.ADMIN) return true
+  if (user?.role === ROLES.ADMIN || user?.role === ROLES.SUPERADMIN) return true
   if (visibility === 'public') return true
   if (!user) return false
   if (visibility === 'private') return ownerId === user.id
@@ -145,8 +146,8 @@ export function toAuthUser(user: {
     id: user.id,
     username: user.username,
     name: user.name,
-    role: user.role === ROLES.ADMIN ? ROLES.ADMIN : ROLES.USER,
-    groups: parseGroups(user.groups),
+    role: user.role === ROLES.SUPERADMIN ? ROLES.SUPERADMIN : user.role === ROLES.ADMIN ? ROLES.ADMIN : ROLES.USER,
+    groups: user.role === ROLES.SUPERADMIN ? ['all'] : parseGroups(user.groups),
     status: user.status,
     aiAccess: user.aiAccess,
     aiAccessLevel: user.aiAccessLevel,
@@ -204,7 +205,7 @@ export async function requireLogin(event: H3Event): Promise<AuthUser> {
  */
 export async function requireAdmin(event: H3Event): Promise<AuthUser> {
   const user = await requireLogin(event)
-  if (user.role !== ROLES.ADMIN) {
+  if (user.role !== ROLES.ADMIN && user.role !== ROLES.SUPERADMIN) {
     throw createError({ statusCode: 403, message: 'Admin access required' })
   }
   return user
@@ -218,7 +219,7 @@ export function getAccessOrigin(event: H3Event, user?: AuthUser | null): AccessO
   const ip = getClientIp(event)
   const trustedCidrs = getTrustedCidrs()
   if (isIpInCidrs(ip, trustedCidrs)) return 'local_trusted'
-  if (user && user.role === ROLES.ADMIN) return 'remote_owner'
+  if (user && (user.role === ROLES.ADMIN || user.role === ROLES.SUPERADMIN)) return 'remote_owner'
   if (user) return 'remote_user'
   return 'public'
 }
@@ -238,7 +239,7 @@ export function canAccessAi(user: AuthUser, levelRequired: string): boolean {
  */
 export function canManageUser(actor: AuthUser, targetUserId: number, origin: AccessOrigin): boolean {
   // Only admins can manage other users
-  if (actor.role !== ROLES.ADMIN) return false
+  if (actor.role !== ROLES.ADMIN && actor.role !== ROLES.SUPERADMIN) return false
   // Self-management (setting own profile) is allowed for admins
   if (actor.id === targetUserId) return true
   // Admin can manage others from any origin (but dangerous ops are separately gated)
@@ -253,7 +254,7 @@ export function canPerformDangerousOperation(actor: AuthUser, origin: AccessOrig
   // Only local_trusted may perform dangerous ops
   if (origin !== 'local_trusted') return false
   // Must be admin
-  return actor.role === ROLES.ADMIN
+  return actor.role === ROLES.SUPERADMIN
 }
 
 /**

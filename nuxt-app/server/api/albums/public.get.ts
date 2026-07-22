@@ -1,5 +1,5 @@
 import { presentPhoto, publicPhotoUrl } from '~/server/utils/photo-presentation'
-import { getRequestUser, canAccessVisibleTo } from '~/server/utils/permission'
+import { getRequestUser, canAccessVisibleTo, ROLES } from '~/server/utils/permission'
 
 const publicPhotoWhere = {
   photo: {
@@ -12,8 +12,9 @@ const publicPhotoWhere = {
 export default defineEventHandler(async (event) => {
   try {
     const user = await getRequestUser(event)
+    const isAdmin = user?.role === ROLES.ADMIN || user?.role === ROLES.SUPERADMIN
     const albums = await prisma.album.findMany({
-      where: { OR: [
+      where: isAdmin ? undefined : { OR: [
         { visibility: 'public' },
         ...(user ? user.groups.map((group) => ({ visibility: 'groups', visibleTo: { contains: `group:${group}` } })) : []),
       ] },
@@ -29,9 +30,9 @@ export default defineEventHandler(async (event) => {
 
     const result = await Promise.all(albums.map(async (album) => {
       const [photoCount, previews] = await Promise.all([
-        prisma.albumPhoto.count({ where: { albumId: album.id, ...publicPhotoWhere } }),
+        prisma.albumPhoto.count({ where: { albumId: album.id, ...(isAdmin ? {} : publicPhotoWhere) } }),
         prisma.albumPhoto.findMany({
-          where: { albumId: album.id, ...publicPhotoWhere },
+          where: { albumId: album.id, ...(isAdmin ? {} : publicPhotoWhere) },
           select: { photo: { include: { tags: true } } },
           orderBy: { order: 'asc' },
           take: 10,
@@ -55,6 +56,7 @@ export default defineEventHandler(async (event) => {
     }))
 
     return { success: true, data: result.filter((album) => album.photoCount > 0).filter((album) => {
+      if (isAdmin) return true
       const source = albums.find((item) => item.id === album.id)
       return source?.visibility !== 'groups' || canAccessVisibleTo(source.visibleTo, user)
     }) }
