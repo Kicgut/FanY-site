@@ -8,7 +8,6 @@ definePageMeta({ layout: 'admin' })
 const route = useRoute()
 const albumId = Number(route.params.id)
 
-// ---------- Types ----------
 interface AlbumInfo {
   id: number
   name: string
@@ -29,10 +28,8 @@ interface Photo {
   height?: number | null
 }
 
-// ---------- Tab management ----------
 const activeTab = ref('album-photos')
 
-// ========== Tab 1: Album Photos ==========
 const albumPhotosPage = ref(1)
 const albumPhotosLimit = 30
 const albumPhotosTotal = ref(0)
@@ -41,9 +38,9 @@ const album = ref<AlbumInfo | null>(null)
 const { data: albumPhotosData, status: albumPhotosStatus, refresh: refreshAlbumPhotos } = await useAsyncData(
   `admin-album-photos-${albumId}`,
   () => authFetch<{ album: AlbumInfo; photos: Photo[]; total: number }>(
-    `/api/admin/albums/${albumId}/photos?page=${albumPhotosPage.value}&limit=${albumPhotosLimit}`
+    `/api/admin/albums/${albumId}/photos?page=${albumPhotosPage.value}&limit=${albumPhotosLimit}`,
   ),
-  { watch: [albumPhotosPage] }
+  { watch: [albumPhotosPage] },
 )
 
 watch(albumPhotosData, (val) => {
@@ -58,9 +55,9 @@ const albumPhotos = computed(() => albumPhotosData.value?.photos ?? [])
 async function handleRemoveFromAlbum(photo: Photo) {
   try {
     await ElMessageBox.confirm(
-      `确定将「${photo.title}」从相册中移除？照片本身不会被删除。`,
+      `确定将「${photo.title}」从当前相册移除？照片文件本身不会被删除。`,
       '移出相册',
-      { confirmButtonText: '移除', cancelButtonText: '取消', type: 'warning' }
+      { confirmButtonText: '移除', cancelButtonText: '取消', type: 'warning' },
     )
     await authFetch(`/api/admin/albums/${albumId}/photos`, {
       method: 'DELETE',
@@ -75,7 +72,6 @@ async function handleRemoveFromAlbum(photo: Photo) {
   }
 }
 
-// ========== Tab 2: Photo Library ==========
 const libraryPage = ref(1)
 const libraryLimit = 30
 const librarySearch = ref('')
@@ -85,28 +81,22 @@ const addingPhotos = ref(false)
 const { data: libraryData, status: libraryStatus, refresh: refreshLibrary } = await useAsyncData(
   `admin-photo-library-${albumId}`,
   () => authFetch<{ photos: Photo[]; total: number }>(
-    `/api/photos?page=${libraryPage.value}&limit=${libraryLimit}&title=${encodeURIComponent(librarySearch.value)}`
+    `/api/photos?page=${libraryPage.value}&limit=${libraryLimit}&title=${encodeURIComponent(librarySearch.value)}`,
   ),
-  { watch: [libraryPage, librarySearch] }
+  { watch: [libraryPage, librarySearch] },
 )
 
 const libraryPhotos = computed(() => libraryData.value?.photos ?? [])
 const libraryTotal = computed(() => libraryData.value?.total ?? 0)
 
-// Filter out photos already in album from library display
 const albumPhotoIds = computed(() => new Set(albumPhotos.value.map(p => p.id)))
-const availableLibraryPhotos = computed(() =>
-  libraryPhotos.value.filter(p => !albumPhotoIds.value.has(p.id))
-)
+const availableLibraryPhotos = computed(() => libraryPhotos.value.filter(p => !albumPhotoIds.value.has(p.id)))
 
 function toggleSelect(photoId: number) {
-  const s = new Set(selectedPhotoIds.value)
-  if (s.has(photoId)) {
-    s.delete(photoId)
-  } else {
-    s.add(photoId)
-  }
-  selectedPhotoIds.value = s
+  const next = new Set(selectedPhotoIds.value)
+  if (next.has(photoId)) next.delete(photoId)
+  else next.add(photoId)
+  selectedPhotoIds.value = next
 }
 
 function isSelected(photoId: number) {
@@ -126,13 +116,14 @@ async function handleAddToAlbum() {
     ElMessage.warning('请先选择照片')
     return
   }
+
   addingPhotos.value = true
   try {
     await authFetch(`/api/admin/albums/${albumId}/photos`, {
       method: 'POST',
       body: { photoIds: [...selectedPhotoIds.value] },
     })
-    ElMessage.success(`已添加 ${selectedPhotoIds.value.size} 张照片到相册`)
+    ElMessage.success(`已添加 ${selectedPhotoIds.value.size} 张照片`)
     selectedPhotoIds.value = new Set()
     refreshAlbumPhotos()
     refreshLibrary()
@@ -143,19 +134,17 @@ async function handleAddToAlbum() {
   }
 }
 
-// Debounced search
 let searchTimer: ReturnType<typeof setTimeout> | null = null
 function onSearchInput(val: string) {
   if (searchTimer) clearTimeout(searchTimer)
   searchTimer = setTimeout(() => {
     librarySearch.value = val
     libraryPage.value = 1
-  }, 400)
+  }, 300)
 }
 
 const searchInputValue = ref('')
 
-// Visibility helpers
 const visibilityOptions = [
   { value: 'public', label: '公开', color: 'success' },
   { value: 'friends', label: '好友可见', color: 'warning' },
@@ -175,7 +164,6 @@ useHead({ title: computed(() => album.value ? `管理 - ${album.value.name}` : '
 
 <template>
   <div class="album-detail-page">
-    <!-- Album Info Card -->
     <div v-if="album" class="album-info-card">
       <div class="album-info-main">
         <h2 class="album-title">{{ album.name }}</h2>
@@ -187,35 +175,35 @@ useHead({ title: computed(() => album.value ? `管理 - ${album.value.name}` : '
           <span class="photo-count-badge">{{ album.photoCount }} 张照片</span>
         </div>
       </div>
+
       <el-button text type="primary" @click="navigateTo('/admin/albums')">
         ← 返回相册列表
       </el-button>
     </div>
 
-    <!-- Tabs -->
+    <el-alert
+      class="page-hint"
+      type="info"
+      show-icon
+      :closable="false"
+      title="照片库是资源池，不是重复列表"
+      description="左侧“相册照片”只管理当前相册的归属；右侧“照片库（资源池）”是全站可复用素材，照片可以加入多个相册。"
+    />
+
     <el-tabs v-model="activeTab" class="album-tabs">
-      <!-- Tab 1: Album Photos -->
       <el-tab-pane label="相册照片" name="album-photos">
-        <p class="tab-help">这里是已经属于当前相册的照片。点击“移除”只会解除相册关系，不会删除照片文件。</p>
+        <p class="tab-help">这里列出当前相册内的照片。点击“移除”只会解除相册关系，不会删除文件。</p>
+
         <div v-loading="albumPhotosStatus === 'pending'" class="photos-grid">
-          <el-empty v-if="albumPhotosStatus !== 'pending' && albumPhotos.length === 0" description="相册中暂无照片" />
+          <el-empty v-if="albumPhotosStatus !== 'pending' && albumPhotos.length === 0" description="相册里暂无照片" />
 
           <div v-for="photo in albumPhotos" :key="photo.id" class="photo-item">
             <div class="photo-thumb">
-              <img
-                :src="photo.thumbnailUrl || photo.mediumUrl || photo.originalUrl"
-                :alt="photo.title"
-                loading="lazy"
-              />
+              <img :src="photo.thumbnailUrl || photo.mediumUrl || photo.originalUrl" :alt="photo.title" loading="lazy" />
             </div>
             <div class="photo-item-info">
               <span class="photo-item-title" :title="photo.title">{{ photo.title }}</span>
-              <el-button
-                text
-                type="danger"
-                size="small"
-                @click="handleRemoveFromAlbum(photo)"
-              >
+              <el-button text type="danger" size="small" @click="handleRemoveFromAlbum(photo)">
                 移除
               </el-button>
             </div>
@@ -233,23 +221,25 @@ useHead({ title: computed(() => album.value ? `管理 - ${album.value.name}` : '
         </div>
       </el-tab-pane>
 
-      <!-- Tab 2: Photo Library -->
-      <el-tab-pane label="添加照片" name="photo-library">
-        <p class="tab-help">从全部照片中挑选素材加入当前相册；照片本身仍保留在照片库，可被多个相册复用。</p>
+      <el-tab-pane label="照片库（资源池）" name="photo-library">
+        <p class="tab-help">
+          这里展示全站可加入当前相册的照片。选中后添加到相册即可，照片本体仍然保留在资源池里，能被多个相册重复使用。
+        </p>
+
         <div class="library-toolbar">
           <el-input
             v-model="searchInputValue"
-            placeholder="搜索照片标题..."
+            placeholder="搜索照片标题…"
             clearable
-            style="max-width: 300px"
+            style="max-width: 320px"
             @input="onSearchInput"
           >
-            <template #prefix>🔍</template>
+            <template #prefix>⌕</template>
           </el-input>
 
           <div class="library-actions">
             <el-button size="small" @click="selectAll">全选本页</el-button>
-            <el-button size="small" @click="clearSelection">清空选择</el-button>
+            <el-button size="small" @click="clearSelection">清空</el-button>
             <el-button
               type="primary"
               size="small"
@@ -257,7 +247,7 @@ useHead({ title: computed(() => album.value ? `管理 - ${album.value.name}` : '
               :disabled="selectedPhotoIds.size === 0"
               @click="handleAddToAlbum"
             >
-              添加到相册 ({{ selectedPhotoIds.size }})
+              添加到相册（{{ selectedPhotoIds.size }}）
             </el-button>
           </div>
         </div>
@@ -272,11 +262,7 @@ useHead({ title: computed(() => album.value ? `管理 - ${album.value.name}` : '
             @click="toggleSelect(photo.id)"
           >
             <div class="photo-thumb">
-              <img
-                :src="photo.thumbnailUrl || photo.mediumUrl || photo.originalUrl"
-                :alt="photo.title"
-                loading="lazy"
-              />
+              <img :src="photo.thumbnailUrl || photo.mediumUrl || photo.originalUrl" :alt="photo.title" loading="lazy" />
               <div class="select-check">
                 <el-checkbox :model-value="isSelected(photo.id)" @click.stop @change="toggleSelect(photo.id)" />
               </div>
@@ -306,16 +292,17 @@ useHead({ title: computed(() => album.value ? `管理 - ${album.value.name}` : '
   width: 100%;
 }
 
-/* Album Info Card */
 .album-info-card {
   display: flex;
   justify-content: space-between;
   align-items: flex-start;
-  padding: 20px 24px;
-  background: #fff;
-  border: 1px solid #ebeef5;
-  border-radius: 10px;
-  margin-bottom: 20px;
+  gap: 16px;
+  padding: 20px 22px;
+  margin-bottom: 16px;
+  border: 1px solid rgba(208, 213, 221, .9);
+  border-radius: 18px;
+  background: rgba(255, 255, 255, .84);
+  box-shadow: var(--shadow-light);
 }
 
 .album-info-main {
@@ -323,16 +310,16 @@ useHead({ title: computed(() => album.value ? `管理 - ${album.value.name}` : '
 }
 
 .album-title {
-  margin: 0 0 6px;
-  font-size: 1.35rem;
-  font-weight: 700;
-  color: #303133;
+  margin: 0 0 8px;
+  font-size: 1.4rem;
+  letter-spacing: -.03em;
 }
 
 .album-desc {
-  margin: 0 0 8px;
-  font-size: 0.9rem;
-  color: #909399;
+  margin: 0 0 10px;
+  font-size: 0.94rem;
+  color: var(--color-text-secondary);
+  line-height: 1.6;
 }
 
 .album-badges {
@@ -343,20 +330,29 @@ useHead({ title: computed(() => album.value ? `管理 - ${album.value.name}` : '
 
 .photo-count-badge {
   font-size: 0.85rem;
-  color: #606266;
+  color: var(--color-text-muted);
   font-weight: 500;
 }
 
-/* Tabs */
-.album-tabs {
-  background: #fff;
-  border: 1px solid #ebeef5;
-  border-radius: 10px;
-  padding: 16px 20px;
+.page-hint {
+  margin-bottom: 16px;
 }
-.tab-help { margin: -2px 0 16px; color: #57606a; font-size: .86rem; line-height: 1.6; }
 
-/* Photos Grid */
+.album-tabs {
+  padding: 16px 20px 20px;
+  border: 1px solid rgba(208, 213, 221, .9);
+  border-radius: 18px;
+  background: rgba(255, 255, 255, .84);
+  box-shadow: var(--shadow-light);
+}
+
+.tab-help {
+  margin: 0 0 16px;
+  color: var(--color-text-secondary);
+  font-size: .88rem;
+  line-height: 1.6;
+}
+
 .photos-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
@@ -365,15 +361,16 @@ useHead({ title: computed(() => album.value ? `管理 - ${album.value.name}` : '
 }
 
 .photo-item {
-  border: 1px solid #ebeef5;
-  border-radius: 8px;
+  border: 1px solid rgba(208, 213, 221, .92);
+  border-radius: 16px;
   overflow: hidden;
-  transition: box-shadow 0.2s, border-color 0.2s;
+  background: rgba(255, 255, 255, .82);
+  transition: transform .18s ease, box-shadow .18s ease, border-color .18s ease;
 }
 
 .photo-item:hover {
-  border-color: #c6e2ff;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  border-color: rgba(37, 99, 235, .34);
+  box-shadow: var(--shadow-light);
 }
 
 .photo-item.selectable {
@@ -381,8 +378,8 @@ useHead({ title: computed(() => album.value ? `管理 - ${album.value.name}` : '
 }
 
 .photo-item.selectable.selected {
-  border-color: #409eff;
-  box-shadow: 0 0 0 2px rgba(64, 158, 255, 0.2);
+  border-color: rgba(37, 99, 235, .48);
+  box-shadow: 0 0 0 2px rgba(37, 99, 235, .16);
 }
 
 .photo-thumb {
@@ -390,40 +387,39 @@ useHead({ title: computed(() => album.value ? `管理 - ${album.value.name}` : '
   width: 100%;
   height: 140px;
   overflow: hidden;
-  background: #f5f7fa;
+  background: var(--color-surface-2);
 }
 
 .photo-thumb img {
   width: 100%;
   height: 100%;
   object-fit: cover;
+  display: block;
 }
 
 .select-check {
   position: absolute;
-  top: 6px;
-  left: 6px;
-  z-index: 2;
+  top: 8px;
+  left: 8px;
 }
 
 .photo-item-info {
-  padding: 8px 10px;
+  padding: 10px 12px;
   display: flex;
-  justify-content: space-between;
   align-items: center;
-  gap: 6px;
+  justify-content: space-between;
+  gap: 8px;
 }
 
 .photo-item-title {
   font-size: 0.82rem;
-  color: #303133;
+  color: var(--color-text);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
   flex: 1;
 }
 
-/* Library Toolbar */
 .library-toolbar {
   display: flex;
   justify-content: space-between;
@@ -437,9 +433,9 @@ useHead({ title: computed(() => album.value ? `管理 - ${album.value.name}` : '
   display: flex;
   gap: 8px;
   align-items: center;
+  flex-wrap: wrap;
 }
 
-/* Pagination */
 .pagination-wrap {
   display: flex;
   justify-content: center;
@@ -449,7 +445,6 @@ useHead({ title: computed(() => album.value ? `管理 - ${album.value.name}` : '
 @media (max-width: 640px) {
   .album-info-card {
     flex-direction: column;
-    gap: 12px;
   }
 
   .photos-grid {

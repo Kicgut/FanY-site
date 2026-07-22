@@ -38,6 +38,8 @@ onMounted(() => {
 // ─── Edit Dialog ────────────────────────────────────────────────────────
 
 const editDialogVisible = ref(false)
+const createDialogVisible = ref(false)
+const createForm = ref({ username: '', name: '', password: '', role: 'viewer', groups: [] as string[], aiAccess: false, aiAccessLevel: 'chat', uploadQuotaMb: 500 })
 const editUser = ref<User | null>(null)
 const editForm = ref({
   role: 'viewer',
@@ -60,6 +62,21 @@ function openEditDialog(user: User) {
     uploadQuotaMb: user.uploadQuotaMb || 500,
   }
   editDialogVisible.value = true
+}
+
+function openCreateDialog() {
+  createForm.value = { username: '', name: '', password: '', role: 'viewer', groups: [], aiAccess: false, aiAccessLevel: 'chat', uploadQuotaMb: 500 }
+  createDialogVisible.value = true
+}
+
+async function handleCreate() {
+  if (!createForm.value.username || !createForm.value.name || !createForm.value.password) return ElMessage.warning('请填写用户名、姓名和密码')
+  try {
+    await authFetch('/api/admin/users', { method: 'POST', body: createForm.value })
+    ElMessage.success('用户已创建')
+    createDialogVisible.value = false
+    refresh()
+  } catch (e: any) { ElMessage.error(e?.data?.message || '创建失败') }
 }
 
 function parseGroups(groups: string[] | string | null): string[] {
@@ -109,6 +126,7 @@ function groupsDisplay(groups: string[] | string | null): string[] {
   <div class="users-page">
     <div class="page-header">
       <h2>用户管理</h2>
+      <el-button type="primary" @click="openCreateDialog">创建用户</el-button>
     </div>
 
     <!-- Error -->
@@ -181,6 +199,19 @@ function groupsDisplay(groups: string[] | string | null): string[] {
         </template>
       </el-table-column>
     </el-table>
+
+    <el-dialog v-model="createDialogVisible" title="创建用户" width="520px">
+      <el-form label-width="100px">
+        <el-form-item label="用户名"><el-input v-model="createForm.username" /></el-form-item>
+        <el-form-item label="姓名"><el-input v-model="createForm.name" /></el-form-item>
+        <el-form-item label="初始密码"><el-input v-model="createForm.password" type="password" show-password /></el-form-item>
+        <el-form-item label="角色"><el-select v-model="createForm.role" style="width:100%"><el-option label="管理员" value="admin" /><el-option label="朋友" value="friend" /><el-option label="访客" value="viewer" /></el-select></el-form-item>
+        <el-form-item label="分组"><el-select v-model="createForm.groups" multiple style="width:100%"><el-option label="family" value="family" /><el-option label="friends" value="friends" /><el-option label="close-friends" value="close-friends" /></el-select></el-form-item>
+        <el-form-item label="AI 访问"><el-switch v-model="createForm.aiAccess" /></el-form-item>
+        <el-form-item label="上传配额"><el-input-number v-model="createForm.uploadQuotaMb" :min="0" :step="100" /></el-form-item>
+      </el-form>
+      <template #footer><el-button @click="createDialogVisible = false">取消</el-button><el-button type="primary" @click="handleCreate">创建</el-button></template>
+    </el-dialog>
 
     <!-- Edit Dialog -->
     <el-dialog v-model="editDialogVisible" title="编辑用户" width="520px">

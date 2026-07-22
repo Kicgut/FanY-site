@@ -23,6 +23,6 @@ export default defineNuxtRouteMiddleware((to) => {
 
   const token = localStorage.getItem('token')
   if (!token) {
-    return navigateTo('/admin/login')
+    return navigateTo({ path: '/admin/login', query: { redirect: to.fullPath } })
   }
 })

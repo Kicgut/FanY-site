@@ -1,7 +1,7 @@
 @echo off
 setlocal
 
-rem Project-local Codex launcher for D:\Algorithm\wuhan360.
+rem Project-local Codex launcher for E:\FanY-site.
 rem Uses codex.cmd instead of codex.ps1 so Windows PowerShell execution policy
 rem does not block the npm shim.
 

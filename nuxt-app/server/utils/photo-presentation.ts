@@ -57,6 +57,7 @@ export function presentPhoto<T extends Record<string, any>>(photo: T, options: P
       reviewNote: photo.reviewNote ?? null,
       checksum: photo.checksum ?? null,
       syncStatus: photo.syncStatus ?? null,
+      thumbnailStatus: photo.thumbnailStatus ?? null,
       ecsSyncPolicy: photo.ecsSyncPolicy ?? null,
       uploadedBy: photo.uploadedBy ?? null,
     } : {}),

@@ -48,7 +48,7 @@ export default defineEventHandler(async (event) => {
       photo: {
         select: {
           id: true, title: true, description: true, filename: true,
-          originalUrl: true, thumbnailUrl: true, mediumUrl: true,
+          originalUrl: true, thumbnailUrl: true, mediumUrl: true, allowOriginalDownload: true,
           width: true, height: true, originalPath: true, thumbPath: true,
           ecsThumbPath: true, visibility: true, visibleTo: true, uploadedBy: true,
           tags: true,
@@ -89,6 +89,7 @@ export default defineEventHandler(async (event) => {
       originalPath: ap.photo.originalPath,
       thumbPath: ap.photo.thumbPath,
       ecsThumbPath: ap.photo.ecsThumbPath,
+      allowOriginalDownload: ap.photo.allowOriginalDownload,
     }))
 
   return {

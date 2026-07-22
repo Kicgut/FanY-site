@@ -25,9 +25,11 @@ const formatDate = (dateStr: string) => {
   })
 }
 
-const pageSize = 4
+const pageSize = 20
 const currentPage = ref(1)
 const activeTag = ref<string | null>(null)
+const searchText = ref('')
+const dateRange = ref<[string, string] | null>(null)
 
 const allTags = computed(() => {
   if (!articles.value) return []
@@ -42,10 +44,15 @@ const allTags = computed(() => {
 
 const filteredPosts = computed(() => {
   if (!articles.value) return []
-  if (!activeTag.value) return articles.value
-  return articles.value.filter((p: any) =>
-    p.tags?.some((t: any) => t.name === activeTag.value)
-  )
+  return articles.value.filter((p: any) => {
+    const text = searchText.value.trim().toLowerCase()
+    const date = new Date(p.publishedAt || p.createdAt)
+    const matchesText = !text || `${p.title} ${p.description || ''}`.toLowerCase().includes(text)
+    const matchesTag = !activeTag.value || p.tags?.some((t: any) => t.name === activeTag.value)
+    const from = dateRange.value?.[0] ? new Date(`${dateRange.value[0]}T00:00:00`) : null
+    const to = dateRange.value?.[1] ? new Date(`${dateRange.value[1]}T23:59:59`) : null
+    return matchesText && matchesTag && (!from || date >= from) && (!to || date <= to)
+  })
 })
 
 const totalPages = computed(() => {
@@ -72,6 +79,8 @@ const handlePageChange = (page: number) => {
 
 const clearFilter = () => {
   activeTag.value = null
+  searchText.value = ''
+  dateRange.value = null
   currentPage.value = 1
 }
 </script>
@@ -82,6 +91,13 @@ const clearFilter = () => {
       <el-col :xs="24" :sm="20" :md="18" :lg="16">
         <h1 class="page-title">博客</h1>
         <p class="page-desc">分享技术心得与生活感悟</p>
+
+        <div class="blog-search">
+          <el-input v-model="searchText" clearable placeholder="检索博客标题或摘要" @input="currentPage = 1">
+            <template #prefix>⌕</template>
+          </el-input>
+          <el-date-picker v-model="dateRange" type="daterange" value-format="YYYY-MM-DD" range-separator="至" start-placeholder="开始日期" end-placeholder="结束日期" @change="currentPage = 1" />
+        </div>
 
         <!-- Tags filter -->
         <div v-if="allTags.length" class="tags-filter">
@@ -191,6 +207,9 @@ const clearFilter = () => {
   margin-bottom: 32px;
 }
 
+.blog-search { display: flex; gap: 10px; margin-bottom: 18px; flex-wrap: wrap; }
+.blog-search .el-input { flex: 1 1 280px; }
+
 .tag-item {
   cursor: pointer;
   border-radius: 16px;
@@ -203,8 +222,8 @@ const clearFilter = () => {
 
 /* Post list */
 .posts-list {
-  display: flex;
-  flex-direction: column;
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 20px;
 }
 
@@ -281,4 +300,7 @@ const clearFilter = () => {
   justify-content: center;
   margin-top: 40px;
 }
+
+@media (max-width: 1100px) { .posts-list { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+@media (max-width: 760px) { .posts-list { grid-template-columns: 1fr; } }
 </style>

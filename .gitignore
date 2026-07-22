@@ -4,19 +4,12 @@
 !.env.example
 
 # === 照片和媒体文件 ===
-photos/
-thumbnails/
-uploads/
-public/uploads/
-nuxt-app/public/uploads/
-originals/
-# These are source directories, not uploaded media.
-!nuxt-app/pages/admin/photos/
-!nuxt-app/pages/admin/photos/index.vue
-!nuxt-app/server/api/photos/
-!nuxt-app/server/api/photos/index.get.ts
-!nuxt-app/server/api/photos/[id].get.ts
-!nuxt-app/server/api/photos/[id].patch.ts
+/photos/
+/thumbnails/
+/uploads/
+/public/uploads/
+/nuxt-app/public/uploads/
+/originals/
 
 # === 数据库和运行时 ===
 *.db

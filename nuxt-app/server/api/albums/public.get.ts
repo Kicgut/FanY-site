@@ -29,7 +29,7 @@ export default defineEventHandler(async () => {
           where: { albumId: album.id, ...publicPhotoWhere },
           select: { photo: { include: { tags: true } } },
           orderBy: { order: 'asc' },
-          take: 4,
+          take: 10,
         }),
       ])
 

@@ -5,6 +5,7 @@ import { useRouter } from '#imports'
 definePageMeta({ layout: false })
 
 const router = useRouter()
+const route = useRoute()
 const loading = ref(false)
 const errorMsg = ref('')
 
@@ -38,7 +39,10 @@ async function handleLogin() {
     
     localStorage.setItem('token', token)
     localStorage.setItem('user', JSON.stringify(user))
-    router.push('/admin')
+    const redirect = typeof route.query.redirect === 'string' && route.query.redirect.startsWith('/')
+      ? route.query.redirect
+      : '/admin'
+    router.push(redirect)
   } catch (err: any) {
     errorMsg.value = err?.data?.message || '登录失败'
   } finally {

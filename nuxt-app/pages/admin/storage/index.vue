@@ -3,6 +3,8 @@ definePageMeta({ layout: 'admin' }); const authFetch = useAuthFetch()
 const { data, status, error } = await useAsyncData('storage', () => authFetch<any>('/api/photos', { query: { limit: 10000 } }))
 const photos = computed(() => data.value?.photos || []); const totalBytes = computed(() => photos.value.reduce((n: number, p: any) => n + (p.fileSize || 0), 0))
 const count = (key: string, value: string) => photos.value.filter((p: any) => (p[key] || 'pending') === value).length
+const originalPending = computed(() => count('syncStatus', 'pending'))
+const thumbnailPending = computed(() => count('thumbnailStatus', 'pending'))
 const gb = computed(() => (totalBytes.value / 1024 / 1024 / 1024).toFixed(2))
 </script>
 <template><div class="page"><div class="page-header"><div><h2>存储管理</h2><p>查看照片数量、文件大小和同步状态。</p></div><el-tag type="info">数据来自 /api/photos</el-tag></div><el-alert v-if="error" type="error" title="加载存储统计失败" :description="error.message" show-icon /><div v-loading="status === 'pending'" class="grid"><el-card><template #header>照片总数</template><strong>{{ photos.length }}</strong><small>张</small></el-card><el-card><template #header>估算占用空间</template><strong>{{ gb }}</strong><small>GB</small></el-card><el-card><template #header>同步状态</template><p>已同步：{{ count('syncStatus','synced') }}</p><p>待同步：{{ count('syncStatus','pending') }}</p><p>失败：{{ count('syncStatus','failed') }}</p></el-card><el-card><template #header>可见范围</template><p>公开：{{ count('visibility','public') }}</p><p>朋友：{{ count('visibility','friends') }}</p><p>私有：{{ count('visibility','private') }}</p></el-card></div><el-alert class="note" type="info" title="运维提示" description="照片文件是否真正存在，还需要在服务器上检查挂载目录与同步脚本；FRP 只负责网络转发，不负责文件恢复。" show-icon :closable="false" /></div></template>
