@@ -14,7 +14,7 @@ onMounted(() => {
   } catch {
     user.value = null
   }
-  if (user.value?.role === 'admin') {
+  if (user.value?.role === 'admin' || user.value?.role === 'superadmin') {
     useAuthFetch()('/api/admin/access-origin').then((res: any) => { localTrusted.value = res.data?.origin === 'local_trusted' }).catch(() => {})
   }
 })
@@ -32,7 +32,7 @@ const allMenu = [
 ] as const
 
 const menu = computed(() => {
-  if (user.value?.role === 'admin') return localTrusted.value ? [...allMenu, ['/admin/local-ops', '本地高权限'] as const] : allMenu
+  if (user.value?.role === 'admin' || user.value?.role === 'superadmin') return localTrusted.value ? [...allMenu, ['/admin/local-ops', '本地高权限'] as const] : allMenu
   return allMenu.filter(([path]) => ['/admin', '/admin/photos', '/admin/storage'].includes(path))
 })
 
@@ -101,8 +101,9 @@ function logout() {
         </el-breadcrumb>
         <div class="header-actions">
           <span v-if="user" class="user-name">{{ user.name || user.username }}</span>
-          <el-tag v-if="user && user.role !== 'admin'" size="small" type="info">普通用户</el-tag>
-          <el-tag v-if="user && user.role === 'admin'" size="small" type="warning">远程管理员</el-tag>
+          <el-tag v-if="user && user.role === 'user'" size="small" type="info">普通用户</el-tag>
+          <el-tag v-if="user && user.role === 'admin'" size="small" type="warning">普通管理员</el-tag>
+          <el-tag v-if="user && user.role === 'superadmin'" size="small" type="danger">超级管理员</el-tag>
           <el-button text @click="navigate('/')">查看前台</el-button>
           <el-button text type="danger" @click="logout">退出</el-button>
         </div>

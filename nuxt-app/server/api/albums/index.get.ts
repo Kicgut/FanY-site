@@ -1,6 +1,13 @@
 import { requireAdmin } from '~/server/utils/permission'
 import { presentPhoto, publicPhotoUrl } from '~/server/utils/photo-presentation'
 
+function usableCoverUrl(value: string | null | undefined) {
+  const url = publicPhotoUrl(value)
+  if (!url) return null
+  if (url.startsWith('/api/photos/file') && !url.includes('id=')) return null
+  return url
+}
+
 export default defineEventHandler(async (event) => {
   await requireAdmin(event)
   try {
@@ -20,7 +27,7 @@ export default defineEventHandler(async (event) => {
       ...album,
       visibleTo: album.visibleTo ? (() => { try { return JSON.parse(album.visibleTo) } catch { return [] } })() : [],
       photoCount: album._count.photos,
-      coverUrl: publicPhotoUrl(album.coverUrl) || (album.photos[0]?.photo ? (() => {
+      coverUrl: usableCoverUrl(album.coverUrl) || (album.photos[0]?.photo ? (() => {
         const photo = presentPhoto(album.photos[0].photo, { includeOriginal: true, includeAdminMeta: true })
         return photo.thumbnailUrl || photo.mediumUrl || photo.originalUrl || null
       })() : null),

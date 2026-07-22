@@ -9,6 +9,13 @@ const publicPhotoWhere = {
   },
 } as const
 
+function usableCoverUrl(value: string | null | undefined) {
+  const url = publicPhotoUrl(value)
+  if (!url) return null
+  if (url.startsWith('/api/photos/file') && !url.includes('id=')) return null
+  return url
+}
+
 export default defineEventHandler(async (event) => {
   try {
     const user = await getRequestUser(event)
@@ -48,7 +55,7 @@ export default defineEventHandler(async (event) => {
         id: album.id,
         name: album.name,
         description: album.description,
-        coverUrl: publicPhotoUrl(album.coverUrl) || previewPhotos[0]?.thumbnailUrl || null,
+        coverUrl: usableCoverUrl(album.coverUrl) || previewPhotos[0]?.thumbnailUrl || null,
         photoCount,
         previewPhotos,
         createdAt: album.createdAt,

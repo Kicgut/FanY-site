@@ -9,7 +9,12 @@ interface PublicAlbum {
   createdAt: string
 }
 
-const { data, pending, error } = await useFetch<{ success: boolean; data: PublicAlbum[] }>('/api/albums/public')
+const authFetch = useAuthFetch()
+const { data, pending, error } = await useAsyncData<{ success: boolean; data: PublicAlbum[] }>(
+  'public-albums',
+  () => authFetch('/api/albums/public'),
+  { server: false },
+)
 
 const query = ref('')
 const sortMode = ref<'recent' | 'photos' | 'name'>('recent')
@@ -22,8 +27,6 @@ const userGroups = ref<string[]>([])
 const uploadBusy = ref(false)
 const uploadDialogVisible = ref(false)
 const loggedIn = ref(false)
-const authFetch = useAuthFetch()
-
 onMounted(() => {
   loggedIn.value = Boolean(localStorage.getItem('token'))
   try { userGroups.value = JSON.parse(localStorage.getItem('user') || '{}').groups || [] } catch { userGroups.value = [] }
