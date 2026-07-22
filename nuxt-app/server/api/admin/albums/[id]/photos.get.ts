@@ -1,4 +1,5 @@
 import { requireAdmin } from '~/server/utils/permission'
+import { presentPhoto, publicPhotoUrl } from '~/server/utils/photo-presentation'
 
 export default defineEventHandler(async (event) => {
   await requireAdmin(event)
@@ -35,8 +36,8 @@ export default defineEventHandler(async (event) => {
 
   return {
     success: true,
-    album: { id: album.id, name: album.name, description: album.description, visibility: album.visibility, coverUrl: album.coverUrl, photoCount: total },
-    photos: albumPhotos.map((ap) => ({ ...ap.photo, albumOrder: ap.order })),
+    album: { id: album.id, name: album.name, description: album.description, visibility: album.visibility, coverUrl: publicPhotoUrl(album.coverUrl), photoCount: total },
+    photos: albumPhotos.map((ap) => ({ ...presentPhoto(ap.photo, { includeOriginal: true, includeAdminMeta: true }), albumOrder: ap.order })),
     total,
     page,
     limit,

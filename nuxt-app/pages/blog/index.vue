@@ -88,7 +88,7 @@ const clearFilter = () => {
 <template>
   <div class="page-wrapper">
     <el-row justify="center">
-      <el-col :xs="24" :sm="20" :md="18" :lg="16">
+      <el-col :span="24">
         <h1 class="page-title">博客</h1>
         <p class="page-desc">分享技术心得与生活感悟</p>
 
@@ -178,7 +178,8 @@ const clearFilter = () => {
 <style scoped>
 .page-wrapper {
   min-height: 80vh;
-  max-width: 980px;
+  width: min(1440px, calc(100vw - 48px));
+  max-width: none;
   margin: 0 auto;
   padding: clamp(64px, 10vw, 120px) 24px;
 }
@@ -223,11 +224,12 @@ const clearFilter = () => {
 /* Post list */
 .posts-list {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
   gap: 20px;
 }
 
 .post-card {
+  min-height: 180px;
   background: var(--color-surface);
   border: 1px solid var(--color-border);
   border-radius: 4px;

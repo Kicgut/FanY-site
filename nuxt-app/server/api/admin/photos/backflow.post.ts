@@ -6,8 +6,11 @@ import { PHOTO_STORAGE_LOCATION, PHOTO_SYNC_STATUS } from '~/server/services/pho
 export default defineEventHandler(async (event) => {
   await requireAdmin(event)
   const result = await prisma.photo.updateMany({
-    where: { storageLocation: PHOTO_STORAGE_LOCATION.ECS_ONLY, syncStatus: PHOTO_SYNC_STATUS.FAILED },
-    data: { syncStatus: PHOTO_SYNC_STATUS.PENDING, syncError: null },
+    where: { syncStatus: { in: [PHOTO_SYNC_STATUS.FAILED, PHOTO_SYNC_STATUS.PENDING] }, OR: [
+      { storageLocation: PHOTO_STORAGE_LOCATION.ECS_ONLY },
+      { originalPath: { startsWith: '/app/public/uploads/photos/' } },
+    ] },
+    data: { storageLocation: PHOTO_STORAGE_LOCATION.ECS_ONLY, syncStatus: PHOTO_SYNC_STATUS.PENDING, syncError: null },
   })
-  return { success: true, data: { resetCount: result.count, message: '任务已重新排队，Ubuntu 定时任务会自动处理' } }
+  return { success: true, data: { resetCount: result.count, message: `${result.count} 个原图回流任务已重新排队；Ubuntu 每 5 分钟自动执行，也可在 Ubuntu 手动启动 photo-backflow.service` } }
 })

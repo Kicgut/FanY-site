@@ -1,17 +1,7 @@
-import jwt from 'jsonwebtoken'
-import { getJwtSecret } from '~/server/utils/jwt'
+import { requireAdmin } from '~/server/utils/permission'
 
 export default defineEventHandler(async (event) => {
-  const authHeader = getRequestHeader(event, 'Authorization')
-  if (!authHeader || !authHeader.startsWith('Bearer ')) {
-    throw createError({ statusCode: 401, message: 'Authentication required' })
-  }
-
-  try {
-    jwt.verify(authHeader.slice(7), getJwtSecret())
-  } catch {
-    throw createError({ statusCode: 401, message: 'Invalid or expired token' })
-  }
+  await requireAdmin(event)
 
   const body = await readBody(event)
 
@@ -25,6 +15,8 @@ export default defineEventHandler(async (event) => {
         name: body.name,
         description: body.description || null,
         coverUrl: body.coverUrl || null,
+        visibility: ['public', 'private', 'groups'].includes(body.visibility) ? body.visibility : 'private',
+        visibleTo: Array.isArray(body.visibleTo) ? JSON.stringify(body.visibleTo.map(String)) : null,
       },
     })
 

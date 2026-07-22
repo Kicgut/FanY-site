@@ -17,7 +17,11 @@ export default defineEventHandler(async (event) => {
   const titlePart = form?.find((part) => part.name === 'title')
   const visibilityPart = form?.find((part) => part.name === 'visibility')
   const visibility = String(visibilityPart?.data?.toString() || 'private')
-  if (!['public', 'friends', 'private'].includes(visibility)) throw createError({ statusCode: 400, message: '可见范围无效' })
+  if (!['public', 'friends', 'private', 'groups'].includes(visibility)) throw createError({ statusCode: 400, message: '可见范围无效' })
+  const groupsPart = form?.find((part) => part.name === 'groups')
+  const albumIdsPart = form?.find((part) => part.name === 'albumIds')
+  const groups = groupsPart?.data ? String(groupsPart.data).split(',').map((v) => v.trim()).filter(Boolean) : []
+  const albumIds = albumIdsPart?.data ? String(albumIdsPart.data).split(',').map(Number).filter((v) => Number.isInteger(v) && v > 0) : []
   const title = String(titlePart?.data?.toString() || file.filename.replace(/\.[^.]+$/, ''))
   const metadata = await extractPhotoMetadata(file.data)
   const stored = await saveUploadedPhoto(file.data, file.type || 'image/jpeg', visibility, metadata.takenAt)
@@ -32,11 +36,16 @@ export default defineEventHandler(async (event) => {
       cameraMake: metadata.cameraMake, cameraModel: metadata.cameraModel, lens: metadata.lens,
       iso: metadata.iso, focalLength: metadata.focalLength, keywords: metadata.keywords,
       checksum: metadata.checksum,
-      visibility, uploadedBy: user.id, status: 'hidden', reviewStatus: 'pending',
+      visibility, visibleTo: visibility === 'groups' ? JSON.stringify(groups.map((group) => `group:${group}`)) : null,
+      uploadedBy: user.id, status: user.role === 'admin' ? 'published' : 'hidden', reviewStatus: user.role === 'admin' ? 'approved' : 'pending',
       storageLocation: PHOTO_STORAGE_LOCATION.ECS_ONLY, syncStatus: PHOTO_SYNC_STATUS.PENDING,
       ecsSyncPolicy: 'local_only',
       thumbnailStatus: stored.thumbPath && stored.mediumPath ? 'ready' : 'pending',
     },
   })
+  if (albumIds.length) {
+    const allowedAlbums = await prisma.album.findMany({ where: { id: { in: albumIds } }, select: { id: true } })
+    await prisma.albumPhoto.createMany({ data: allowedAlbums.map((album) => ({ albumId: album.id, photoId: photo.id })) })
+  }
   return { success: true, data: presentPhoto(photo), message: '上传成功，等待审核和原图回流' }
 })

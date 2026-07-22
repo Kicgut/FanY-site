@@ -28,6 +28,7 @@ export default defineEventHandler(async (event) => {
           { visibility: 'public' },
           { visibility: 'friends' },
           { visibility: 'private', uploadedBy: user.id },
+          ...user.groups.map((group) => ({ visibility: 'groups', visibleTo: { contains: `group:${group}` } })),
         ]
       : [{ visibility: 'public' }]
   }
@@ -36,7 +37,7 @@ export default defineEventHandler(async (event) => {
   if (album.visibility === 'private' && !isAdmin) {
     throw createError({ statusCode: 404, message: 'Album not found' })
   }
-  if (album.visibility === 'friends' && (!user || !canAccessVisibleTo(album.visibleTo, user))) {
+  if (album.visibility === 'groups' && (!user || !canAccessVisibleTo(album.visibleTo, user))) {
     throw createError({ statusCode: 404, message: 'Album not found' })
   }
 

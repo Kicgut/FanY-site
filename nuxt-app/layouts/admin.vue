@@ -6,6 +6,7 @@ const route = useRoute()
 const collapsed = ref(false)
 const mobileOpen = ref(false)
 const user = ref<any>(null)
+const localTrusted = ref(false)
 
 onMounted(() => {
   try {
@@ -13,9 +14,12 @@ onMounted(() => {
   } catch {
     user.value = null
   }
+  if (user.value?.role === 'admin') {
+    useAuthFetch()('/api/admin/access-origin').then((res: any) => { localTrusted.value = res.data?.origin === 'local_trusted' }).catch(() => {})
+  }
 })
 
-const menu = [
+const allMenu = [
   ['/admin', '仪表盘'],
   ['/admin/articles', '文章管理'],
   ['/admin/photos', '照片管理'],
@@ -27,8 +31,13 @@ const menu = [
   ['/admin/hermes', 'AI 与技能'],
 ] as const
 
+const menu = computed(() => {
+  if (user.value?.role === 'admin') return localTrusted.value ? [...allMenu, ['/admin/local-ops', '本地高权限'] as const] : allMenu
+  return allMenu.filter(([path]) => ['/admin', '/admin/photos', '/admin/storage'].includes(path))
+})
+
 const currentLabel = computed(
-  () => menu.find(item => item[0] === route.path)?.[1] || '页面',
+  () => menu.value.find(item => item[0] === route.path)?.[1] || '页面',
 )
 
 function navigate(path: string) {
@@ -92,6 +101,8 @@ function logout() {
         </el-breadcrumb>
         <div class="header-actions">
           <span v-if="user" class="user-name">{{ user.name || user.username }}</span>
+          <el-tag v-if="user && user.role !== 'admin'" size="small" type="info">普通用户</el-tag>
+          <el-tag v-if="user && user.role === 'admin'" size="small" type="warning">远程管理员</el-tag>
           <el-button text @click="navigate('/')">查看前台</el-button>
           <el-button text type="danger" @click="logout">退出</el-button>
         </div>

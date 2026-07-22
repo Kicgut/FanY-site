@@ -22,14 +22,13 @@ export default defineEventHandler(async (event) => {
   if (Number.isInteger(albumId) && albumId > 0) where.albums = { some: { albumId } }
 
   if (!isAdmin) {
-    where.status = 'published'
-    where.reviewStatus = 'approved'
-    if (!user) where.visibility = 'public'
+    if (!user) { where.status = 'published'; where.reviewStatus = 'approved'; where.visibility = 'public' }
     else if (getAccessOrigin(event, user) !== 'local_trusted') {
       where.OR = [
-        { visibility: 'public' },
-        { visibility: 'friends' },
-        { visibility: 'private', uploadedBy: user.id },
+        { uploadedBy: user.id },
+        { status: 'published', reviewStatus: 'approved', visibility: 'public' },
+        { status: 'published', reviewStatus: 'approved', visibility: 'friends' },
+        ...user.groups.map((group) => ({ status: 'published', reviewStatus: 'approved', visibility: 'groups', visibleTo: { contains: `group:${group}` } })),
       ]
     }
   } else if (query.status) {

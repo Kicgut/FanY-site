@@ -42,6 +42,7 @@ export default defineEventHandler(async (event) => {
     photo.status === 'published' && photo.reviewStatus === 'approved' && (
       photo.visibility === 'public' ||
       Boolean(user && photo.visibility === 'friends' && canAccessVisibleTo(photo.visibleTo, user)) ||
+      Boolean(user && photo.visibility === 'groups' && canAccessVisibleTo(photo.visibleTo, user)) ||
       Boolean(user && photo.visibility === 'private' && photo.uploadedBy === user.id)
     )
   )

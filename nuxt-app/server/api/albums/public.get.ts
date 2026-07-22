@@ -1,4 +1,5 @@
 import { presentPhoto, publicPhotoUrl } from '~/server/utils/photo-presentation'
+import { getRequestUser, canAccessVisibleTo } from '~/server/utils/permission'
 
 const publicPhotoWhere = {
   photo: {
@@ -8,10 +9,14 @@ const publicPhotoWhere = {
   },
 } as const
 
-export default defineEventHandler(async () => {
+export default defineEventHandler(async (event) => {
   try {
+    const user = await getRequestUser(event)
     const albums = await prisma.album.findMany({
-      where: { visibility: 'public' },
+      where: { OR: [
+        { visibility: 'public' },
+        ...(user ? user.groups.map((group) => ({ visibility: 'groups', visibleTo: { contains: `group:${group}` } })) : []),
+      ] },
       select: {
         id: true,
         name: true,
@@ -49,7 +54,10 @@ export default defineEventHandler(async () => {
       }
     }))
 
-    return { success: true, data: result.filter((album) => album.photoCount > 0) }
+    return { success: true, data: result.filter((album) => album.photoCount > 0).filter((album) => {
+      const source = albums.find((item) => item.id === album.id)
+      return source?.visibility !== 'groups' || canAccessVisibleTo(source.visibleTo, user)
+    }) }
   } catch (error: any) {
     console.error('Failed to fetch public albums:', error)
     throw createError({ statusCode: 500, message: 'Failed to fetch public albums' })

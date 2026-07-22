@@ -11,7 +11,7 @@ interface Album {
   description?: string | null
   coverUrl?: string | null
   photoCount: number
-  visibility: 'public' | 'friends' | 'private'
+  visibility: 'public' | 'groups' | 'private'
   visibleTo?: string[] | null
   createdAt: string
 }
@@ -27,7 +27,7 @@ const albums = computed(() => data.value ?? [])
 // Visibility helpers
 const visibilityOptions = [
   { value: 'public', label: '公开', color: 'success' },
-  { value: 'friends', label: '好友可见', color: 'warning' },
+  { value: 'groups', label: '指定分组', color: 'warning' },
   { value: 'private', label: '私密', color: 'info' },
 ] as const
 
@@ -41,11 +41,11 @@ function getVisibilityColor(v: string) {
 
 // Create album
 const createDialogVisible = ref(false)
-const createForm = ref({ name: '', description: '', visibility: 'public' as string })
+const createForm = ref({ name: '', description: '', visibility: 'public' as string, visibleTo: [] as string[] })
 const creating = ref(false)
 
 function openCreateDialog() {
-  createForm.value = { name: '', description: '', visibility: 'public' }
+  createForm.value = { name: '', description: '', visibility: 'public', visibleTo: [] }
   createDialogVisible.value = true
 }
 
@@ -62,6 +62,7 @@ async function handleCreate() {
         name: createForm.value.name.trim(),
         description: createForm.value.description || null,
         visibility: createForm.value.visibility,
+        visibleTo: createForm.value.visibleTo.map((group) => `group:${group}`),
       },
     })
     ElMessage.success('相册创建成功')
@@ -82,6 +83,7 @@ const editForm = ref({
   description: '',
   coverUrl: '',
   visibility: 'public' as string,
+  visibleTo: [] as string[],
   originalVisibility: 'public' as string,
 })
 const editing = ref(false)
@@ -95,6 +97,7 @@ function openEditDialog(album: Album) {
     coverUrl: album.coverUrl || '',
     visibility: album.visibility || 'public',
     originalVisibility: album.visibility || 'public',
+    visibleTo: Array.isArray(album.visibleTo) ? album.visibleTo.map((v) => String(v).replace(/^group:/, '')) : [],
   }
   cascadePhotos.value = false
   editDialogVisible.value = true
@@ -117,6 +120,7 @@ async function handleEdit() {
         description: editForm.value.description || null,
         coverUrl: editForm.value.coverUrl || null,
         visibility: editForm.value.visibility,
+        visibleTo: editForm.value.visibleTo.map((group) => `group:${group}`),
       },
     })
 
@@ -249,10 +253,11 @@ function formatDate(date: string) {
         <el-form-item label="可见性">
           <el-radio-group v-model="createForm.visibility">
             <el-radio value="public">公开</el-radio>
-            <el-radio value="friends">好友可见</el-radio>
+            <el-radio value="groups">指定分组</el-radio>
             <el-radio value="private">私密</el-radio>
           </el-radio-group>
         </el-form-item>
+        <el-form-item v-if="createForm.visibility === 'groups'" label="分组"><el-select v-model="createForm.visibleTo" allow-create filterable multiple style="width:100%" placeholder="输入分组后回车" /></el-form-item>
       </el-form>
       <template #footer>
         <el-button @click="createDialogVisible = false">取消</el-button>
@@ -280,10 +285,11 @@ function formatDate(date: string) {
         <el-form-item label="可见性">
           <el-radio-group v-model="editForm.visibility">
             <el-radio value="public">公开</el-radio>
-            <el-radio value="friends">好友可见</el-radio>
+            <el-radio value="groups">指定分组</el-radio>
             <el-radio value="private">私密</el-radio>
           </el-radio-group>
         </el-form-item>
+        <el-form-item v-if="editForm.visibility === 'groups'" label="分组"><el-select v-model="editForm.visibleTo" allow-create filterable multiple style="width:100%" placeholder="输入分组后回车" /></el-form-item>
         <el-form-item v-if="visibilityChanged" label="批量更新">
           <el-checkbox v-model="cascadePhotos">
             同时修改成员照片可见性

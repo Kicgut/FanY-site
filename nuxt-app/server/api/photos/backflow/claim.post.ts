@@ -10,7 +10,10 @@ export default defineEventHandler(async (event) => {
   if (!Number.isInteger(photoId)) throw createError({ statusCode: 400, message: 'photoId is required' })
 
   const result = await prisma.photo.updateMany({
-    where: { id: photoId, storageLocation: PHOTO_STORAGE_LOCATION.ECS_ONLY, syncStatus: PHOTO_SYNC_STATUS.PENDING },
+    where: { id: photoId, syncStatus: PHOTO_SYNC_STATUS.PENDING, OR: [
+      { storageLocation: PHOTO_STORAGE_LOCATION.ECS_ONLY },
+      { originalPath: { startsWith: '/app/public/uploads/photos/' } },
+    ] },
     data: { syncStatus: PHOTO_SYNC_STATUS.SYNCING, syncError: null },
   })
   if (result.count === 0) return { success: true, claimed: false }

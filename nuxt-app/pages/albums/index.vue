@@ -16,11 +16,18 @@ const sortMode = ref<'recent' | 'photos' | 'name'>('recent')
 const uploadFile = ref<File | null>(null)
 const uploadTitle = ref('')
 const uploadVisibility = ref('private')
+const uploadAlbumIds = ref<number[]>([])
+const uploadGroups = ref<string[]>([])
+const userGroups = ref<string[]>([])
 const uploadBusy = ref(false)
+const uploadDialogVisible = ref(false)
 const loggedIn = ref(false)
 const authFetch = useAuthFetch()
 
-onMounted(() => { loggedIn.value = Boolean(localStorage.getItem('token')) })
+onMounted(() => {
+  loggedIn.value = Boolean(localStorage.getItem('token'))
+  try { userGroups.value = JSON.parse(localStorage.getItem('user') || '{}').groups || [] } catch { userGroups.value = [] }
+})
 
 async function submitUpload() {
   if (!uploadFile.value || uploadBusy.value) return
@@ -30,10 +37,13 @@ async function submitUpload() {
     form.append('file', uploadFile.value)
     form.append('title', uploadTitle.value || uploadFile.value.name.replace(/\.[^.]+$/, ''))
     form.append('visibility', uploadVisibility.value)
+    form.append('albumIds', uploadAlbumIds.value.join(','))
+    form.append('groups', uploadGroups.value.join(','))
     await authFetch('/api/photos/upload', { method: 'POST', body: form })
     ElMessage.success('上传成功，等待审核与原图回流')
     uploadFile.value = null
     uploadTitle.value = ''
+    uploadAlbumIds.value = []
   } catch (e: any) { ElMessage.error(e?.data?.message || '上传失败') }
   finally { uploadBusy.value = false }
 }
@@ -108,15 +118,17 @@ useHead({ title: '照片相册' })
         />
       </div>
 
-      <el-card v-if="loggedIn" class="upload-panel" shadow="never">
-        <template #header>上传照片</template>
+      <el-button v-if="loggedIn" type="primary" class="upload-trigger" @click="uploadDialogVisible = true">上传照片</el-button>
+      <el-dialog v-model="uploadDialogVisible" title="上传照片" width="min(560px, 92vw)">
         <div class="upload-row">
           <input type="file" accept="image/jpeg,image/png,image/webp,image/gif" @change="handleFileChange" />
           <el-input v-model="uploadTitle" placeholder="可选标题" />
-          <el-select v-model="uploadVisibility" style="width:140px"><el-option label="私有" value="private" /><el-option label="朋友可见" value="friends" /><el-option label="公开" value="public" /></el-select>
-          <el-button type="primary" :loading="uploadBusy" :disabled="!uploadFile" @click="submitUpload">上传</el-button>
+          <el-select v-model="uploadVisibility" style="width:140px"><el-option label="私有" value="private" /><el-option label="分组可见" value="groups" /><el-option label="公开" value="public" /></el-select>
+          <el-select v-if="uploadVisibility === 'groups'" v-model="uploadGroups" multiple placeholder="选择分组" style="width:180px"><el-option v-for="group in userGroups" :key="group" :label="group" :value="group" /></el-select>
+          <el-select v-model="uploadAlbumIds" multiple collapse-tags placeholder="加入相册（可选）" style="width:220px"><el-option v-for="album in albums" :key="album.id" :label="album.name" :value="album.id" /></el-select>
         </div>
-      </el-card>
+        <template #footer><el-button @click="uploadDialogVisible = false">取消</el-button><el-button type="primary" :loading="uploadBusy" :disabled="!uploadFile" @click="submitUpload">上传</el-button></template>
+      </el-dialog>
 
       <div class="section-meta">
         <span>{{ albums.length }} 个相册</span>

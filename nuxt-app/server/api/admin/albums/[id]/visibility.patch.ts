@@ -10,7 +10,7 @@ export default defineEventHandler(async (event) => {
   }
 
   const body = await readBody(event)
-  if (!body.visibility || !['public', 'friends', 'private'].includes(body.visibility)) {
+  if (!body.visibility || !['public', 'private', 'groups'].includes(body.visibility)) {
     throw createError({ statusCode: 400, message: 'Invalid visibility value' })
   }
 

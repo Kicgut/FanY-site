@@ -1,4 +1,8 @@
+import { requireAdmin } from '~/server/utils/permission'
+import { presentPhoto, publicPhotoUrl } from '~/server/utils/photo-presentation'
+
 export default defineEventHandler(async (event) => {
+  await requireAdmin(event)
   try {
     const albums = await prisma.album.findMany({
       include: {
@@ -14,8 +18,9 @@ export default defineEventHandler(async (event) => {
 
     const result = albums.map((album) => ({
       ...album,
+      visibleTo: album.visibleTo ? (() => { try { return JSON.parse(album.visibleTo) } catch { return [] } })() : [],
       photoCount: album._count.photos,
-      coverUrl: album.coverUrl || album.photos[0]?.photo?.thumbnailUrl || null,
+      coverUrl: publicPhotoUrl(album.coverUrl) || (album.photos[0]?.photo ? presentPhoto(album.photos[0].photo).thumbnailUrl : null),
       photos: undefined,
       _count: undefined,
     }))

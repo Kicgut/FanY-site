@@ -27,8 +27,11 @@ export const PHOTO_STORAGE_LOCATION = {
 export async function getPendingBackflowPhotos(limit: number = 50) {
   return prisma.photo.findMany({
     where: {
-      storageLocation: PHOTO_STORAGE_LOCATION.ECS_ONLY,
       syncStatus: PHOTO_SYNC_STATUS.PENDING,
+      OR: [
+        { storageLocation: PHOTO_STORAGE_LOCATION.ECS_ONLY },
+        { originalPath: { startsWith: '/app/public/uploads/photos/' } },
+      ],
     },
     orderBy: { createdAt: 'asc' },
     take: limit,

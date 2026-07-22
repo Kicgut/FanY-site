@@ -4,9 +4,11 @@ import { ElMessage } from 'element-plus'
 definePageMeta({ layout: 'admin' })
 
 const authFetch = useAuthFetch()
+const isAdmin = computed(() => { try { return JSON.parse(localStorage.getItem('user') || '{}').role === 'admin' } catch { return false } })
 
 const search = ref('')
 const statusFilter = ref('')
+const reviewFilter = ref('')
 const visibilityFilter = ref('')
 const busy = ref<number | null>(null)
 const retryBusy = ref(false)
@@ -19,9 +21,10 @@ const { data, status, error, refresh } = await useAsyncData(
       ...(search.value.trim() ? { title: search.value.trim() } : {}),
       ...(visibilityFilter.value ? { visibility: visibilityFilter.value } : {}),
       ...(statusFilter.value ? { status: statusFilter.value } : {}),
+      ...(reviewFilter.value ? { reviewStatus: reviewFilter.value } : {}),
     },
   }),
-  { watch: [search, visibilityFilter, statusFilter] },
+  { watch: [search, visibilityFilter, statusFilter, reviewFilter] },
 )
 
 const photos = computed(() => data.value?.photos || [])
@@ -42,6 +45,7 @@ const labels: Record<string, string> = {
   archived: '已归档',
   public: '公开',
   friends: '好友可见',
+  groups: '指定分组',
   private: '私密',
   pending: '待处理',
   approved: '已通过',
@@ -65,6 +69,17 @@ async function updatePhoto(photo: any, field: 'status' | 'visibility', value: st
   } finally {
     busy.value = null
   }
+}
+
+async function reviewPhoto(photo: any, reviewStatus: string) {
+  busy.value = photo.id
+  try {
+    await authFetch(`/api/photos/${photo.id}`, { method: 'PATCH', body: { reviewStatus } })
+    photo.reviewStatus = reviewStatus
+    photo.status = reviewStatus === 'approved' ? 'published' : 'hidden'
+    ElMessage.success(reviewStatus === 'approved' ? '审核已通过' : '审核状态已更新')
+  } catch (e: any) { ElMessage.error(e?.data?.message || '审核失败') }
+  finally { busy.value = null }
 }
 
 const previewVisible = ref(false)
@@ -129,10 +144,16 @@ function openInNewTab(url?: string) {
         <el-option label="已隐藏" value="hidden" />
         <el-option label="已归档" value="archived" />
       </el-select>
+      <el-select v-model="reviewFilter" placeholder="审核状态" clearable>
+        <el-option label="待审核" value="pending" />
+        <el-option label="已通过" value="approved" />
+        <el-option label="已拒绝" value="rejected" />
+        <el-option label="需修改" value="needs_edit" />
+      </el-select>
 
       <el-select v-model="visibilityFilter" placeholder="可见范围" clearable>
         <el-option label="公开" value="public" />
-        <el-option label="好友可见" value="friends" />
+        <el-option label="指定分组" value="groups" />
         <el-option label="私密" value="private" />
       </el-select>
 
@@ -156,7 +177,7 @@ function openInNewTab(url?: string) {
           </template>
         </el-table-column>
 
-        <el-table-column label="展示状态" width="150">
+        <el-table-column v-if="isAdmin" label="展示状态" width="150">
           <template #default="{ row }">
             <el-select
               :model-value="row.status"
@@ -169,7 +190,7 @@ function openInNewTab(url?: string) {
           </template>
         </el-table-column>
 
-        <el-table-column label="可见范围" width="150">
+        <el-table-column v-if="isAdmin" label="可见范围" width="150">
           <template #default="{ row }">
             <el-select
               :model-value="row.visibility"
@@ -177,7 +198,7 @@ function openInNewTab(url?: string) {
               :loading="busy === row.id"
               @change="(v: string) => updatePhoto(row, 'visibility', v)"
             >
-              <el-option v-for="v in ['public', 'friends', 'private']" :key="v" :label="label(v)" :value="v" />
+              <el-option v-for="v in ['public', 'groups', 'private']" :key="v" :label="label(v)" :value="v" />
             </el-select>
           </template>
         </el-table-column>
@@ -213,6 +234,8 @@ function openInNewTab(url?: string) {
               <el-tooltip content="打开原图，注意加载较慢" placement="top">
                 <el-button size="small" type="primary" plain @click="openInNewTab(row.originalUrl)">打开</el-button>
               </el-tooltip>
+              <el-button v-if="isAdmin && row.reviewStatus === 'pending'" size="small" type="success" :loading="busy === row.id" @click="reviewPhoto(row, 'approved')">通过</el-button>
+              <el-button v-if="isAdmin && row.reviewStatus === 'pending'" size="small" type="danger" plain :loading="busy === row.id" @click="reviewPhoto(row, 'rejected')">拒绝</el-button>
             </div>
           </template>
         </el-table-column>

@@ -1,17 +1,7 @@
-import jwt from 'jsonwebtoken'
-import { getJwtSecret } from '~/server/utils/jwt'
+import { requireAdmin } from '~/server/utils/permission'
 
 export default defineEventHandler(async (event) => {
-  const authHeader = getRequestHeader(event, 'Authorization')
-  if (!authHeader || !authHeader.startsWith('Bearer ')) {
-    throw createError({ statusCode: 401, message: 'Authentication required' })
-  }
-
-  try {
-    jwt.verify(authHeader.slice(7), getJwtSecret())
-  } catch {
-    throw createError({ statusCode: 401, message: 'Invalid or expired token' })
-  }
+  await requireAdmin(event)
 
   const id = Number(getRouterParam(event, 'id'))
   if (!id || isNaN(id)) {
@@ -25,10 +15,10 @@ export default defineEventHandler(async (event) => {
     if (body.name !== undefined) updateData.name = body.name
     if (body.description !== undefined) updateData.description = body.description
     if (body.coverUrl !== undefined) updateData.coverUrl = body.coverUrl
-    if (body.visibility !== undefined && ['public', 'friends', 'private'].includes(body.visibility)) {
+    if (body.visibility !== undefined && ['public', 'private', 'groups'].includes(body.visibility)) {
       updateData.visibility = body.visibility
     }
-    if (body.visibleTo !== undefined) updateData.visibleTo = body.visibleTo
+    if (body.visibleTo !== undefined) updateData.visibleTo = Array.isArray(body.visibleTo) ? JSON.stringify(body.visibleTo.map(String)) : body.visibleTo
 
     const album = await prisma.album.update({
       where: { id },

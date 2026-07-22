@@ -23,9 +23,9 @@ export type AccessOrigin = 'local_trusted' | 'remote_owner' | 'remote_user' | 'p
 // ─── Constants ───────────────────────────────────────────────────────────────
 
 export const STATUS = { ACTIVE: 'active', DISABLED: 'disabled', PENDING: 'pending' } as const
-export const ROLES = { ADMIN: 'admin', FRIEND: 'friend', VIEWER: 'viewer' } as const
+export const ROLES = { ADMIN: 'admin', USER: 'user' } as const
 export const AI_LEVELS = { NONE: 'none', CHAT: 'chat', LIMITED: 'limited', OWNER: 'owner' } as const
-export const GROUPS = { FAMILY: 'family', CLOSE_FRIENDS: 'close-friends', FRIENDS: 'friends' } as const
+export const GROUPS = {} as const
 
 // AI level hierarchy for comparison
 const AI_LEVEL_ORDER: Record<string, number> = {
@@ -116,6 +116,19 @@ export function canAccessVisibleTo(raw: string | null | undefined, user: AuthUse
   return allowed.has(user.username) || user.groups.some((group) => allowed.has(`group:${group}`) || allowed.has(group))
 }
 
+/** Visibility is independent from role: public is anonymous, private is owner/admin,
+ * and group visibility matches any group assigned to the user. `friends` is kept as
+ * a legacy alias for group:friends during migration. */
+export function canAccessVisibility(visibility: string | null | undefined, visibleTo: string | null | undefined, user: AuthUser | null | undefined, ownerId?: number | null): boolean {
+  if (user?.role === ROLES.ADMIN) return true
+  if (visibility === 'public') return true
+  if (!user) return false
+  if (visibility === 'private') return ownerId === user.id
+  if (visibility === 'friends') return user.groups.includes('friends')
+  if (visibility === 'groups' || visibleTo) return canAccessVisibleTo(visibleTo, user)
+  return false
+}
+
 /** Build an AuthUser from a raw Prisma User row */
 export function toAuthUser(user: {
   id: number
@@ -132,7 +145,7 @@ export function toAuthUser(user: {
     id: user.id,
     username: user.username,
     name: user.name,
-    role: user.role,
+    role: user.role === ROLES.ADMIN ? ROLES.ADMIN : ROLES.USER,
     groups: parseGroups(user.groups),
     status: user.status,
     aiAccess: user.aiAccess,

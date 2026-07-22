@@ -39,7 +39,7 @@ onMounted(() => {
 
 const editDialogVisible = ref(false)
 const createDialogVisible = ref(false)
-const createForm = ref({ username: '', name: '', password: '', role: 'viewer', groups: [] as string[], aiAccess: false, aiAccessLevel: 'chat', uploadQuotaMb: 500 })
+const createForm = ref({ username: '', name: '', password: '', role: 'user', groups: [] as string[], aiAccess: false, aiAccessLevel: 'chat', uploadQuotaMb: 500 })
 const editUser = ref<User | null>(null)
 const editForm = ref({
   role: 'viewer',
@@ -65,7 +65,7 @@ function openEditDialog(user: User) {
 }
 
 function openCreateDialog() {
-  createForm.value = { username: '', name: '', password: '', role: 'viewer', groups: [], aiAccess: false, aiAccessLevel: 'chat', uploadQuotaMb: 500 }
+  createForm.value = { username: '', name: '', password: '', role: 'user', groups: [], aiAccess: false, aiAccessLevel: 'chat', uploadQuotaMb: 500 }
   createDialogVisible.value = true
 }
 
@@ -205,8 +205,8 @@ function groupsDisplay(groups: string[] | string | null): string[] {
         <el-form-item label="用户名"><el-input v-model="createForm.username" /></el-form-item>
         <el-form-item label="姓名"><el-input v-model="createForm.name" /></el-form-item>
         <el-form-item label="初始密码"><el-input v-model="createForm.password" type="password" show-password /></el-form-item>
-        <el-form-item label="角色"><el-select v-model="createForm.role" style="width:100%"><el-option label="管理员" value="admin" /><el-option label="朋友" value="friend" /><el-option label="访客" value="viewer" /></el-select></el-form-item>
-        <el-form-item label="分组"><el-select v-model="createForm.groups" multiple style="width:100%"><el-option label="family" value="family" /><el-option label="friends" value="friends" /><el-option label="close-friends" value="close-friends" /></el-select></el-form-item>
+        <el-form-item label="角色"><el-select v-model="createForm.role" style="width:100%"><el-option label="管理员（后台管理）" value="admin" /><el-option label="普通用户（上传与个人照片）" value="user" /></el-select></el-form-item>
+        <el-form-item label="分组"><el-select v-model="createForm.groups" allow-create filterable multiple style="width:100%" placeholder="输入分组名称后回车" /></el-form-item>
         <el-form-item label="AI 访问"><el-switch v-model="createForm.aiAccess" /></el-form-item>
         <el-form-item label="上传配额"><el-input-number v-model="createForm.uploadQuotaMb" :min="0" :step="100" /></el-form-item>
       </el-form>
@@ -223,17 +223,12 @@ function groupsDisplay(groups: string[] | string | null): string[] {
         <el-form-item label="角色">
           <el-select v-model="editForm.role" style="width: 100%">
             <el-option label="管理员" value="admin" />
-            <el-option label="好友" value="friend" />
-            <el-option label="访客" value="viewer" />
+            <el-option label="普通用户（上传与个人照片）" value="user" />
           </el-select>
         </el-form-item>
 
         <el-form-item label="分组">
-          <el-select v-model="editForm.groups" multiple style="width: 100%" placeholder="选择分组">
-            <el-option label="family" value="family" />
-            <el-option label="close-friends" value="close-friends" />
-            <el-option label="friends" value="friends" />
-          </el-select>
+          <el-select v-model="editForm.groups" allow-create filterable multiple style="width: 100%" placeholder="输入分组名称后回车" />
         </el-form-item>
 
         <el-form-item label="状态">

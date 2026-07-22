@@ -49,7 +49,7 @@ export default defineEventHandler(async (event) => {
 
   for (const field of allowedFields) {
     if (body[field] !== undefined) {
-      updateData[field] = body[field]
+      updateData[field] = field === 'role' ? (body[field] === 'admin' ? 'admin' : 'user') : body[field]
     }
   }
 
@@ -69,7 +69,7 @@ export default defineEventHandler(async (event) => {
 
   // Serialize groups to JSON if provided as array
   if (updateData.groups && Array.isArray(updateData.groups)) {
-    updateData.groups = JSON.stringify(updateData.groups)
+    updateData.groups = JSON.stringify([...new Set(updateData.groups.map(String).map((v) => v.trim()).filter(Boolean))])
   }
 
   const updated = await prisma.user.update({
