@@ -31,6 +31,7 @@ interface Skill {
 const skills = ref<Skill[]>([])
 const loading = ref(false)
 const syncing = ref(false)
+const localTrusted = ref(false)
 
 // Filters
 const statusFilter = ref('')
@@ -203,6 +204,7 @@ function formatDate(dateStr: string | null): string {
 onMounted(() => {
   loadSkills()
   loadTags()
+  authFetch<{ success: boolean; data: { origin: string } }>('/api/admin/access-origin').then((res) => { localTrusted.value = res.data.origin === 'local_trusted' }).catch(() => {})
 })
 </script>
 
@@ -226,9 +228,10 @@ onMounted(() => {
         <el-select v-model="projectFilter" placeholder="Project" clearable style="width: 150px" @change="loadSkills">
           <el-option v-for="p in projects" :key="p" :label="p" :value="p" />
         </el-select>
-        <el-button type="primary" :loading="syncing" @click="handleSync">
+        <el-button v-if="localTrusted" type="primary" :loading="syncing" @click="handleSync">
           Sync Skills
         </el-button>
+        <el-tag v-else type="warning">远程只读；本地可信网络才可同步</el-tag>
       </div>
     </div>
 
