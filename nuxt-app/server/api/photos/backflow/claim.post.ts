@@ -10,10 +10,9 @@ export default defineEventHandler(async (event) => {
   if (!Number.isInteger(photoId)) throw createError({ statusCode: 400, message: 'photoId is required' })
 
   const result = await prisma.photo.updateMany({
-    where: { id: photoId, syncStatus: PHOTO_SYNC_STATUS.PENDING, OR: [
-      { storageLocation: PHOTO_STORAGE_LOCATION.ECS_ONLY },
-      { originalPath: { startsWith: '/app/public/uploads/photos/' } },
-    ] },
+    // The candidate list already applies the storage/path policy. Keep the
+    // atomic claim predicate SQLite-compatible and only claim pending rows.
+    where: { id: photoId, syncStatus: PHOTO_SYNC_STATUS.PENDING },
     data: { syncStatus: PHOTO_SYNC_STATUS.SYNCING, syncError: null },
   })
   if (result.count === 0) return { success: true, claimed: false }
