@@ -1,11 +1,28 @@
 <script setup lang="ts">
-definePageMeta({ layout: 'admin' }); const authFetch = useAuthFetch()
-const { data, status, error } = await useAsyncData('storage', () => authFetch<any>('/api/photos', { query: { limit: 10000 } }))
-const photos = computed(() => data.value?.photos || []); const totalBytes = computed(() => photos.value.reduce((n: number, p: any) => n + (p.fileSize || 0), 0))
+definePageMeta({ layout: 'admin' })
+const authFetch = useAuthFetch()
+const { data, status, error } = await useAsyncData('storage', () => authFetch<any>('/api/photos', { query: { limit: 100 } }))
+const photos = computed(() => data.value?.photos || [])
+const totalBytes = computed(() => photos.value.reduce((n: number, p: any) => n + (p.fileSize || 0), 0))
 const count = (key: string, value: string) => photos.value.filter((p: any) => (p[key] || 'pending') === value).length
-const originalPending = computed(() => count('syncStatus', 'pending'))
-const thumbnailPending = computed(() => count('thumbnailStatus', 'pending'))
 const gb = computed(() => (totalBytes.value / 1024 / 1024 / 1024).toFixed(2))
 </script>
-<template><div class="page"><div class="page-header"><div><h2>存储管理</h2><p>查看照片数量、文件大小和同步状态。</p></div><el-tag type="info">数据来自 /api/photos</el-tag></div><el-alert v-if="error" type="error" title="加载存储统计失败" :description="error.message" show-icon /><div v-loading="status === 'pending'" class="grid"><el-card><template #header>照片总数</template><strong>{{ photos.length }}</strong><small>张</small></el-card><el-card><template #header>估算占用空间</template><strong>{{ gb }}</strong><small>GB</small></el-card><el-card><template #header>同步状态</template><p>已同步：{{ count('syncStatus','synced') }}</p><p>待同步：{{ count('syncStatus','pending') }}</p><p>失败：{{ count('syncStatus','failed') }}</p></el-card><el-card><template #header>可见范围</template><p>公开：{{ count('visibility','public') }}</p><p>朋友：{{ count('visibility','friends') }}</p><p>私有：{{ count('visibility','private') }}</p></el-card></div><el-alert class="note" type="info" title="运维提示" description="照片文件是否真正存在，还需要在服务器上检查挂载目录与同步脚本；FRP 只负责网络转发，不负责文件恢复。" show-icon :closable="false" /></div></template>
-<style scoped>.page{width:100%}.page-header{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:20px}.page-header h2{margin:0 0 6px}.page-header p{margin:0;color:#909399}.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:16px}.grid strong{font-size:32px}.grid small{margin-left:6px;color:#909399}.grid p{margin:8px 0}.note{margin-top:20px}</style>
+
+<template>
+  <div class="page">
+    <div class="page-header"><div><h2>存储管理</h2><p>查看照片数量、文件大小和分层同步状态。</p></div><el-tag type="info">数据来自 /api/photos</el-tag></div>
+    <el-alert v-if="error" type="error" title="加载存储统计失败" :description="error.message" show-icon />
+    <div v-loading="status === 'pending'" class="grid">
+      <el-card><template #header>照片总数</template><strong>{{ photos.length }}</strong><small>张</small></el-card>
+      <el-card><template #header>估算占用空间</template><strong>{{ gb }}</strong><small>GB</small></el-card>
+      <el-card><template #header>原图回流</template><p>已回流：{{ count('syncStatus', 'synced') }}</p><p>待回流：{{ count('syncStatus', 'pending') }}</p><p>失败：{{ count('syncStatus', 'failed') }}</p></el-card>
+      <el-card><template #header>缩略图同步</template><p>已完成：{{ count('thumbnailStatus', 'ready') }}</p><p>待处理：{{ count('thumbnailStatus', 'pending') }}</p><p>失败：{{ count('thumbnailStatus', 'failed') }}</p></el-card>
+      <el-card><template #header>可见范围</template><p>公开：{{ count('visibility', 'public') }}</p><p>朋友：{{ count('visibility', 'friends') }}</p><p>私有：{{ count('visibility', 'private') }}</p></el-card>
+    </div>
+    <el-alert class="note" type="info" title="运维提示" description="原图回流由 Ubuntu 定时任务执行；ECS 仅临时保存原图并提供缩略图。页面中的原图回流与缩略图同步是两个独立状态。" show-icon :closable="false" />
+  </div>
+</template>
+
+<style scoped>
+.page{width:100%}.page-header{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:20px}.page-header h2{margin:0 0 6px}.page-header p{margin:0;color:#909399}.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:16px}.grid strong{font-size:32px}.grid small{margin-left:6px;color:#909399}.grid p{margin:8px 0}.note{margin-top:20px}
+</style>
