@@ -2,8 +2,10 @@ import { createReadStream } from 'node:fs'
 import { Readable } from 'node:stream'
 import { access, stat } from 'node:fs/promises'
 import { join, normalize, resolve } from 'node:path'
-import { canAccessVisibleTo, getRequestUser, getAccessOrigin, ROLES } from '~/server/utils/permission'
+import { canAccessVisibleTo, getRequestUser, getAccessOrigin, ROLES, toAuthUser } from '~/server/utils/permission'
 import { prisma } from '~/server/utils/db'
+import jwt from 'jsonwebtoken'
+import { getJwtSecret } from '~/server/utils/jwt'
 
 const ECS_UPLOADS_ROOT = '/app/public/uploads'
 const ALLOWED_TYPES = new Set(['thumbnail', 'medium', 'original'])
@@ -36,7 +38,19 @@ export default defineEventHandler(async (event) => {
 
   const photo = await prisma.photo.findUnique({ where: { id } })
   if (!photo) throw createError({ statusCode: 404, message: '照片不存在' })
-  const user = await getRequestUser(event)
+  let user = await getRequestUser(event)
+  // Admin pages render images through <img>, which cannot attach Authorization.
+  // Accept the normal JWT as a short-lived query credential for those URLs.
+  if (!user) {
+    const queryToken = String(getQuery(event).token || '')
+    if (queryToken) {
+      try {
+        const decoded = jwt.verify(queryToken, getJwtSecret()) as { id: number }
+        const dbUser = await prisma.user.findUnique({ where: { id: decoded.id } })
+        if (dbUser && dbUser.status !== 'disabled') user = toAuthUser(dbUser)
+      } catch { /* fall back to anonymous access */ }
+    }
+  }
   const isTrusted = getAccessOrigin(event, user) === 'local_trusted'
   const allowed = user?.role === ROLES.ADMIN || user?.role === ROLES.SUPERADMIN || isTrusted || (
     photo.status === 'published' && photo.reviewStatus === 'approved' && (

@@ -52,6 +52,13 @@ watch(albumPhotosData, (val) => {
 
 const albumPhotos = computed(() => albumPhotosData.value?.photos ?? [])
 
+function authImageUrl(url?: string | null) {
+  if (!url || !import.meta.client) return url || ''
+  const token = localStorage.getItem('token')
+  if (!token || !url.startsWith('/api/photos/file')) return url
+  return `${url}${url.includes('?') ? '&' : '?'}token=${encodeURIComponent(token)}`
+}
+
 async function handleRemoveFromAlbum(photo: Photo) {
   try {
     await ElMessageBox.confirm(
@@ -199,7 +206,7 @@ useHead({ title: computed(() => album.value ? `管理 - ${album.value.name}` : '
 
           <div v-for="photo in albumPhotos" :key="photo.id" class="photo-item">
             <div class="photo-thumb">
-              <img :src="photo.thumbnailUrl || photo.mediumUrl || photo.originalUrl" :alt="photo.title" loading="lazy" />
+              <img :src="authImageUrl(photo.thumbnailUrl || photo.mediumUrl || photo.originalUrl)" :alt="photo.title" loading="lazy" />
             </div>
             <div class="photo-item-info">
               <span class="photo-item-title" :title="photo.title">{{ photo.title }}</span>
@@ -262,7 +269,7 @@ useHead({ title: computed(() => album.value ? `管理 - ${album.value.name}` : '
             @click="toggleSelect(photo.id)"
           >
             <div class="photo-thumb">
-              <img :src="photo.thumbnailUrl || photo.mediumUrl || photo.originalUrl" :alt="photo.title" loading="lazy" />
+              <img :src="authImageUrl(photo.thumbnailUrl || photo.mediumUrl || photo.originalUrl)" :alt="photo.title" loading="lazy" />
               <div class="select-check">
                 <el-checkbox :model-value="isSelected(photo.id)" @click.stop @change="toggleSelect(photo.id)" />
               </div>

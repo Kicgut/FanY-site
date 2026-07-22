@@ -100,13 +100,20 @@ function openPreview(photo: any) {
 
 async function copyUrl(url?: string) {
   if (!url) return
-  await navigator.clipboard.writeText(url)
+  await navigator.clipboard.writeText(authImageUrl(url))
   ElMessage.success('链接已复制')
 }
 
 function openInNewTab(url?: string) {
   if (!url) return
-  window.open(url, '_blank', 'noopener,noreferrer')
+  window.open(authImageUrl(url), '_blank', 'noopener,noreferrer')
+}
+
+function authImageUrl(url?: string | null) {
+  if (!url || !import.meta.client) return url || ''
+  const token = localStorage.getItem('token')
+  if (!token || !url.startsWith('/api/photos/file')) return url
+  return `${url}${url.includes('?') ? '&' : '?'}token=${encodeURIComponent(token)}`
 }
 </script>
 
@@ -166,7 +173,7 @@ function openInNewTab(url?: string) {
       <el-table :data="photos" stripe>
         <el-table-column label="预览" width="88">
           <template #default="{ row }">
-            <img class="thumb" :src="row.thumbnailUrl || row.mediumUrl || row.originalUrl" :alt="row.title" />
+            <img class="thumb" :src="authImageUrl(row.thumbnailUrl || row.mediumUrl || row.originalUrl)" :alt="row.title" />
           </template>
         </el-table-column>
 
@@ -254,7 +261,7 @@ function openInNewTab(url?: string) {
 
       <div v-if="previewPhoto" class="preview-body">
         <div class="preview-stage">
-          <img :src="previewSrc" :alt="previewPhoto.title" />
+          <img :src="authImageUrl(previewSrc)" :alt="previewPhoto.title" />
         </div>
         <div class="preview-side">
           <div class="preview-meta">

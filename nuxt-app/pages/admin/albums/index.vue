@@ -3,6 +3,13 @@ import { ref, computed } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 
 const authFetch = useAuthFetch()
+
+function authImageUrl(url?: string | null) {
+  if (!url || !import.meta.client) return url || ''
+  const token = localStorage.getItem('token')
+  if (!token || !url.startsWith('/api/photos/file')) return url
+  return `${url}${url.includes('?') ? '&' : '?'}token=${encodeURIComponent(token)}`
+}
 definePageMeta({ layout: 'admin' })
 
 interface Album {
@@ -198,7 +205,7 @@ function formatDate(date: string) {
         <div class="album-cover">
           <img
             v-if="album.coverUrl"
-            :src="album.coverUrl"
+            :src="authImageUrl(album.coverUrl)"
             :alt="album.name"
           />
           <div v-else class="album-cover-placeholder">
