@@ -11,6 +11,7 @@ export default defineEventHandler(async (event) => {
   if (!supplied) throw createError({ statusCode: 400, message: 'Refresh token is required' })
 
   const session = await prisma.authSession.findUnique({ where: { tokenHash: hashRefreshToken(supplied) }, include: { user: true } })
+  await prisma.authSession.deleteMany({ where: { expiresAt: { lt: new Date() } } })
   if (!session || session.revokedAt || session.expiresAt <= new Date() || session.user.status === STATUS.DISABLED) {
     throw createError({ statusCode: 401, message: 'Invalid or expired refresh token' })
   }

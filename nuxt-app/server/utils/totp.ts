@@ -32,3 +32,13 @@ export function verifyTotp(secret: string, code: string, now = Date.now()) {
   }
   return false
 }
+
+export function generateTotpCode(secret: string, now = Date.now()) {
+  const key = decodeBase32(secret)
+  const buffer = Buffer.alloc(8)
+  buffer.writeBigUInt64BE(BigInt(Math.floor(now / 30_000)))
+  const digest = createHmac('sha1', key).update(buffer).digest()
+  const index = digest[digest.length - 1] & 15
+  const value = ((digest[index] & 127) << 24) | ((digest[index + 1] & 255) << 16) | ((digest[index + 2] & 255) << 8) | (digest[index + 3] & 255)
+  return String(value % 1_000_000).padStart(6, '0')
+}

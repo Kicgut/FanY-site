@@ -1,5 +1,6 @@
 // ─── AI Chat Gateway ──────────────────────────────────────────────────────────
 import { saveConversationMarkdown } from '~/server/services/content-pipeline'
+import { prisma } from '~/server/utils/db'
 
 // Abstract AI provider interface + multiple implementations.
 // SECURITY: No shell access, no file system access, no API keys in code.
@@ -60,6 +61,8 @@ export async function archiveConversationTurn(
   prompt: string,
   response: string,
 ) {
+  const existingConversation = await prisma.aiConversation.findUnique({ where: { id: conversationId }, select: { userId: true } })
+  if (existingConversation && existingConversation.userId !== userId) throw new Error('Conversation does not belong to user')
   const key = conversationKey(userId, conversationId)
   let history = conversations.get(key) || []
   if (!history.length) {
@@ -71,7 +74,23 @@ export async function archiveConversationTurn(
     history.push({ role: 'assistant', content: response })
   }
   conversations.set(key, history.slice(-20))
+  await prisma.aiConversation.upsert({
+    where: { id: conversationId },
+    create: { id: conversationId, userId, messages: { create: [{ role: 'user', content: prompt }, { role: 'assistant', content: response }] } },
+    update: { userId, messages: { create: [{ role: 'user', content: prompt }, { role: 'assistant', content: response }] } },
+  })
   await saveConversationMarkdown(userId, conversationId, conversations.get(key) || [])
+}
+
+export async function assertConversationOwner(userId: number, conversationId?: string) {
+  if (!conversationId) return
+  const conversation = await prisma.aiConversation.findUnique({ where: { id: conversationId }, select: { userId: true } })
+  if (conversation && conversation.userId !== userId) throw createError({ statusCode: 403, message: 'Conversation access denied' })
+}
+
+async function loadConversation(userId: number, conversationId: string): Promise<ConversationMessage[]> {
+  const conversation = await prisma.aiConversation.findFirst({ where: { id: conversationId, userId }, include: { messages: { orderBy: { createdAt: 'asc' }, take: 20 } } })
+  return conversation?.messages.filter((message) => message.role === 'user' || message.role === 'assistant').map((message) => ({ role: message.role as 'user' | 'assistant', content: message.content })) || []
 }
 
 class OpenAICompatibleProvider implements AiChatProvider {
@@ -97,7 +116,7 @@ class OpenAICompatibleProvider implements AiChatProvider {
     const key = conversationKey(input.userId, conversationId)
 
     // Get or create conversation history
-    let history = conversations.get(key) || []
+    let history = conversations.get(key) || await loadConversation(input.userId, conversationId)
     history.push({ role: 'user', content: input.prompt })
 
     // Keep last 20 messages to avoid token overflow

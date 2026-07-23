@@ -1,5 +1,5 @@
 import { requireLogin, canAccessAi, AI_LEVELS } from '~/server/utils/permission'
-import { archiveConversationTurn, getAiProvider, validateChatInput } from '~/server/services/ai-gateway'
+import { archiveConversationTurn, assertConversationOwner, getAiProvider, validateChatInput } from '~/server/services/ai-gateway'
 import { prisma } from '~/server/utils/db'
 import { getRequestHeader } from 'h3'
 
@@ -68,6 +68,7 @@ export default defineEventHandler(async (event) => {
   }
 
   const conversationId = body?.conversationId as string | undefined
+  await assertConversationOwner(user.id, conversationId)
 
   // 5. Call AI provider
   const provider = getAiProvider()

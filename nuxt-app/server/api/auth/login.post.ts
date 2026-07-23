@@ -6,6 +6,8 @@ import { STATUS } from '~/server/utils/permission'
 import { createRefreshToken } from '~/server/utils/refresh-token'
 import { setCookie } from 'h3'
 import { verifyTotp } from '~/server/utils/totp'
+import { clearLoginFailures, isLoginRateLimited, recordLoginFailure } from '~/server/utils/auth-rate-limit'
+import { logAudit } from '~/server/services/audit'
 
 export default defineEventHandler(async (event) => {
   const body = await readBody(event)
@@ -14,11 +16,14 @@ export default defineEventHandler(async (event) => {
   if (!username || !password) {
     throw createError({ statusCode: 400, message: 'Username and password are required' })
   }
+  if (isLoginRateLimited(event, String(username))) throw createError({ statusCode: 429, message: 'Too many login attempts; try again later' })
 
   try {
     const user = await prisma.user.findUnique({ where: { username } })
 
     if (!user || !(await bcrypt.compare(password, user.password))) {
+      recordLoginFailure(event, String(username))
+      await logAudit(event, 'auth_login_failed', 'auth', undefined, null, { username: String(username).trim() })
       throw createError({ statusCode: 401, message: 'Invalid credentials' })
     }
 
@@ -27,8 +32,11 @@ export default defineEventHandler(async (event) => {
       throw createError({ statusCode: 403, message: 'Account is disabled' })
     }
     if (user.twoFactorEnabled && !verifyTotp(user.twoFactorSecret || '', String(otp || ''))) {
+      recordLoginFailure(event, String(username))
+      await logAudit(event, 'auth_login_failed_2fa', 'auth', user.id)
       throw createError({ statusCode: 401, message: 'Two-factor code required or invalid', data: { requiresTwoFactor: true } })
     }
+    clearLoginFailures(event, String(username))
 
     // Update lastLoginAt
     await prisma.user.update({
@@ -59,6 +67,7 @@ export default defineEventHandler(async (event) => {
     await prisma.authSession.create({
       data: { userId: user.id, tokenHash: refresh.hash, expiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000) },
     })
+    await prisma.authSession.deleteMany({ where: { expiresAt: { lt: new Date() } } })
     setCookie(event, 'refresh_token', refresh.token, {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',

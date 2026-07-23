@@ -1,5 +1,5 @@
 import { requireLogin, canAccessAi, AI_LEVELS } from '~/server/utils/permission'
-import { archiveConversationTurn, getAiProvider, validateChatInput } from '~/server/services/ai-gateway'
+import { archiveConversationTurn, assertConversationOwner, getAiProvider, validateChatInput } from '~/server/services/ai-gateway'
 import { createCandidate, CANDIDATE_SOURCE, CONTENT_TYPE } from '~/server/services/content-pipeline'
 import { prisma } from '~/server/utils/db'
 
@@ -14,6 +14,7 @@ export default defineEventHandler(async (event) => {
 
   const body = await readBody(event)
   const prompt = String(body?.prompt || '').trim()
+  await assertConversationOwner(user.id, body?.conversationId)
   const validation = validateChatInput(prompt)
   if (!validation.valid) throw createError({ statusCode: 400, message: validation.error })
 

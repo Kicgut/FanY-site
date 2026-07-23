@@ -9,6 +9,7 @@
     "preview": "nuxt preview",
     "postinstall": "nuxt prepare",
     "photos:thumbnails": "node scripts/photo-thumbnails.mjs"
+    ,"test": "node --experimental-strip-types --test tests/**/*.test.ts"
   },
   "dependencies": {
     "@element-plus/nuxt": "^1.1.5",

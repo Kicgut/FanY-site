@@ -1,8 +1,8 @@
 ﻿---
 title: "现有项目技术分析"
 created: 2026-07-05 00:00
-updated: 2026-07-15 23:29
-status: final
+updated: 2026-07-24 04:00
+status: active
 purpose: "> 📅 分析日期：2026-07-04"
 scope: "全阶段"
 related: []
@@ -11,6 +11,14 @@ tags:
 ---
 
 # 现有项目技术分析
+
+> **2026-07-24 实际代码校准（以本节为准）**
+>
+> 本文早期章节仍保留历史分析，不能作为当前接口/模型清单。当前实现是 Nuxt 3 + Nitro 单体、Prisma + SQLite、Docker ECS；生产已运行 11 条迁移。认证已包含 tokenVersion 撤销、AuthSession refresh rotation、HttpOnly refresh cookie 与 TOTP 2FA。照片上传、审核、配额、ECS 同步策略和审计已统一；AI 对话仍以运行时内存 + content-pipeline Markdown 归档，当前已按 userId 隔离会话键和文件名。存储管理使用 `/api/admin/storage` 聚合统计。
+>
+> 当前新增认证接口：`POST /api/auth/logout`、`POST /api/auth/refresh`、`POST /api/auth/2fa/setup`、`POST /api/auth/2fa/enable`、`POST /api/auth/2fa/disable`；当前新增上传接口：`GET /api/photos/mine`、`POST /api/photos/:id/resubmit`。
+>
+> 尚未完全实现的设计项：完整持久化 AI 会话查询/删除、完整 Jobs/Storage 运维任务、自动化端到端测试覆盖、2FA 恢复码。生产发布必须使用 `prisma migrate deploy`，历史 Hermes 漂移需先由 owner 审核后 `migrate resolve --applied`。
 
 > 📅 分析日期：2026-07-04
 > 🎯 用途：与 architecture-design.md 对比，了解已实现 vs 待实现
