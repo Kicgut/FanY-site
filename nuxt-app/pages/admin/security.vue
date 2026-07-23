@@ -9,6 +9,7 @@ const secret = ref('')
 const otpauthUrl = ref('')
 const code = ref('')
 const loading = ref(false)
+const recoveryCodes = ref<string[]>([])
 onMounted(async () => { try { const result: any = await authFetch('/api/auth/me'); enabled.value = result.data?.user?.twoFactorEnabled === true } catch {} })
 
 async function setup2fa() {
@@ -19,7 +20,7 @@ async function setup2fa() {
 async function enable2fa() {
   if (!/^\d{6}$/.test(code.value)) return ElMessage.warning('请输入 6 位验证码')
   loading.value = true
-  try { await authFetch('/api/auth/2fa/enable', { method: 'POST', body: { code: code.value } }); enabled.value = true; secret.value = ''; otpauthUrl.value = ''; code.value = ''; ElMessage.success('2FA 已启用') }
+  try { const result: any = await authFetch('/api/auth/2fa/enable', { method: 'POST', body: { code: code.value } }); recoveryCodes.value = result.data?.recoveryCodes || []; enabled.value = true; secret.value = ''; otpauthUrl.value = ''; code.value = ''; ElMessage.success('2FA 已启用，请保存恢复码') }
   catch (error: any) { ElMessage.error(error?.data?.message || '验证码无效') } finally { loading.value = false }
 }
 async function disable2fa() {
@@ -34,7 +35,9 @@ async function disable2fa() {
     <el-alert type="info" :closable="false" title="2FA 使用 TOTP 验证器，启用后登录需要 6 位动态验证码。" />
     <el-descriptions :column="1" border style="margin-top: 18px"><el-descriptions-item label="当前状态">{{ enabled ? '已启用' : '未启用' }}</el-descriptions-item></el-descriptions>
     <div v-if="!enabled" class="setup"><el-button type="primary" :loading="loading" @click="setup2fa">生成 2FA 配置</el-button><template v-if="secret"><el-alert type="warning" :closable="false" title="请妥善保存 secret，并导入验证器。" /><el-input v-model="secret" readonly /><el-input v-model="otpauthUrl" readonly /><el-input v-model="code" maxlength="6" inputmode="numeric" placeholder="6 位验证码" /><el-button type="success" :loading="loading" @click="enable2fa">启用 2FA</el-button></template></div>
-    <div v-else class="setup"><el-input v-model="code" maxlength="6" inputmode="numeric" placeholder="当前 2FA 验证码" /><el-button type="danger" :loading="loading" @click="disable2fa">禁用 2FA</el-button></div>
+    <div v-if="recoveryCodes.length" class="recovery"><el-alert type="warning" :closable="false" title="恢复码仅显示一次，请立即保存" /><code>{{ recoveryCodes.join('\n') }}</code></div>
+    <div v-else-if="enabled" class="setup"><el-input v-model="code" maxlength="6" inputmode="numeric" placeholder="当前 2FA 验证码" /><el-button type="danger" :loading="loading" @click="disable2fa">禁用 2FA</el-button></div>
   </el-card></div>
 </template>
-<style scoped>.security-page { max-width: 760px; margin: 0 auto; }.setup { display: grid; gap: 14px; margin-top: 20px; } h2 { margin: 0; }</style>
+<style scoped>.security-page { max-width: 760px; margin: 0 auto; }.setup,.recovery { display: grid; gap: 14px; margin-top: 20px; } h2 { margin: 0; } code { white-space: pre-line; padding: 14px; background: #f5f7fa; border-radius: 6px; }
+</style>

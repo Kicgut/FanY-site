@@ -25,6 +25,7 @@ model User {
   twoFactorEnabled       Boolean  @default(false)
   twoFactorSecret        String?
   twoFactorPendingSecret String?
+  twoFactorRecoveryCodes String?
   uploadQuotaMb Int      @default(500)
   usedQuotaMb   Int      @default(0)
   createdAt     DateTime @default(now())

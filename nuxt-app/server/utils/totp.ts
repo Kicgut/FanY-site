@@ -1,4 +1,5 @@
 import { createHmac, randomBytes } from 'node:crypto'
+import { createHash } from 'node:crypto'
 
 const ALPHABET = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ234567'
 
@@ -9,6 +10,15 @@ export function generateTotpSecret() {
   let output = ''
   for (let i = 0; i < bits.length; i += 5) output += ALPHABET[parseInt(bits.slice(i, i + 5).padEnd(5, '0'), 2)]
   return output
+}
+
+export function generateRecoveryCodes(count = 8) {
+  const plain = Array.from({ length: count }, () => randomBytes(6).toString('hex').toUpperCase())
+  return { plain, hashed: plain.map((code) => createHash('sha256').update(code).digest('hex')) }
+}
+
+export function hashRecoveryCode(code: string) {
+  return createHash('sha256').update(code.trim().toUpperCase()).digest('hex')
 }
 
 function decodeBase32(value: string) {

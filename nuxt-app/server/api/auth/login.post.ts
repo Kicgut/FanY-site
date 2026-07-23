@@ -5,7 +5,7 @@ import { prisma } from '~/server/utils/db'
 import { STATUS } from '~/server/utils/permission'
 import { createRefreshToken } from '~/server/utils/refresh-token'
 import { setCookie } from 'h3'
-import { verifyTotp } from '~/server/utils/totp'
+import { hashRecoveryCode, verifyTotp } from '~/server/utils/totp'
 import { clearLoginFailures, isLoginRateLimited, recordLoginFailure } from '~/server/utils/auth-rate-limit'
 import { logAudit } from '~/server/services/audit'
 
@@ -31,7 +31,20 @@ export default defineEventHandler(async (event) => {
     if (user.status === STATUS.DISABLED) {
       throw createError({ statusCode: 403, message: 'Account is disabled' })
     }
-    if (user.twoFactorEnabled && !verifyTotp(user.twoFactorSecret || '', String(otp || ''))) {
+    let secondFactorValid = !user.twoFactorEnabled || verifyTotp(user.twoFactorSecret || '', String(otp || ''))
+    if (user.twoFactorEnabled && !secondFactorValid && user.twoFactorRecoveryCodes) {
+      try {
+        const stored = JSON.parse(user.twoFactorRecoveryCodes) as string[]
+        const recoveryHash = hashRecoveryCode(String(otp || ''))
+        const index = stored.indexOf(recoveryHash)
+        if (index >= 0) {
+          stored.splice(index, 1)
+          const consumed = await prisma.user.updateMany({ where: { id: user.id, twoFactorRecoveryCodes: user.twoFactorRecoveryCodes }, data: { twoFactorRecoveryCodes: JSON.stringify(stored) } })
+          secondFactorValid = consumed.count === 1
+        }
+      } catch { secondFactorValid = false }
+    }
+    if (!secondFactorValid) {
       recordLoginFailure(event, String(username))
       await logAudit(event, 'auth_login_failed_2fa', 'auth', user.id)
       throw createError({ statusCode: 401, message: 'Two-factor code required or invalid', data: { requiresTwoFactor: true } })
