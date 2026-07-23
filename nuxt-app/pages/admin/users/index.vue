@@ -111,8 +111,8 @@ async function handleSave() {
 function roleType(role: string) {
   const map: Record<string, string> = {
     admin: 'danger',
-    friend: 'warning',
-    viewer: 'info',
+    superadmin: 'danger',
+    user: 'info',
   }
   return map[role] || 'info'
 }

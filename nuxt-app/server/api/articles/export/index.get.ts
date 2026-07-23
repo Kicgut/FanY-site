@@ -1,4 +1,5 @@
 import { prisma } from '~/server/utils/db'
+import { requireAdmin } from '~/server/utils/permission'
 
 /**
  * 批量导出文章为 MD 格式
@@ -37,6 +38,7 @@ function generateFrontmatter(article: any): string {
 }
 
 export default defineEventHandler(async (event) => {
+  await requireAdmin(event)
   const query = getQuery(event)
 
   // 构建查询条件

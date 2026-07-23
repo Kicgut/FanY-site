@@ -1,4 +1,5 @@
 import { requireAdmin } from '~/server/utils/permission'
+import { logAudit } from '~/server/services/audit'
 
 export default defineEventHandler(async (event) => {
   await requireAdmin(event)
@@ -20,6 +21,7 @@ export default defineEventHandler(async (event) => {
       },
     })
 
+    await logAudit(event, 'album_create', 'album', album.id, null, album)
     return album
   } catch (error: any) {
     if (error.code === 'P2002') {

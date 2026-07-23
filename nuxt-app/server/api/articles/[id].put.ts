@@ -1,5 +1,7 @@
 import { writeFile, unlink, mkdir, rename } from 'node:fs/promises'
 import { join, resolve } from 'node:path'
+import { requireAdmin } from '~/server/utils/permission'
+import { logAudit } from '~/server/services/audit'
 
 const BLOG_MD_DIR = resolve(process.cwd(), 'data', 'blog-md')
 
@@ -42,6 +44,7 @@ async function deleteArticleMd(slug: string) {
 }
 
 export default defineEventHandler(async (event) => {
+  await requireAdmin(event)
   const id = Number(getRouterParam(event, 'id'))
 
   if (!id || isNaN(id)) {
@@ -103,6 +106,8 @@ export default defineEventHandler(async (event) => {
       // 如果状态改为非 published，删除 md 文件
       await deleteArticleMd(newSlug)
     }
+
+    await logAudit(event, 'article_update', 'article', id, existing, article)
 
     return article
   } catch (error: any) {

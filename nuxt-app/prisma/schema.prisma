@@ -21,10 +21,26 @@ model User {
   aiAccess      Boolean  @default(false)
   aiAccessLevel String   @default("none")
   lastLoginAt   DateTime?
+  tokenVersion  Int      @default(0)
+  twoFactorEnabled       Boolean  @default(false)
+  twoFactorSecret        String?
+  twoFactorPendingSecret String?
   uploadQuotaMb Int      @default(500)
   usedQuotaMb   Int      @default(0)
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
+  authSessions  AuthSession[]
+}
+
+model AuthSession {
+  id         Int       @id @default(autoincrement())
+  userId     Int
+  tokenHash  String    @unique
+  expiresAt  DateTime
+  revokedAt  DateTime?
+  createdAt  DateTime  @default(now())
+  user       User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  @@index([userId, revokedAt, expiresAt])
 }
 
 model Article {
@@ -104,6 +120,7 @@ model Photo {
   @@index([visibility, status, reviewStatus, createdAt])
   @@index([takenAt])
   @@index([uploadedBy, visibility])
+  @@index([thumbnailStatus, createdAt])
 }
 
 model Album {

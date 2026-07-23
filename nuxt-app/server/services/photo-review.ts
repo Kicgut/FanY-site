@@ -1,6 +1,6 @@
 import { prisma } from '~/server/utils/db'
 import type { AuthUser } from '~/server/utils/permission'
-import { VISIBILITY } from '~/server/services/photo-sync'
+import { calculateEcsSyncPolicy, VISIBILITY } from '~/server/services/photo-sync'
 
 // ─── Constants ─────────────────────────────────────────────────────────────
 
@@ -52,7 +52,7 @@ export async function approvePhoto(
     reviewedBy: actor.id,
     reviewedAt: new Date(),
     status: decision.status || PHOTO_STATUS.PUBLISHED,
-    visibility: decision.visibility || VISIBILITY.PUBLIC,
+    visibility: decision.visibility || photo.visibility,
   }
 
   if (decision.visibleTo !== undefined) updateData.visibleTo = decision.visibleTo
@@ -60,6 +60,7 @@ export async function approvePhoto(
   if (decision.title !== undefined) updateData.title = decision.title
   if (decision.location !== undefined) updateData.location = decision.location
   if (decision.description !== undefined) updateData.description = decision.description
+  updateData.ecsSyncPolicy = calculateEcsSyncPolicy(updateData.visibility, updateData.status)
 
   const updated = await prisma.photo.update({
     where: { id: photoId },
@@ -68,26 +69,32 @@ export async function approvePhoto(
   })
 
   // Handle tags if provided
-  if (decision.tags?.length) {
+  if (decision.tags !== undefined) {
     await prisma.photoTag.deleteMany({ where: { photoId } })
-    await prisma.photoTag.createMany({
-      data: decision.tags.map((name) => ({ photoId, name })),
-    })
+    if (decision.tags.length) {
+      await prisma.photoTag.createMany({
+        data: decision.tags.map((name) => ({ photoId, name })),
+      })
+    }
   }
 
   // Handle albums if provided
-  if (decision.albumIds?.length) {
+  if (decision.albumIds !== undefined) {
     await prisma.albumPhoto.deleteMany({ where: { photoId } })
-    await prisma.albumPhoto.createMany({
-      data: decision.albumIds.map((albumId) => ({ photoId, albumId })),
-    })
+    if (decision.albumIds.length) {
+      await prisma.albumPhoto.createMany({
+        data: decision.albumIds.map((albumId) => ({ photoId, albumId })),
+      })
+    }
   }
 
   // Fetch final result with updated tags/albums
-  return prisma.photo.findUnique({
+  const finalPhoto = await prisma.photo.findUnique({
     where: { id: photoId },
     include: { tags: true, albums: { include: { album: true } } },
   })
+  if (!finalPhoto) throw createError({ statusCode: 404, message: 'Photo not found' })
+  return finalPhoto
 }
 
 /**
@@ -107,6 +114,7 @@ export async function rejectPhoto(photoId: number, reason: string, actor: AuthUs
       reviewNote: reason || null,
       reviewedBy: actor.id,
       reviewedAt: new Date(),
+      ecsSyncPolicy: 'local_only',
     },
     include: { tags: true, albums: { include: { album: true } } },
   })
@@ -128,6 +136,7 @@ export async function requestPhotoEdit(photoId: number, note: string, actor: Aut
       reviewNote: note || null,
       reviewedBy: actor.id,
       reviewedAt: new Date(),
+      ecsSyncPolicy: 'local_only',
     },
     include: { tags: true, albums: { include: { album: true } } },
   })

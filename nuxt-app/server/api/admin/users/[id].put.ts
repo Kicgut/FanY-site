@@ -79,7 +79,7 @@ export default defineEventHandler(async (event) => {
 
   // Serialize groups to JSON if provided as array
   if (updateData.groups && Array.isArray(updateData.groups)) {
-    const groups = [...new Set(updateData.groups.map(String).map((v) => v.trim()).filter(Boolean))]
+    const groups: string[] = Array.from(new Set<string>(updateData.groups.map((value: unknown) => String(value)).map((value: string) => value.trim()).filter(Boolean)))
     if (actor.role !== ROLES.SUPERADMIN && groups.some((group) => !actor.groups.includes(group))) throw createError({ statusCode: 403, message: '只能分配自己所属的分组' })
     updateData.groups = JSON.stringify(groups)
   }

@@ -133,7 +133,7 @@ async function handleEdit() {
 
     // Cascade visibility to photos if requested
     if (visibilityChanged.value && cascadePhotos.value) {
-      const result = await authFetch<{ updatedCount: number }>(
+      const result = await authFetch<{ success: boolean; data?: { cascadeCount?: number } }>(
         `/api/admin/albums/${editForm.value.id}/visibility`,
         {
           method: 'PATCH',
@@ -143,7 +143,7 @@ async function handleEdit() {
           },
         },
       )
-      ElMessage.success(`相册已更新，同时更新了 ${result?.updatedCount ?? 0} 张照片的可见性`)
+      ElMessage.success(`相册已更新，同时更新了 ${result?.data?.cascadeCount ?? 0} 张照片的可见性`)
     } else {
       ElMessage.success('相册已更新')
     }

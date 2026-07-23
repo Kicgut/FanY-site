@@ -1,6 +1,7 @@
 import { writeFile, mkdir } from 'node:fs/promises'
 import { join, resolve } from 'node:path'
 import { prisma } from '~/server/utils/db'
+import { requireAdmin } from '~/server/utils/permission'
 
 function slugify(text: string): string {
   return text
@@ -45,6 +46,7 @@ async function writeArticleMd(slug: string, article: any) {
 }
 
 export default defineEventHandler(async (event) => {
+  await requireAdmin(event)
   const body = await readBody(event)
 
   // 必须有 title 和 content

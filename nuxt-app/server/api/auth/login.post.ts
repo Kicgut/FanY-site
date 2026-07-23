@@ -3,10 +3,13 @@ import bcrypt from 'bcryptjs'
 import { getJwtSecret } from '~/server/utils/jwt'
 import { prisma } from '~/server/utils/db'
 import { STATUS } from '~/server/utils/permission'
+import { createRefreshToken } from '~/server/utils/refresh-token'
+import { setCookie } from 'h3'
+import { verifyTotp } from '~/server/utils/totp'
 
 export default defineEventHandler(async (event) => {
   const body = await readBody(event)
-  const { username, password } = body
+  const { username, password, otp } = body
 
   if (!username || !password) {
     throw createError({ statusCode: 400, message: 'Username and password are required' })
@@ -22,6 +25,9 @@ export default defineEventHandler(async (event) => {
     // Check user status — disabled users cannot login
     if (user.status === STATUS.DISABLED) {
       throw createError({ statusCode: 403, message: 'Account is disabled' })
+    }
+    if (user.twoFactorEnabled && !verifyTotp(user.twoFactorSecret || '', String(otp || ''))) {
+      throw createError({ statusCode: 401, message: 'Two-factor code required or invalid', data: { requiresTwoFactor: true } })
     }
 
     // Update lastLoginAt
@@ -44,10 +50,22 @@ export default defineEventHandler(async (event) => {
         groups,
         aiAccess: user.aiAccess,
         aiAccessLevel: user.aiAccessLevel,
+        tokenVersion: user.tokenVersion,
       },
       getJwtSecret(),
       { expiresIn: '24h' },
     )
+    const refresh = createRefreshToken()
+    await prisma.authSession.create({
+      data: { userId: user.id, tokenHash: refresh.hash, expiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000) },
+    })
+    setCookie(event, 'refresh_token', refresh.token, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'lax',
+      maxAge: 30 * 24 * 60 * 60,
+      path: '/',
+    })
 
     return {
       success: true,

@@ -6,7 +6,8 @@ import { toAuthUser, STATUS } from '~/server/utils/permission'
 export default defineEventHandler(async (event) => {
   const path = getRequestURL(event).pathname
 
-  // Only intercept /api/admin/* and /api/ai/* routes
+  // Only intercept routes whose handlers require the shared auth context.
+  // Public article/photo reads resolve optional users themselves.
   if (!path.startsWith('/api/admin') && !path.startsWith('/api/ai')) return
 
   const authHeader = getRequestHeader(event, 'Authorization')
@@ -18,13 +19,16 @@ export default defineEventHandler(async (event) => {
   const token = authHeader.slice(7)
 
   try {
-    const decoded = jwt.verify(token, getJwtSecret()) as { id: number; role: string }
+    const decoded = jwt.verify(token, getJwtSecret()) as { id: number; role: string; tokenVersion?: number }
 
     // Fetch full user from DB to get current status and permissions
     const dbUser = await prisma.user.findUnique({ where: { id: decoded.id } })
 
     if (!dbUser) {
       throw createError({ statusCode: 401, message: 'User not found' })
+    }
+    if ((decoded.tokenVersion ?? 0) !== dbUser.tokenVersion) {
+      throw createError({ statusCode: 401, message: 'Token revoked' })
     }
 
     // Disabled users cannot access protected endpoints

@@ -20,6 +20,7 @@ export default defineEventHandler(async (event) => {
         aiAccess: user.aiAccess,
         aiAccessLevel: user.aiAccessLevel,
         uploadQuotaMb: user.uploadQuotaMb,
+        twoFactorEnabled: user.twoFactorEnabled,
       },
     },
   }

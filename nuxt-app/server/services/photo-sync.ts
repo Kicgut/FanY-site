@@ -1,5 +1,5 @@
 import { prisma } from '~/server/utils/db'
-import { logAudit } from '~/server/services/audit'
+import type { Prisma } from '@prisma/client'
 
 // ─── Constants ─────────────────────────────────────────────────────────────
 
@@ -51,6 +51,26 @@ export function calculateEcsSyncPolicy(visibility: string, status: string): stri
   }
 
   return ECS_SYNC_POLICY.LOCAL_ONLY
+}
+
+/** Update photo state and derive the thumbnail sync policy atomically. */
+export async function updatePhotoState(photoId: number, data: Prisma.PhotoUpdateInput) {
+  const current = await prisma.photo.findUnique({
+    where: { id: photoId },
+    select: { visibility: true, status: true },
+  })
+  if (!current) throw createError({ statusCode: 404, message: 'Photo not found' })
+
+  const nextVisibility = typeof data.visibility === 'string' ? data.visibility : current.visibility
+  const nextStatus = typeof data.status === 'string' ? data.status : current.status
+
+  return prisma.photo.update({
+    where: { id: photoId },
+    data: {
+      ...data,
+      ecsSyncPolicy: calculateEcsSyncPolicy(nextVisibility, nextStatus),
+    },
+  })
 }
 // ─── Photo Sync Service ────────────────────────────────────────────────────
 

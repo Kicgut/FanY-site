@@ -1,10 +1,14 @@
+import { getRequestUser, ROLES } from '~/server/utils/permission'
+
 export default defineEventHandler(async (event) => {
   const query = getQuery(event)
+  const user = await getRequestUser(event)
+  const isAdmin = user?.role === ROLES.ADMIN || user?.role === ROLES.SUPERADMIN
 
   // 导出模式：?export=md
   const exportMode = query.export === 'md'
 
-  const status = query.status as string | undefined
+  const status = isAdmin ? query.status as string | undefined : 'published'
   const tag = query.tag as string | undefined
   const search = String(query.q || '').trim()
 
@@ -26,6 +30,7 @@ export default defineEventHandler(async (event) => {
   try {
     // 导出模式：返回所有文章的 MD 格式
     if (exportMode) {
+      if (!isAdmin) throw createError({ statusCode: 403, message: 'Admin access required for article export' })
       const articles = await prisma.article.findMany({
         where,
         include: { tags: true },

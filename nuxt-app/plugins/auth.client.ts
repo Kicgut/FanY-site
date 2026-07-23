@@ -27,15 +27,11 @@ export default defineNuxtPlugin(() => {
         ;(options.headers as unknown as Record<string, string>).Authorization = `Bearer ${token}`
       }
     },
-    onResponseError({ response }) {
+    onResponseError() {
       if (import.meta.server) return
       // 只在 401（未授权）时清除 token 并跳转登录
       // 500 等其他错误不应触发登出
-      if (response.status === 401) {
-        localStorage.removeItem('token')
-        localStorage.removeItem('user')
-        navigateTo('/admin/login')
-      }
+      // useAuthFetch performs one refresh-and-retry before handling 401.
     },
   })
 

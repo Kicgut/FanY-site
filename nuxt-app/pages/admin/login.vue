@@ -12,6 +12,7 @@ const errorMsg = ref('')
 const form = reactive({
   username: '',
   password: '',
+  otp: '',
 })
 
 async function handleLogin() {
@@ -25,7 +26,7 @@ async function handleLogin() {
   try {
     const res = await $fetch('/api/auth/login', {
       method: 'POST',
-      body: { username: form.username, password: form.password },
+      body: { username: form.username, password: form.password, ...(form.otp ? { otp: form.otp } : {}) },
     })
     // API 返回格式: { success: true, data: { token, user } }
     const data = res as any
@@ -38,6 +39,7 @@ async function handleLogin() {
     }
     
     localStorage.setItem('token', token)
+    if (data.data?.refreshToken) localStorage.setItem('refreshToken', data.data.refreshToken)
     localStorage.setItem('user', JSON.stringify(user))
     const redirect = typeof route.query.redirect === 'string' && route.query.redirect.startsWith('/')
       ? route.query.redirect
@@ -85,6 +87,10 @@ async function handleLogin() {
             show-password
             @keyup.enter="handleLogin"
           />
+        </el-form-item>
+
+        <el-form-item label="2FA 验证码">
+          <el-input v-model="form.otp" inputmode="numeric" maxlength="6" placeholder="启用二次验证时填写" />
         </el-form-item>
 
         <el-form-item>

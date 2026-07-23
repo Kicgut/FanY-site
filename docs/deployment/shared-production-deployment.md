@@ -1,7 +1,7 @@
 ---
 title: "双服务器共享仓库生产部署指南"
 created: 2026-07-20 20:45
-updated: 2026-07-20 20:45
+updated: 2026-07-23 00:00
 status: active
 purpose: "说明开发机、ECS 和 Ubuntu 之间的构建、传输、部署和回滚边界。"
 scope: "部署与运维"
@@ -35,6 +35,10 @@ FanY-site-build/
 在构建机固定一个 Git commit，执行 `pnpm install --frozen-lockfile`、`npx prisma validate`、`npx tsc --noEmit`、`pnpm build`，然后执行 `docker build -t personal-website:<commit> .`、`docker save personal-website:<commit> | gzip > personal-website-<commit>.tar.gz` 和 `sha256sum`。构建机可以是开发机、Ubuntu 或 CI 主机，不要求必须是 ECS。
 
 将 tar 包和 sha256 文件通过 `scp` 传到 ECS `/opt/personal-website/releases/`。ECS 只执行 `sha256sum -c`、`docker load`、打 tag、`./scripts/backup-db.sh`、`docker compose run --rm app npx prisma migrate deploy`、`docker compose up -d app` 和健康检查。失败时恢复上一个已验证 image tag；不得删除 `data/`、`uploads/`、`backups/`。
+
+### Migration 漂移预检
+
+执行 `migrate deploy` 前，先在隔离副本或只读检查中确认 `_prisma_migrations` 与实际表结构一致。若历史上曾用 `prisma db push` 补过字段，不能直接重复执行对应 migration；必须先备份数据库、记录实际列/表、由 owner 审核后执行 `prisma migrate resolve --applied <migration>`，再运行 `migrate deploy`。任何 migration 失败都必须停止发布，不能用 `db push --accept-data-loss` 绕过。
 
 ## Ubuntu 服务发布
 

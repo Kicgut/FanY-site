@@ -1,24 +1,13 @@
 import { randomUUID } from 'crypto'
 import { writeFile, mkdir } from 'fs/promises'
 import { join } from 'path'
-import jwt from 'jsonwebtoken'
-import { getJwtSecret } from '~/server/utils/jwt'
+import { requireLogin } from '~/server/utils/permission'
 
 const ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/gif', 'image/webp']
 const MAX_SIZE = 10 * 1024 * 1024 // 10MB
 
 export default defineEventHandler(async (event) => {
-  // Auth check
-  const authHeader = getRequestHeader(event, 'Authorization')
-  if (!authHeader || !authHeader.startsWith('Bearer ')) {
-    throw createError({ statusCode: 401, message: 'Authentication required' })
-  }
-
-  try {
-    jwt.verify(authHeader.slice(7), getJwtSecret())
-  } catch {
-    throw createError({ statusCode: 401, message: 'Invalid or expired token' })
-  }
+  await requireLogin(event)
 
   const formData = await readMultipartFormData(event)
 

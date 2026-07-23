@@ -32,8 +32,10 @@ onMounted(() => {
   }
 })
 
-function handleLogout() {
+async function handleLogout() {
+  try { await useAuthFetch()('/api/auth/logout', { method: 'POST' }) } catch { /* token may already be invalid */ }
   localStorage.removeItem('token')
+  localStorage.removeItem('refreshToken')
   localStorage.removeItem('user')
   currentUser.value = null
   navigateTo('/')

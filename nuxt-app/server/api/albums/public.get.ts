@@ -30,6 +30,8 @@ export default defineEventHandler(async (event) => {
         name: true,
         description: true,
         coverUrl: true,
+        visibility: true,
+        visibleTo: true,
         createdAt: true,
       },
       orderBy: { createdAt: 'desc' },

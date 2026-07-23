@@ -1,5 +1,6 @@
-import { readFile } from 'node:fs/promises'
-import { resolve } from 'node:path'
+import { readFile, realpath } from 'node:fs/promises'
+import { resolve, sep } from 'node:path'
+import { requireLocalTrusted } from '~/server/utils/permission'
 
 function slugify(text: string): string {
   // 处理中文：转拼音风格的 slug
@@ -50,6 +51,7 @@ function parseFrontmatter(raw: string): { meta: Record<string, any>; body: strin
 }
 
 export default defineEventHandler(async (event) => {
+  await requireLocalTrusted(event)
   const body = await readBody(event)
 
   if (!body.filePath) {
@@ -58,7 +60,12 @@ export default defineEventHandler(async (event) => {
 
   try {
     const filePath = resolve(process.cwd(), body.filePath)
-    const raw = await readFile(filePath, 'utf-8')
+    const allowedRoot = await realpath(resolve(process.cwd(), 'data'))
+    const resolvedFilePath = await realpath(filePath)
+    if (resolvedFilePath !== allowedRoot && !resolvedFilePath.startsWith(`${allowedRoot}${sep}`)) {
+      throw createError({ statusCode: 400, message: 'filePath must be inside the data directory' })
+    }
+    const raw = await readFile(resolvedFilePath, 'utf-8')
     const { meta, body: content } = parseFrontmatter(raw)
 
     // 提取 slug：优先使用 frontmatter 中的 slug，否则从 title 生成

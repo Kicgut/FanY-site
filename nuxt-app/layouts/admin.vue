@@ -25,6 +25,7 @@ const allMenu = [
   ['/admin/photos', '照片管理'],
   ['/admin/albums', '相册管理'],
   ['/admin/users', '用户管理'],
+  ['/admin/security', '账户安全'],
   ['/admin/storage', '存储管理'],
   ['/admin/audit', '审计日志'],
   ['/admin/content-pipeline', '内容流水线'],
@@ -45,8 +46,10 @@ function navigate(path: string) {
   router.push(path)
 }
 
-function logout() {
+async function logout() {
+  try { await useAuthFetch()('/api/auth/logout', { method: 'POST' }) } catch { /* token may already be invalid */ }
   localStorage.removeItem('token')
+  localStorage.removeItem('refreshToken')
   localStorage.removeItem('user')
   router.push('/admin/login')
 }

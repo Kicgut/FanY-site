@@ -16,6 +16,7 @@ export interface AuthUser {
   aiAccess: boolean
   aiAccessLevel: string
   uploadQuotaMb: number
+  twoFactorEnabled?: boolean
 }
 
 export type AccessOrigin = 'local_trusted' | 'remote_owner' | 'remote_user' | 'public'
@@ -64,15 +65,7 @@ function isIpInCidrs(ip: string, cidrs: string[]): boolean {
   return false
 }
 
-function getClientIp(event: H3Event): string {
-  const forwarded = getRequestHeader(event, 'x-forwarded-for')
-  if (forwarded) {
-    const first = forwarded.split(',')[0].trim()
-    if (first) return first
-  }
-  const remote = getRequestHeader(event, 'x-real-ip') || ''
-  if (remote) return remote
-  // Nitro provides remoteAddress on the node req
+function getSocketIp(event: H3Event): string {
   const nodeReq = event.node?.req
   const addr = nodeReq?.socket?.remoteAddress || nodeReq?.connection?.remoteAddress || ''
   // Normalize IPv6-mapped IPv4
@@ -80,8 +73,30 @@ function getClientIp(event: H3Event): string {
   return addr || '127.0.0.1'
 }
 
+function getClientIp(event: H3Event): string {
+  const socketIp = getSocketIp(event)
+  // Forwarded headers are only meaningful when the immediate peer is a
+  // configured reverse proxy. Never let a public client self-assert a
+  // private address and become local_trusted.
+  if (isIpInCidrs(socketIp, getTrustedProxyCidrs())) {
+    const forwarded = getRequestHeader(event, 'x-forwarded-for')
+    if (forwarded) {
+      const first = forwarded.split(',')[0].trim()
+      if (first) return first
+    }
+    const realIp = getRequestHeader(event, 'x-real-ip') || ''
+    if (realIp) return realIp
+  }
+  return socketIp
+}
+
 function getTrustedCidrs(): string[] {
   const raw = process.env.LOCAL_TRUSTED_CIDRS || '127.0.0.1/32,192.168.0.0/16,10.0.0.0/8'
+  return raw.split(',').map((s) => s.trim()).filter(Boolean)
+}
+
+function getTrustedProxyCidrs(): string[] {
+  const raw = process.env.TRUSTED_PROXY_CIDRS || '127.0.0.1/32'
   return raw.split(',').map((s) => s.trim()).filter(Boolean)
 }
 
@@ -141,6 +156,7 @@ export function toAuthUser(user: {
   aiAccess: boolean
   aiAccessLevel: string
   uploadQuotaMb: number
+  twoFactorEnabled?: boolean
 }): AuthUser {
   return {
     id: user.id,
@@ -152,6 +168,7 @@ export function toAuthUser(user: {
     aiAccess: user.aiAccess,
     aiAccessLevel: user.aiAccessLevel,
     uploadQuotaMb: user.uploadQuotaMb,
+    twoFactorEnabled: user.twoFactorEnabled,
   }
 }
 
@@ -172,7 +189,7 @@ export async function getRequestUser(event: H3Event): Promise<AuthUser | null> {
   if (!authHeader || !authHeader.startsWith('Bearer ')) return null
 
   const token = authHeader.slice(7)
-  let decoded: { id: number }
+  let decoded: { id: number; tokenVersion?: number }
   try {
     decoded = jwt.verify(token, getJwtSecret()) as { id: number }
   } catch {
@@ -182,6 +199,7 @@ export async function getRequestUser(event: H3Event): Promise<AuthUser | null> {
   // 3. Fetch fresh user from DB (always, to catch status changes)
   const dbUser = await prisma.user.findUnique({ where: { id: decoded.id } })
   if (!dbUser || dbUser.status === STATUS.DISABLED) return null
+  if ((decoded.tokenVersion ?? 0) !== dbUser.tokenVersion) return null
 
   const authUser = toAuthUser(dbUser)
   // Cache on context so subsequent calls don't hit DB again

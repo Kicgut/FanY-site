@@ -1,5 +1,6 @@
 import { requireAdmin } from '~/server/utils/permission'
 import { logAudit } from '~/server/services/audit'
+import { updatePhotoState } from '~/server/services/photo-sync'
 
 export default defineEventHandler(async (event) => {
   const actor = await requireAdmin(event)
@@ -31,17 +32,16 @@ export default defineEventHandler(async (event) => {
   if (body.cascadeToPhotos) {
     // Only cascade to non-public when making album private/friends
     // Never auto-cascade to public (safety measure)
-    if (body.visibility === 'private' || body.visibility === 'friends') {
+    if (body.visibility === 'private' || body.visibility === 'groups') {
       const albumPhotoIds = await prisma.albumPhoto.findMany({
         where: { albumId: id },
         select: { photoId: true },
       })
       if (albumPhotoIds.length > 0) {
-        const result = await prisma.photo.updateMany({
-          where: { id: { in: albumPhotoIds.map((ap) => ap.photoId) } },
-          data: { visibility: body.visibility },
-        })
-        cascadeCount = result.count
+        for (const { photoId } of albumPhotoIds) {
+          await updatePhotoState(photoId, { visibility: body.visibility })
+          cascadeCount += 1
+        }
       }
     }
   }

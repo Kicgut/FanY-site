@@ -1,4 +1,5 @@
 import { requireAdmin } from '~/server/utils/permission'
+import { logAudit } from '~/server/services/audit'
 
 export default defineEventHandler(async (event) => {
   await requireAdmin(event)
@@ -11,6 +12,8 @@ export default defineEventHandler(async (event) => {
   const body = await readBody(event)
 
   try {
+    const before = await prisma.album.findUnique({ where: { id } })
+    if (!before) throw Object.assign(new Error('Album not found'), { code: 'P2025' })
     const updateData: any = {}
     if (body.name !== undefined) updateData.name = body.name
     if (body.description !== undefined) updateData.description = body.description
@@ -25,6 +28,7 @@ export default defineEventHandler(async (event) => {
       data: updateData,
     })
 
+    await logAudit(event, 'album_update', 'album', id, before, album)
     return album
   } catch (error: any) {
     if (error.code === 'P2025') {

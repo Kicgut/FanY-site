@@ -1,5 +1,7 @@
 import { writeFile, mkdir } from 'node:fs/promises'
 import { join, resolve } from 'node:path'
+import { requireAdmin } from '~/server/utils/permission'
+import { logAudit } from '~/server/services/audit'
 
 function slugify(text: string): string {
   return text
@@ -43,6 +45,7 @@ async function writeArticleMd(slug: string, article: any) {
 }
 
 export default defineEventHandler(async (event) => {
+  await requireAdmin(event)
   const body = await readBody(event)
 
   if (!body.title || !body.content) {
@@ -81,6 +84,7 @@ export default defineEventHandler(async (event) => {
 
     // 写 MD 备份文件（所有状态都写）
     await writeArticleMd(slug, article)
+    await logAudit(event, 'article_create', 'article', article.id, null, article)
 
     return article
   } catch (error: any) {
