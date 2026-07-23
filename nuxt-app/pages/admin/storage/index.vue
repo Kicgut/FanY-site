@@ -1,19 +1,19 @@
 <script setup lang="ts">
 definePageMeta({ layout: 'admin' })
 const authFetch = useAuthFetch()
-const { data, status, error } = await useAsyncData('storage', () => authFetch<any>('/api/photos', { query: { limit: 100 } }))
-const photos = computed(() => data.value?.photos || [])
-const totalBytes = computed(() => photos.value.reduce((n: number, p: any) => n + (p.fileSize || 0), 0))
-const count = (key: string, value: string) => photos.value.filter((p: any) => (p[key] || 'pending') === value).length
+const { data, status, error } = await useAsyncData('storage', () => authFetch<any>('/api/admin/storage'))
+const stats = computed(() => data.value?.data || {})
+const totalBytes = computed(() => stats.value.totalBytes || 0)
+const count = (key: 'syncStatus' | 'thumbnailStatus' | 'visibility', value: string) => stats.value[key]?.[value] || 0
 const gb = computed(() => (totalBytes.value / 1024 / 1024 / 1024).toFixed(2))
 </script>
 
 <template>
   <div class="page">
-    <div class="page-header"><div><h2>存储管理</h2><p>查看照片数量、文件大小和分层同步状态。</p></div><el-tag type="info">数据来自 /api/photos</el-tag></div>
+    <div class="page-header"><div><h2>存储管理</h2><p>查看照片数量、文件大小和分层同步状态。</p></div><el-tag type="info">数据来自存储统计接口</el-tag></div>
     <el-alert v-if="error" type="error" title="加载存储统计失败" :description="error.message" show-icon />
     <div v-loading="status === 'pending'" class="grid">
-      <el-card><template #header>照片总数</template><strong>{{ photos.length }}</strong><small>张</small></el-card>
+      <el-card><template #header>照片总数</template><strong>{{ stats.photoCount || 0 }}</strong><small>张</small></el-card>
       <el-card><template #header>估算占用空间</template><strong>{{ gb }}</strong><small>GB</small></el-card>
       <el-card><template #header>原图回流</template><p>已回流：{{ count('syncStatus', 'synced') }}</p><p>待回流：{{ count('syncStatus', 'pending') }}</p><p>失败：{{ count('syncStatus', 'failed') }}</p></el-card>
       <el-card><template #header>缩略图同步</template><p>已完成：{{ count('thumbnailStatus', 'ready') }}</p><p>待处理：{{ count('thumbnailStatus', 'pending') }}</p><p>失败：{{ count('thumbnailStatus', 'failed') }}</p></el-card>
