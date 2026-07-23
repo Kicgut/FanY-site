@@ -169,7 +169,9 @@ export async function saveConversationMarkdown(
   await ensurePipelineDirectories()
   const safeId = safePipelineName(conversationId)
   const body = messages.map((message) => `## ${message.role === 'user' ? 'User' : 'Assistant'}\n\n${message.content.trim()}`).join('\n\n')
-  const file = join(INBOX_DIR, 'conversations', `${safeId}.md`)
+  // Include the owner in the filename so two users cannot overwrite a conversation
+  // that happens to use the same client-supplied conversationId.
+  const file = join(INBOX_DIR, 'conversations', `${userId}-${safeId}.md`)
   await writeFile(file, renderFrontmatter({
     conversationId,
     userId,

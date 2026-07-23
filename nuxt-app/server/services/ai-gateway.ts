@@ -50,13 +50,18 @@ interface ConversationMessage {
 // In-memory conversation store (keyed by conversationId)
 const conversations = new Map<string, ConversationMessage[]>()
 
+function conversationKey(userId: number, conversationId: string) {
+  return `${userId}:${conversationId}`
+}
+
 export async function archiveConversationTurn(
   userId: number,
   conversationId: string,
   prompt: string,
   response: string,
 ) {
-  let history = conversations.get(conversationId) || []
+  const key = conversationKey(userId, conversationId)
+  let history = conversations.get(key) || []
   if (!history.length) {
     history = [{ role: 'user', content: prompt }, { role: 'assistant', content: response }]
   } else if (history[history.length - 1]?.content !== response) {
@@ -65,8 +70,8 @@ export async function archiveConversationTurn(
     }
     history.push({ role: 'assistant', content: response })
   }
-  conversations.set(conversationId, history.slice(-20))
-  await saveConversationMarkdown(userId, conversationId, conversations.get(conversationId) || [])
+  conversations.set(key, history.slice(-20))
+  await saveConversationMarkdown(userId, conversationId, conversations.get(key) || [])
 }
 
 class OpenAICompatibleProvider implements AiChatProvider {
@@ -89,9 +94,10 @@ class OpenAICompatibleProvider implements AiChatProvider {
 
   async chat(input: AiChatInput): Promise<AiChatOutput> {
     const conversationId = input.conversationId || crypto.randomUUID()
+    const key = conversationKey(input.userId, conversationId)
 
     // Get or create conversation history
-    let history = conversations.get(conversationId) || []
+    let history = conversations.get(key) || []
     history.push({ role: 'user', content: input.prompt })
 
     // Keep last 20 messages to avoid token overflow
@@ -129,7 +135,7 @@ class OpenAICompatibleProvider implements AiChatProvider {
 
     // Save assistant response to history
     history.push({ role: 'assistant', content: aiResponse })
-    conversations.set(conversationId, history)
+    conversations.set(key, history)
 
     // Cleanup old conversations (keep last 100)
     if (conversations.size > 100) {
