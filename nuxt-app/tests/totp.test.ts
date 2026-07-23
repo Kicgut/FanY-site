@@ -1,6 +1,6 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
-import { generateTotpCode, generateTotpSecret, verifyTotp } from '../server/utils/totp.ts'
+import { generateRecoveryCodes, generateTotpCode, generateTotpSecret, hashRecoveryCode, verifyTotp } from '../server/utils/totp.ts'
 
 test('TOTP generated code verifies in its time window', () => {
   const secret = generateTotpSecret()
@@ -15,4 +15,11 @@ test('TOTP rejects malformed and incorrect codes', () => {
   const secret = generateTotpSecret()
   assert.equal(verifyTotp(secret, '12345'), false)
   assert.equal(verifyTotp(secret, '000000', 1_700_000_000_000), false)
+})
+
+test('recovery codes are unique and hash consistently', () => {
+  const recovery = generateRecoveryCodes()
+  assert.equal(recovery.plain.length, 8)
+  assert.equal(new Set(recovery.plain).size, 8)
+  assert.deepEqual(recovery.hashed[0], hashRecoveryCode(recovery.plain[0]))
 })
