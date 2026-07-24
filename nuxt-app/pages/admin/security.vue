@@ -75,6 +75,19 @@ async function disable2fa() {
     loading.value = false
   }
 }
+
+async function regenerateRecoveryCodes() {
+  if (!/^\d{6}$/.test(code.value)) return ElMessage.warning('请输入当前 2FA 验证码')
+  loading.value = true
+  try {
+    const result: any = await authFetch('/api/auth/2fa/recovery-codes', { method: 'POST', body: { code: code.value } })
+    recoveryCodes.value = result.data?.recoveryCodes || []
+    code.value = ''
+    ElMessage.success('恢复码已重新生成，旧恢复码已全部失效')
+  } catch (error: any) {
+    ElMessage.error(error?.data?.message || '恢复码生成失败')
+  } finally { loading.value = false }
+}
 </script>
 
 <template>
@@ -108,6 +121,7 @@ async function disable2fa() {
 
       <div v-else-if="enabled" class="setup">
         <el-input v-model="code" maxlength="6" inputmode="numeric" autocomplete="one-time-code" placeholder="当前 2FA 验证码" />
+        <el-button type="warning" :loading="loading" @click="regenerateRecoveryCodes">重新生成恢复码</el-button>
         <el-button type="danger" :loading="loading" @click="disable2fa">停用 2FA</el-button>
       </div>
     </el-card>
