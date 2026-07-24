@@ -24,6 +24,8 @@ Thumbs.db
 # Prisma (regenerated inside container)
 prisma/dev.db
 prisma/dev.db-journal
+prisma/shadow.db
+prisma/shadow.db-journal
 
 # Docs (not needed in production)
 docs
