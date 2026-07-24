@@ -1,4 +1,4 @@
-import { requireAdmin } from '~/server/utils/permission'
+import { requireAdmin, canManageScopedResource } from '~/server/utils/permission'
 import { logAudit } from '~/server/services/audit'
 
 export default defineEventHandler(async (event) => {
@@ -18,6 +18,7 @@ export default defineEventHandler(async (event) => {
   if (!album) {
     throw createError({ statusCode: 404, message: 'Album not found' })
   }
+  if (!canManageScopedResource(actor, album.createdBy, album.visibleTo, false)) throw createError({ statusCode: 403, message: 'Album is outside your management groups' })
 
   // Get current max order in album
   const maxOrder = await prisma.albumPhoto.aggregate({
@@ -29,6 +30,8 @@ export default defineEventHandler(async (event) => {
   let added = 0
   for (const photoId of body.photoIds) {
     try {
+      const photo = await prisma.photo.findUnique({ where: { id: Number(photoId) } })
+      if (!photo || !canManageScopedResource(actor, photo.uploadedBy, photo.visibleTo)) continue
       await prisma.albumPhoto.create({
         data: { photoId, albumId: id, order: nextOrder++ },
       })

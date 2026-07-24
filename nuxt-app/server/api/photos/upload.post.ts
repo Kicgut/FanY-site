@@ -28,6 +28,11 @@ export default defineEventHandler(async (event) => {
   if (!isAdmin && visibility === 'groups' && groups.some((group) => !user.groups.includes(group))) {
     throw createError({ statusCode: 403, message: '只能选择自己所属的分组' })
   }
+  if (visibility === 'groups') {
+    if (!groups.length) throw createError({ statusCode: 400, message: 'Please select at least one group' })
+    const groupCount = await prisma.group.count({ where: { name: { in: groups } } })
+    if (groupCount !== new Set(groups).size) throw createError({ statusCode: 400, message: 'Selected group does not exist' })
+  }
   const albumIds = albumIdsPart?.data ? String(albumIdsPart.data).split(',').map(Number).filter((v) => Number.isInteger(v) && v > 0) : []
   const title = String(titlePart?.data?.toString() || file.filename.replace(/\.[^.]+$/, ''))
   const chargeMb = Math.max(1, Math.ceil(file.data.length / (1024 * 1024)))

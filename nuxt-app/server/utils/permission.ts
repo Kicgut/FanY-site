@@ -132,6 +132,27 @@ export function canAccessVisibleTo(raw: string | null | undefined, user: AuthUse
   return allowed.has(user.username) || user.groups.some((group) => allowed.has(`group:${group}`) || allowed.has(group))
 }
 
+export function visibleGroups(raw: string | null | undefined): string[] {
+  return parseVisibleTo(raw).map((value) => value.replace(/^group:/, '')).filter(Boolean)
+}
+
+/** Management is deliberately narrower than viewing: an administrator only
+ * manages resources they own or resources assigned to one of their groups. */
+export function canManageScopedResource(actor: AuthUser, ownerId: number | null | undefined, visibleTo: string | null | undefined, ownerAlways = true): boolean {
+  if (actor.role === ROLES.SUPERADMIN) return true
+  const groups = visibleGroups(visibleTo)
+  if (ownerId === actor.id && (ownerAlways || groups.length === 0)) return true
+  if (actor.role !== ROLES.ADMIN) return false
+  // A grouped album is governed by its group, even for its creator. This
+  // prevents an administrator excluded from a group from managing it.
+  return groups.length > 0 && groups.some((group) => actor.groups.includes(group))
+}
+
+export function requireSuperadmin(user: AuthUser): AuthUser {
+  if (user.role !== ROLES.SUPERADMIN) throw createError({ statusCode: 403, message: 'Superadmin access required' })
+  return user
+}
+
 /** Visibility is independent from role: public is anonymous, private is owner/admin,
  * and group visibility matches any group assigned to the user. `friends` is kept as
  * a legacy alias for group:friends during migration. */

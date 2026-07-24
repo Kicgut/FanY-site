@@ -53,6 +53,7 @@ export function presentPhoto<T extends Record<string, any>>(photo: T, options: P
     ...(includeAdminMeta ? {
       status: photo.status,
       visibility: photo.visibility,
+      visibleTo: photo.visibleTo ? (() => { try { return JSON.parse(photo.visibleTo) } catch { return [] } })() : [],
       reviewStatus: photo.reviewStatus,
       reviewNote: photo.reviewNote ?? null,
       checksum: photo.checksum ?? null,
@@ -60,6 +61,7 @@ export function presentPhoto<T extends Record<string, any>>(photo: T, options: P
       thumbnailStatus: photo.thumbnailStatus ?? null,
       ecsSyncPolicy: photo.ecsSyncPolicy ?? null,
       uploadedBy: photo.uploadedBy ?? null,
+      uploader: photo.uploadedByUser ? { id: photo.uploadedByUser.id, username: photo.uploadedByUser.username, name: photo.uploadedByUser.name } : null,
     } : {}),
   }
 }

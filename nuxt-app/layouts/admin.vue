@@ -34,8 +34,9 @@ const allMenu = [
 ] as const
 
 const menu = computed(() => {
-  if (user.value?.role === 'admin' || user.value?.role === 'superadmin') return localTrusted.value ? [...allMenu, ['/admin/local-ops', '本地高权限'] as const] : allMenu
-  return allMenu.filter(([path]) => ['/admin', '/admin/photos', '/admin/storage'].includes(path))
+  if (user.value?.role === 'superadmin') return localTrusted.value ? [...allMenu, ['/admin/local-ops', '本地高权限'] as const] : allMenu
+  if (user.value?.role === 'admin') return allMenu.filter(([path]) => ['/admin', '/admin/photos', '/admin/albums', '/admin/security'].includes(path))
+  return allMenu.filter(([path]) => ['/admin', '/admin/security'].includes(path))
 })
 
 const currentLabel = computed(

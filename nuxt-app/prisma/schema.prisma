@@ -31,6 +31,18 @@ model User {
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
   authSessions  AuthSession[]
+  createdGroups Group[] @relation("GroupCreator")
+  uploadedPhotos Photo[] @relation("PhotoUploader")
+}
+
+/// A controlled group catalogue. Membership stays in User.groups for the
+/// backwards-compatible JSON API, but every value is validated against here.
+model Group {
+  id        Int      @id @default(autoincrement())
+  name      String   @unique
+  createdBy Int?
+  createdAt DateTime @default(now())
+  creator   User?    @relation("GroupCreator", fields: [createdBy], references: [id], onDelete: SetNull)
 }
 
 model AuthSession {
@@ -120,6 +132,7 @@ model Photo {
   reviewedBy           Int?
   reviewedAt           DateTime?
   uploadedBy           Int?
+  uploadedByUser       User?    @relation("PhotoUploader", fields: [uploadedBy], references: [id], onDelete: SetNull)
   storageLocation      String   @default("local")      // 保留兼容，后续用 ecsSyncPolicy
   syncStatus           String   @default("pending")
   ecsSyncPolicy        String   @default("local_only") // synced / local_only / pending / syncing
@@ -154,9 +167,11 @@ model Album {
   visibility  String   @default("public")
   visibleTo   String?
   reviewStatus String  @default("approved")
+  createdBy    Int?
   createdAt   DateTime @default(now())
   photos      AlbumPhoto[]
   @@index([visibility, createdAt])
+  @@index([createdBy])
 }
 
 model AlbumPhoto {

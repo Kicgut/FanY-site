@@ -26,6 +26,23 @@ const { data, status, error, refresh } = await useAsyncData(
 
 const currentUser = ref<{ id: number; username: string; role: string } | null>(null)
 const users = computed(() => data.value?.data?.users ?? [])
+const { data: groupData, refresh: refreshGroups } = await useAsyncData(
+  'admin-groups',
+  () => authFetch<{ success: boolean; data: { id: number; name: string }[] }>('/api/admin/groups'),
+)
+const knownGroups = computed(() => groupData.value?.data ?? [])
+const newGroupName = ref('')
+
+async function createGroup() {
+  const name = newGroupName.value.trim()
+  if (!name) return
+  try {
+    await authFetch('/api/admin/groups', { method: 'POST', body: { name } })
+    newGroupName.value = ''
+    await refreshGroups()
+    ElMessage.success('Group created')
+  } catch (e: any) { ElMessage.error(e?.data?.message || 'Failed to create group') }
+}
 
 onMounted(() => {
   try {
@@ -126,7 +143,7 @@ function groupsDisplay(groups: string[] | string | null): string[] {
   <div class="users-page">
     <div class="page-header">
       <h2>用户管理</h2>
-      <el-button type="primary" @click="openCreateDialog">创建用户</el-button>
+      <div style="display:flex; gap:8px"><el-input v-model="newGroupName" placeholder="新建分组" style="width:150px" @keyup.enter="createGroup" /><el-button @click="createGroup">新建分组</el-button><el-button type="primary" @click="openCreateDialog">创建用户</el-button></div>
     </div>
 
     <!-- Error -->
@@ -206,7 +223,7 @@ function groupsDisplay(groups: string[] | string | null): string[] {
         <el-form-item label="姓名"><el-input v-model="createForm.name" /></el-form-item>
         <el-form-item label="初始密码"><el-input v-model="createForm.password" type="password" show-password /></el-form-item>
         <el-form-item label="角色"><el-select v-model="createForm.role" style="width:100%"><el-option label="管理员（后台管理）" value="admin" /><el-option label="普通用户（上传与个人照片）" value="user" /></el-select></el-form-item>
-        <el-form-item label="分组"><el-select v-model="createForm.groups" allow-create filterable multiple style="width:100%" placeholder="输入分组名称后回车" /></el-form-item>
+        <el-form-item label="分组"><el-select v-model="createForm.groups" filterable multiple style="width:100%" placeholder="选择已有分组"><el-option v-for="group in knownGroups" :key="group.id" :label="group.name" :value="group.name" /></el-select></el-form-item>
         <el-form-item label="AI 访问"><el-switch v-model="createForm.aiAccess" /></el-form-item>
         <el-form-item label="上传配额"><el-input-number v-model="createForm.uploadQuotaMb" :min="0" :step="100" /></el-form-item>
       </el-form>
@@ -228,7 +245,7 @@ function groupsDisplay(groups: string[] | string | null): string[] {
         </el-form-item>
 
         <el-form-item label="分组">
-          <el-select v-model="editForm.groups" allow-create filterable multiple style="width: 100%" placeholder="输入分组名称后回车" />
+          <el-select v-model="editForm.groups" filterable multiple style="width: 100%" placeholder="选择已有分组"><el-option v-for="group in knownGroups" :key="group.id" :label="group.name" :value="group.name" /></el-select>
         </el-form-item>
 
         <el-form-item label="状态">

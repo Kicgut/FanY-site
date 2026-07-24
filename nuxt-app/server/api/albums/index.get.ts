@@ -1,4 +1,4 @@
-import { requireAdmin } from '~/server/utils/permission'
+import { requireAdmin, canManageScopedResource } from '~/server/utils/permission'
 import { presentPhoto, publicPhotoUrl } from '~/server/utils/photo-presentation'
 
 function usableCoverUrl(value: string | null | undefined) {
@@ -9,7 +9,7 @@ function usableCoverUrl(value: string | null | undefined) {
 }
 
 export default defineEventHandler(async (event) => {
-  await requireAdmin(event)
+  const actor = await requireAdmin(event)
   try {
     const albums = await prisma.album.findMany({
       include: {
@@ -23,7 +23,7 @@ export default defineEventHandler(async (event) => {
       orderBy: { createdAt: 'desc' },
     })
 
-    const result = albums.map((album) => ({
+    const result = albums.filter((album) => canManageScopedResource(actor, album.createdBy, album.visibleTo, false)).map((album) => ({
       ...album,
       visibleTo: album.visibleTo ? (() => { try { return JSON.parse(album.visibleTo) } catch { return [] } })() : [],
       photoCount: album._count.photos,

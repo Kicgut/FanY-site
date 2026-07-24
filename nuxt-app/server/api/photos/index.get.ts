@@ -1,4 +1,4 @@
-import { canAccessVisibleTo, getRequestUser, getAccessOrigin, ROLES } from '~/server/utils/permission'
+import { canAccessVisibleTo, canManageScopedResource, getRequestUser, getAccessOrigin, ROLES } from '~/server/utils/permission'
 import { presentPhoto } from '~/server/utils/photo-presentation'
 
 export default defineEventHandler(async (event) => {
@@ -48,7 +48,7 @@ export default defineEventHandler(async (event) => {
   const [photos, total] = await prisma.$transaction([
     prisma.photo.findMany({
       where,
-      include: { tags: true, albums: { include: { album: true } } },
+      include: { tags: true, albums: { include: { album: true } }, uploadedByUser: { select: { id: true, username: true, name: true } } },
       orderBy: [{ [sort]: 'desc' }, { id: 'desc' }],
       ...(Number.isInteger(cursor) && cursor > 0 ? { cursor: { id: cursor }, skip: 1 } : { skip: (page - 1) * limit }),
       take: limit,
@@ -56,11 +56,14 @@ export default defineEventHandler(async (event) => {
     prisma.photo.count({ where }),
   ])
   const visiblePhotos = photos.filter((photo) => {
-    if (isAdmin || getAccessOrigin(event, user) === 'local_trusted') return true
+    if (isAdmin) {
+      return canManageScopedResource(user!, photo.uploadedBy, photo.visibleTo) || photo.albums.some(({ album }) => canManageScopedResource(user!, album.createdBy, album.visibleTo, false))
+    }
+    if (getAccessOrigin(event, user) === 'local_trusted') return true
     if (photo.visibility === 'public') return true
     if (photo.visibility === 'private') return user?.id === photo.uploadedBy
     return canAccessVisibleTo(photo.visibleTo, user)
   })
   const nextCursor = photos.length === limit ? String(photos[photos.length - 1]?.id || '') : null
-  return { success: true, photos: visiblePhotos.map((photo) => presentPhoto(photo, { includeOriginal: isAdmin, includeAdminMeta: isAdmin })), total, page, limit, nextCursor }
+  return { success: true, photos: visiblePhotos.map((photo) => presentPhoto(photo, { includeOriginal: isAdmin, includeAdminMeta: isAdmin })), total: isAdmin ? visiblePhotos.length : total, page, limit, nextCursor }
 })

@@ -1,8 +1,8 @@
 import { prisma } from '~/server/utils/db'
-import { requireAdmin, parseGroups } from '~/server/utils/permission'
+import { requireAdmin, parseGroups, requireSuperadmin } from '~/server/utils/permission'
 
 export default defineEventHandler(async (event) => {
-  await requireAdmin(event)
+  requireSuperadmin(await requireAdmin(event))
 
   const query = getQuery(event)
   const where: any = {}

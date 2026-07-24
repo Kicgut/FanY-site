@@ -2,7 +2,7 @@ import { createReadStream } from 'node:fs'
 import { Readable } from 'node:stream'
 import { access, stat } from 'node:fs/promises'
 import { join, normalize, resolve } from 'node:path'
-import { canAccessVisibleTo, getRequestUser, getAccessOrigin, ROLES, toAuthUser } from '~/server/utils/permission'
+import { canAccessVisibleTo, canManageScopedResource, getRequestUser, getAccessOrigin, ROLES, toAuthUser } from '~/server/utils/permission'
 import { prisma } from '~/server/utils/db'
 import jwt from 'jsonwebtoken'
 import { getJwtSecret } from '~/server/utils/jwt'
@@ -36,7 +36,7 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 400, message: '图片参数无效' })
   }
 
-  const photo = await prisma.photo.findUnique({ where: { id } })
+  const photo = await prisma.photo.findUnique({ where: { id }, include: { albums: { include: { album: true } } } })
   if (!photo) throw createError({ statusCode: 404, message: '照片不存在' })
   let user = await getRequestUser(event)
   // Admin pages render images through <img>, which cannot attach Authorization.
@@ -52,7 +52,8 @@ export default defineEventHandler(async (event) => {
     }
   }
   const isTrusted = getAccessOrigin(event, user) === 'local_trusted'
-  const allowed = user?.role === ROLES.ADMIN || user?.role === ROLES.SUPERADMIN || isTrusted || (
+  const adminAllowed = Boolean(user && (canManageScopedResource(user, photo.uploadedBy, photo.visibleTo) || photo.albums.some(({ album }) => canManageScopedResource(user, album.createdBy, album.visibleTo, false))))
+  const allowed = adminAllowed || isTrusted || (
     photo.status === 'published' && photo.reviewStatus === 'approved' && (
       photo.visibility === 'public' ||
       Boolean(user && photo.visibility === 'friends' && canAccessVisibleTo(photo.visibleTo, user)) ||
@@ -61,11 +62,11 @@ export default defineEventHandler(async (event) => {
     )
   )
   if (!allowed) throw createError({ statusCode: 404, message: '照片不存在' })
-  if (type === 'original' && user?.role !== ROLES.ADMIN && user?.role !== ROLES.SUPERADMIN && !isTrusted && !photo.allowOriginalDownload) {
+  if (type === 'original' && !adminAllowed && !isTrusted && !photo.allowOriginalDownload) {
     throw createError({ statusCode: 403, message: '原图下载未开放' })
   }
 
-  const allowOriginalFallback = Boolean(user?.role === ROLES.ADMIN || user?.role === ROLES.SUPERADMIN || isTrusted)
+  const allowOriginalFallback = Boolean(adminAllowed || isTrusted)
   for (const value of candidates(photo, type, allowOriginalFallback)) {
     const path = asSafeLocalPath(value)
     if (!path) continue

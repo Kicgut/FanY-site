@@ -28,6 +28,23 @@ const { data, status, error, refresh } = await useAsyncData(
 )
 
 const photos = computed(() => data.value?.photos || [])
+const { data: groupData } = await useAsyncData('photo-groups', () => authFetch<{ success: boolean; data: { id: number; name: string }[] }>('/api/admin/groups'))
+const groups = computed(() => groupData.value?.data ?? [])
+
+function displayGroups(values: unknown): string[] {
+  return Array.isArray(values) ? values.map(String).map((value) => value.replace(/^group:/, '')) : []
+}
+
+async function updatePhotoGroups(photo: any, values: string[]) {
+  busy.value = photo.id
+  try {
+    await authFetch(`/api/photos/${photo.id}`, { method: 'PATCH', body: { visibility: 'groups', visibleTo: values.map((group) => `group:${group}`) } })
+    photo.visibility = 'groups'
+    photo.visibleTo = values.map((group) => `group:${group}`)
+    ElMessage.success('分组已更新')
+  } catch (e: any) { ElMessage.error(e?.data?.message || '更新失败') }
+  finally { busy.value = null }
+}
 
 async function retryBackflow() {
   retryBusy.value = true
@@ -181,6 +198,19 @@ function authImageUrl(url?: string | null) {
           <template #default="{ row }">
             <div class="photo-title">{{ row.title }}</div>
             <div class="filename">{{ row.filename }}</div>
+          </template>
+        </el-table-column>
+
+        <el-table-column label="上传者" width="130">
+          <template #default="{ row }">{{ row.uploader?.name || row.uploader?.username || '历史未登记' }}</template>
+        </el-table-column>
+
+        <el-table-column label="指定分组" min-width="180">
+          <template #default="{ row }">
+            <el-select v-if="isAdmin && row.visibility === 'groups'" :model-value="displayGroups(row.visibleTo)" multiple filterable size="small" :loading="busy === row.id" @change="(v: string[]) => updatePhotoGroups(row, v)">
+              <el-option v-for="group in groups" :key="group.id" :label="group.name" :value="group.name" />
+            </el-select>
+            <span v-else>{{ displayGroups(row.visibleTo).join('、') || '-' }}</span>
           </template>
         </el-table-column>
 

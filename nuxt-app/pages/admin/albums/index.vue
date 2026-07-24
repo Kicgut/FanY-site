@@ -30,6 +30,8 @@ const { data, status, error, refresh } = await useAsyncData(
 )
 
 const albums = computed(() => data.value ?? [])
+const { data: groupData } = await useAsyncData('album-groups', () => authFetch<{ success: boolean; data: { id: number; name: string }[] }>('/api/admin/groups'))
+const groups = computed(() => groupData.value?.data ?? [])
 
 // Visibility helpers
 const visibilityOptions = [
@@ -264,7 +266,7 @@ function formatDate(date: string) {
             <el-radio value="private">私密</el-radio>
           </el-radio-group>
         </el-form-item>
-        <el-form-item v-if="createForm.visibility === 'groups'" label="分组"><el-select v-model="createForm.visibleTo" allow-create filterable multiple style="width:100%" placeholder="输入分组后回车" /></el-form-item>
+        <el-form-item v-if="createForm.visibility === 'groups'" label="分组"><el-select v-model="createForm.visibleTo" filterable multiple style="width:100%" placeholder="选择已有分组"><el-option v-for="group in groups" :key="group.id" :label="group.name" :value="group.name" /></el-select></el-form-item>
       </el-form>
       <template #footer>
         <el-button @click="createDialogVisible = false">取消</el-button>
@@ -296,7 +298,7 @@ function formatDate(date: string) {
             <el-radio value="private">私密</el-radio>
           </el-radio-group>
         </el-form-item>
-        <el-form-item v-if="editForm.visibility === 'groups'" label="分组"><el-select v-model="editForm.visibleTo" allow-create filterable multiple style="width:100%" placeholder="输入分组后回车" /></el-form-item>
+        <el-form-item v-if="editForm.visibility === 'groups'" label="分组"><el-select v-model="editForm.visibleTo" filterable multiple style="width:100%" placeholder="选择已有分组"><el-option v-for="group in groups" :key="group.id" :label="group.name" :value="group.name" /></el-select></el-form-item>
         <el-form-item v-if="visibilityChanged" label="批量更新">
           <el-checkbox v-model="cascadePhotos">
             同时修改成员照片可见性
