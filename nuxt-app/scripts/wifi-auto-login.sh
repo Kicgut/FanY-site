@@ -34,6 +34,14 @@ wifi_connected() {
   nmcli -t -f GENERAL.STATE dev show "$IFACE" 2>/dev/null | grep -q '^GENERAL.STATE:100'
 }
 
+ensure_wifi() {
+  wifi_connected && return 0
+  log "wifi interface is disconnected; requesting TJ-DORM-WIFI reconnect"
+  timeout 15 nmcli connection up id "${WIFI_AUTO_LOGIN_CONNECTION:-TJ-DORM-WIFI}" ifname "$IFACE" >/dev/null 2>&1 || true
+  sleep 5
+  wifi_connected
+}
+
 login_once() {
   local body code endpoint
   # Some campus gateways expose the legacy endpoint on port 80, while 801 may
@@ -72,7 +80,7 @@ login_once() {
 }
 
 run_once() {
-  wifi_connected || { log "wifi interface is not connected"; return 1; }
+  ensure_wifi || { log "wifi interface is not connected"; return 1; }
   network_ok && return 0
   log "network requires portal login"
   login_once || return 1
