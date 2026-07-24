@@ -96,7 +96,6 @@ const editForm = ref({
   originalVisibility: 'public' as string,
 })
 const editing = ref(false)
-const cascadePhotos = ref(false)
 
 function openEditDialog(album: Album) {
   editForm.value = {
@@ -108,11 +107,9 @@ function openEditDialog(album: Album) {
     originalVisibility: album.visibility || 'public',
     visibleTo: Array.isArray(album.visibleTo) ? album.visibleTo.map((v) => String(v).replace(/^group:/, '')) : [],
   }
-  cascadePhotos.value = false
   editDialogVisible.value = true
 }
 
-const visibilityChanged = computed(() => editForm.value.visibility !== editForm.value.originalVisibility)
 
 async function handleEdit() {
   if (!editForm.value.name.trim()) {
@@ -133,22 +130,7 @@ async function handleEdit() {
       },
     })
 
-    // Cascade visibility to photos if requested
-    if (visibilityChanged.value && cascadePhotos.value) {
-      const result = await authFetch<{ success: boolean; data?: { cascadeCount?: number } }>(
-        `/api/admin/albums/${editForm.value.id}/visibility`,
-        {
-          method: 'PATCH',
-          body: {
-            visibility: editForm.value.visibility,
-            cascadeToPhotos: true,
-          },
-        },
-      )
-      ElMessage.success(`相册已更新，同时更新了 ${result?.data?.cascadeCount ?? 0} 张照片的可见性`)
-    } else {
-      ElMessage.success('相册已更新')
-    }
+    ElMessage.success('相册已更新；相册可见性不会改变其中照片的可见性')
 
     editDialogVisible.value = false
     refresh()
@@ -299,14 +281,6 @@ function formatDate(date: string) {
           </el-radio-group>
         </el-form-item>
         <el-form-item v-if="editForm.visibility === 'groups'" label="分组"><el-select v-model="editForm.visibleTo" filterable multiple style="width:100%" placeholder="选择已有分组"><el-option v-for="group in groups" :key="group.id" :label="group.name" :value="group.name" /></el-select></el-form-item>
-        <el-form-item v-if="visibilityChanged" label="批量更新">
-          <el-checkbox v-model="cascadePhotos">
-            同时修改成员照片可见性
-          </el-checkbox>
-          <div class="cascade-hint">
-            将把该相册中所有照片的可见性同步变更为「{{ getVisibilityLabel(editForm.visibility) }}」
-          </div>
-        </el-form-item>
       </el-form>
       <template #footer>
         <el-button @click="editDialogVisible = false">取消</el-button>

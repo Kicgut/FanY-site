@@ -42,8 +42,9 @@ interface AlbumResponse {
 
 const route = useRoute()
 const albumId = route.params.id
+const authFetch = useAuthFetch()
 
-const { data, pending, error } = await useFetch<AlbumResponse>(`/api/albums/public/${albumId}`)
+const { data, pending, error } = await useAsyncData(`album-${albumId}`, () => authFetch<AlbumResponse>(`/api/albums/public/${albumId}`), { server: false })
 
 const album = computed(() => data.value?.data?.album ?? null)
 const photos = ref<Photo[]>(data.value?.data?.photos ?? [])
@@ -64,7 +65,7 @@ async function loadMorePhotos() {
   loadingMore.value = true
   try {
     const nextPage = currentPage.value + 1
-    const response = await $fetch<AlbumResponse>(`/api/albums/public/${albumId}?page=${nextPage}&limit=50`)
+    const response = await authFetch<AlbumResponse>(`/api/albums/public/${albumId}?page=${nextPage}&limit=50`)
     photos.value.push(...(response.data.photos ?? []))
     currentPage.value = response.data.page
     hasMorePhotos.value = response.data.hasMore
@@ -75,6 +76,8 @@ async function loadMorePhotos() {
 const search = ref('')
 const selectedTag = ref('')
 const originalLoaded = ref(false)
+const imageLoading = ref(false)
+const imageError = ref(false)
 const lightboxVisible = ref(false)
 const currentPhoto = ref<Photo | null>(null)
 
@@ -108,8 +111,15 @@ const currentPhotoSrc = computed(() => {
 function openLightbox(photo: Photo) {
   currentPhoto.value = photo
   originalLoaded.value = false
+  imageLoading.value = true
+  imageError.value = false
   lightboxVisible.value = true
 }
+
+watch(currentPhotoSrc, (src) => {
+  imageLoading.value = Boolean(src)
+  imageError.value = false
+})
 
 watch(currentPhoto, (photo) => {
   const next = photo ? filteredPhotos.value[currentIndex.value + 1] : null
@@ -323,7 +333,11 @@ useSeoMeta({
                 class="lightbox-img"
                 loading="eager"
                 decoding="async"
+                @load="imageLoading = false"
+                @error="imageLoading = false; imageError = true"
               />
+              <div v-if="imageLoading" class="lightbox-loading"><span class="spinner" /><span>图片加载中…</span></div>
+              <div v-if="imageError" class="lightbox-load-error">图片加载失败，请稍后重试。</div>
             </div>
 
             <div class="lightbox-toolbar">
@@ -331,6 +345,7 @@ useSeoMeta({
                 v-if="!originalLoaded && currentPhoto.allowOriginalDownload"
                 class="original-button"
                 type="button"
+                :disabled="imageLoading"
                 @click="originalLoaded = true"
               >
                 查看原图
@@ -624,6 +639,36 @@ useSeoMeta({
   background: rgba(255, 255, 255, .03);
   box-shadow: 0 24px 60px rgba(0, 0, 0, .32);
 }
+
+.lightbox-loading,
+.lightbox-load-error {
+  position: absolute;
+  inset: 50% auto auto 50%;
+  transform: translate(-50%, -50%);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 16px;
+  border-radius: 999px;
+  background: rgba(10, 15, 25, .76);
+  color: #fff;
+  pointer-events: none;
+}
+
+.lightbox-load-error {
+  color: #ffd6d6;
+}
+
+.spinner {
+  width: 16px;
+  height: 16px;
+  border: 2px solid rgba(255, 255, 255, .35);
+  border-top-color: #fff;
+  border-radius: 50%;
+  animation: spin .8s linear infinite;
+}
+
+@keyframes spin { to { transform: rotate(360deg); } }
 
 .lightbox-img {
   max-width: 100%;

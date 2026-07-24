@@ -1,4 +1,4 @@
-import { requireAdmin, canManageScopedResource } from '~/server/utils/permission'
+import { requireAdmin, canManageAlbum } from '~/server/utils/permission'
 import { logAudit } from '~/server/services/audit'
 
 export default defineEventHandler(async (event) => {
@@ -15,7 +15,7 @@ export default defineEventHandler(async (event) => {
   }
   const album = await prisma.album.findUnique({ where: { id } })
   if (!album) throw createError({ statusCode: 404, message: 'Album not found' })
-  if (!canManageScopedResource(actor, album.createdBy, album.visibleTo, false)) throw createError({ statusCode: 403, message: 'Album is outside your management groups' })
+  if (!canManageAlbum(actor, album)) throw createError({ statusCode: 403, message: 'Album is outside your management scope' })
 
   const result = await prisma.albumPhoto.deleteMany({
     where: { albumId: id, photoId: { in: body.photoIds } },

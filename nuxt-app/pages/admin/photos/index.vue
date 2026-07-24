@@ -61,7 +61,6 @@ const labels: Record<string, string> = {
   hidden: '已隐藏',
   archived: '已归档',
   public: '公开',
-  friends: '好友可见',
   groups: '指定分组',
   private: '私密',
   pending: '待处理',
@@ -102,6 +101,9 @@ async function reviewPhoto(photo: any, reviewStatus: string) {
 const previewVisible = ref(false)
 const previewMode = ref<'medium' | 'original'>('medium')
 const previewPhoto = ref<any | null>(null)
+const previewImageLoading = ref(false)
+const previewImageError = ref(false)
+const openingOriginal = ref<number | null>(null)
 
 const previewSrc = computed(() => {
   if (!previewPhoto.value) return ''
@@ -112,8 +114,15 @@ const previewSrc = computed(() => {
 function openPreview(photo: any) {
   previewPhoto.value = photo
   previewMode.value = 'medium'
+  previewImageLoading.value = true
+  previewImageError.value = false
   previewVisible.value = true
 }
+
+watch(previewSrc, (src) => {
+  previewImageLoading.value = Boolean(src)
+  previewImageError.value = false
+})
 
 async function copyUrl(url?: string) {
   if (!url) return
@@ -123,7 +132,9 @@ async function copyUrl(url?: string) {
 
 function openInNewTab(url?: string) {
   if (!url) return
+  openingOriginal.value = previewPhoto.value?.id || null
   window.open(authImageUrl(url), '_blank', 'noopener,noreferrer')
+  window.setTimeout(() => { openingOriginal.value = null }, 900)
 }
 
 function authImageUrl(url?: string | null) {
@@ -265,11 +276,8 @@ function authImageUrl(url?: string | null) {
               <el-tooltip content="用中图预览照片" placement="top">
                 <el-button size="small" @click="openPreview(row)">预览</el-button>
               </el-tooltip>
-              <el-tooltip content="复制原图地址" placement="top">
-                <el-button size="small" @click="copyUrl(row.originalUrl)">复制原图</el-button>
-              </el-tooltip>
               <el-tooltip content="打开原图，注意加载较慢" placement="top">
-                <el-button size="small" type="primary" plain @click="openInNewTab(row.originalUrl)">打开</el-button>
+                <el-button size="small" type="primary" plain :loading="openingOriginal === row.id" @click="previewPhoto = row; openInNewTab(row.originalUrl)">打开</el-button>
               </el-tooltip>
               <el-button v-if="isAdmin && row.reviewStatus === 'pending'" size="small" type="success" :loading="busy === row.id" @click="reviewPhoto(row, 'approved')">通过</el-button>
               <el-button v-if="isAdmin && row.reviewStatus === 'pending'" size="small" type="danger" plain :loading="busy === row.id" @click="reviewPhoto(row, 'rejected')">拒绝</el-button>
@@ -291,7 +299,9 @@ function authImageUrl(url?: string | null) {
 
       <div v-if="previewPhoto" class="preview-body">
         <div class="preview-stage">
-          <img :src="authImageUrl(previewSrc)" :alt="previewPhoto.title" />
+          <el-skeleton v-if="previewImageLoading" class="preview-loader" animated />
+          <img :src="authImageUrl(previewSrc)" :alt="previewPhoto.title" @load="previewImageLoading = false" @error="previewImageLoading = false; previewImageError = true" />
+          <el-alert v-if="previewImageError" class="preview-error" type="error" title="图片加载失败，请稍后重试或检查原图回流服务" :closable="false" show-icon />
         </div>
         <div class="preview-side">
           <div class="preview-meta">
@@ -302,7 +312,7 @@ function authImageUrl(url?: string | null) {
           </div>
           <div class="preview-actions">
             <el-button @click="previewMode = 'medium'">中图</el-button>
-            <el-button @click="previewMode = 'original'">原图</el-button>
+            <el-button :loading="previewMode === 'original' && previewImageLoading" @click="previewMode = 'original'">原图</el-button>
             <el-button type="primary" plain @click="copyUrl(previewPhoto.originalUrl)">复制原图链接</el-button>
           </div>
           <div class="preview-hint">
@@ -463,6 +473,17 @@ function authImageUrl(url?: string | null) {
   max-height: 100%;
   object-fit: contain;
   display: block;
+}
+
+.preview-loader {
+  width: min(78vw, 760px);
+  height: min(56vh, 620px);
+}
+
+.preview-error {
+  position: absolute;
+  inset: auto 20px 20px;
+  max-width: 560px;
 }
 
 .preview-side {

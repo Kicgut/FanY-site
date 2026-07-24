@@ -1,4 +1,4 @@
-import { canAccessVisibleTo, getRequestUser, getAccessOrigin, ROLES } from '~/server/utils/permission'
+import { canViewAlbum, canViewPhoto, getRequestUser } from '~/server/utils/permission'
 import { presentPhoto, publicPhotoUrl } from '~/server/utils/photo-presentation'
 
 export default defineEventHandler(async (event) => {
@@ -14,30 +14,19 @@ export default defineEventHandler(async (event) => {
 
   // Determine visibility based on viewer
   const user = await getRequestUser(event)
-  const origin = getAccessOrigin(event, user)
-  const isAdmin = user?.role === ROLES.ADMIN || user?.role === ROLES.SUPERADMIN
   const page = Math.max(1, Number(getQuery(event).page) || 1)
   const limit = Math.min(100, Math.max(1, Number(getQuery(event).limit) || 50))
-  const photoWhere: any = { status: 'published', reviewStatus: 'approved' }
+  const photoWhere: any = user?.role === 'superadmin' ? {} : { status: 'published', reviewStatus: 'approved' }
 
-  if (!isAdmin && origin !== 'local_trusted') {
-    photoWhere.OR = album.visibility === 'public'
-      ? [{ visibility: 'public' }]
-      : user
-      ? [
-          { visibility: 'public' },
-          { visibility: 'friends' },
-          { visibility: 'private', uploadedBy: user.id },
-          ...user.groups.map((group) => ({ visibility: 'groups', visibleTo: { contains: `group:${group}` } })),
-        ]
-      : [{ visibility: 'public' }]
+  if (!user) photoWhere.visibility = 'public'
+  else if (user.role !== 'superadmin' && user.id !== album.createdBy) {
+    photoWhere.OR = [
+      { visibility: 'public' },
+      ...user.groups.map((group) => ({ visibility: 'groups', visibleTo: { contains: `group:${group}` } })),
+    ]
   }
 
-  // Check if viewer can see this album
-  if (album.visibility === 'private' && !isAdmin) {
-    throw createError({ statusCode: 404, message: 'Album not found' })
-  }
-  if (album.visibility === 'groups' && (!user || !canAccessVisibleTo(album.visibleTo, user))) {
+  if (!canViewAlbum(user, album)) {
     throw createError({ statusCode: 404, message: 'Album not found' })
   }
 
@@ -68,13 +57,7 @@ export default defineEventHandler(async (event) => {
     .filter((ap) => {
       const p = ap.photo
       if (!p) return false
-      if (isAdmin) return true
-      if (!user) return p.visibility === 'public'
-      if (origin === 'local_trusted') return true
-      if (p.visibility === 'public') return true
-      if (p.visibility === 'friends' && canAccessVisibleTo(p.visibleTo, user)) return true
-      if (p.visibility === 'private' && p.uploadedBy === user.id) return true
-      return false
+      return canViewPhoto(user, p)
     })
     .map((ap) => presentPhoto({
       id: ap.photo.id,

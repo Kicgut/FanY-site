@@ -1,6 +1,7 @@
 import { prisma } from '~/server/utils/db'
 import type { AuthUser } from '~/server/utils/permission'
 import { calculateEcsSyncPolicy, VISIBILITY } from '~/server/services/photo-sync'
+import { isPhotoCompatibleWithAlbum } from '~/server/utils/permission'
 
 // ─── Constants ─────────────────────────────────────────────────────────────
 
@@ -41,7 +42,7 @@ export async function approvePhoto(
   },
   actor: AuthUser,
 ) {
-  const photo = await prisma.photo.findUnique({ where: { id: photoId } })
+  const photo = await prisma.photo.findUnique({ where: { id: photoId }, include: { albums: { include: { album: true } } } })
   if (!photo) {
     throw createError({ statusCode: 404, message: 'Photo not found' })
   }
@@ -62,10 +63,23 @@ export async function approvePhoto(
   if (decision.description !== undefined) updateData.description = decision.description
   updateData.ecsSyncPolicy = calculateEcsSyncPolicy(updateData.visibility, updateData.status)
 
-  const updated = await prisma.photo.update({
-    where: { id: photoId },
-    data: updateData,
-    include: { tags: true, albums: { include: { album: true } } },
+  const nextPhoto = { visibility: updateData.visibility, visibleTo: updateData.visibleTo === undefined ? photo.visibleTo : updateData.visibleTo }
+  if (nextPhoto.visibility !== 'private' && photo.albums.some(({ album }) => !isPhotoCompatibleWithAlbum(nextPhoto, album))) {
+    throw createError({ statusCode: 400, message: 'Photo groups are incompatible with one or more current albums' })
+  }
+  let selectedAlbums: { id: number, visibility: string, visibleTo: string | null }[] = []
+  if (decision.albumIds !== undefined) {
+    if (nextPhoto.visibility === 'private' && decision.albumIds.length) throw createError({ statusCode: 400, message: 'Private photos cannot be added to albums' })
+    selectedAlbums = await prisma.album.findMany({ where: { id: { in: decision.albumIds } }, select: { id: true, visibility: true, visibleTo: true } })
+    if (selectedAlbums.length !== new Set(decision.albumIds).size || selectedAlbums.some((album) => !isPhotoCompatibleWithAlbum(nextPhoto, album))) {
+      throw createError({ statusCode: 400, message: 'One or more selected albums are incompatible with photo visibility' })
+    }
+  }
+
+  await prisma.$transaction(async (tx) => {
+    if (nextPhoto.visibility === 'private' || decision.albumIds !== undefined) await tx.albumPhoto.deleteMany({ where: { photoId } })
+    if (decision.albumIds?.length) await tx.albumPhoto.createMany({ data: selectedAlbums.map((album) => ({ photoId, albumId: album.id })) })
+    await tx.photo.update({ where: { id: photoId }, data: updateData })
   })
 
   // Handle tags if provided

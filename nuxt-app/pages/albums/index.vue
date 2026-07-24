@@ -24,12 +24,17 @@ const uploadVisibility = ref('private')
 const uploadAlbumIds = ref<number[]>([])
 const uploadGroups = ref<string[]>([])
 const userGroups = ref<string[]>([])
+const canManageAlbums = ref(false)
 const uploadBusy = ref(false)
 const uploadDialogVisible = ref(false)
 const loggedIn = ref(false)
 onMounted(() => {
   loggedIn.value = Boolean(localStorage.getItem('token'))
-  try { userGroups.value = JSON.parse(localStorage.getItem('user') || '{}').groups || [] } catch { userGroups.value = [] }
+  try {
+    const user = JSON.parse(localStorage.getItem('user') || '{}')
+    userGroups.value = user.groups || []
+    canManageAlbums.value = user.role === 'admin' || user.role === 'superadmin'
+  } catch { userGroups.value = []; canManageAlbums.value = false }
 })
 
 async function submitUpload() {
@@ -40,7 +45,7 @@ async function submitUpload() {
     form.append('file', uploadFile.value)
     form.append('title', uploadTitle.value || uploadFile.value.name.replace(/\.[^.]+$/, ''))
     form.append('visibility', uploadVisibility.value)
-    form.append('albumIds', uploadAlbumIds.value.join(','))
+    if (canManageAlbums.value) form.append('albumIds', uploadAlbumIds.value.join(','))
     form.append('groups', uploadGroups.value.join(','))
     await authFetch('/api/photos/upload', { method: 'POST', body: form })
     ElMessage.success('上传成功，等待审核与原图回流')
@@ -130,7 +135,7 @@ useHead({ title: '照片相册' })
           <el-input v-model="uploadTitle" placeholder="可选标题" />
           <el-select v-model="uploadVisibility" style="width:140px"><el-option label="私有" value="private" /><el-option label="分组可见" value="groups" /><el-option label="公开" value="public" /></el-select>
           <el-select v-if="uploadVisibility === 'groups'" v-model="uploadGroups" multiple placeholder="选择分组" style="width:180px"><el-option v-for="group in userGroups" :key="group" :label="group" :value="group" /></el-select>
-          <el-select v-model="uploadAlbumIds" multiple collapse-tags placeholder="加入相册（可选）" style="width:220px"><el-option v-for="album in albums" :key="album.id" :label="album.name" :value="album.id" /></el-select>
+          <el-select v-if="canManageAlbums" v-model="uploadAlbumIds" multiple collapse-tags placeholder="加入相册（可选）" style="width:220px"><el-option v-for="album in albums" :key="album.id" :label="album.name" :value="album.id" /></el-select>
         </div>
         <template #footer><el-button @click="uploadDialogVisible = false">取消</el-button><el-button type="primary" :loading="uploadBusy" :disabled="!uploadFile" @click="submitUpload">上传</el-button></template>
       </el-dialog>

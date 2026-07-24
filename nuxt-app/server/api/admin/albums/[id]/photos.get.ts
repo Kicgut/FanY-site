@@ -1,4 +1,4 @@
-import { requireAdmin, canManageScopedResource } from '~/server/utils/permission'
+import { requireAdmin, canManageAlbum, canManagePhoto } from '~/server/utils/permission'
 import { presentPhoto, publicPhotoUrl } from '~/server/utils/photo-presentation'
 
 export default defineEventHandler(async (event) => {
@@ -18,7 +18,7 @@ export default defineEventHandler(async (event) => {
   if (!album) {
     throw createError({ statusCode: 404, message: 'Album not found' })
   }
-  if (!canManageScopedResource(actor, album.createdBy, album.visibleTo, false)) throw createError({ statusCode: 403, message: 'Album is outside your management groups' })
+  if (!canManageAlbum(actor, album)) throw createError({ statusCode: 403, message: 'Album is outside your management scope' })
 
   const [albumPhotos, total] = await prisma.$transaction([
     prisma.albumPhoto.findMany({
@@ -38,7 +38,7 @@ export default defineEventHandler(async (event) => {
   return {
     success: true,
     album: { id: album.id, name: album.name, description: album.description, visibility: album.visibility, coverUrl: publicPhotoUrl(album.coverUrl), photoCount: total },
-    photos: albumPhotos.map((ap) => ({ ...presentPhoto(ap.photo, { includeOriginal: true, includeAdminMeta: true }), albumOrder: ap.order })),
+    photos: albumPhotos.filter((ap) => canManagePhoto(actor, ap.photo)).map((ap) => ({ ...presentPhoto(ap.photo, { includeOriginal: true, includeAdminMeta: true }), albumOrder: ap.order })),
     total,
     page,
     limit,

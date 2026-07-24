@@ -35,7 +35,7 @@ async function rebuildThumbnails() {
       <el-card><template #header>估算占用空间</template><strong>{{ gb }}</strong><small>GB</small></el-card>
       <el-card><template #header>原图回流</template><p>已回流：{{ count('syncStatus', 'synced') }}</p><p>待回流：{{ count('syncStatus', 'pending') }}</p><p>失败：{{ count('syncStatus', 'failed') }}</p></el-card>
       <el-card><template #header>缩略图同步</template><p>已完成：{{ count('thumbnailStatus', 'ready') }}</p><p>待处理：{{ count('thumbnailStatus', 'pending') }}</p><p>失败：{{ count('thumbnailStatus', 'failed') }}</p></el-card>
-      <el-card><template #header>可见范围</template><p>公开：{{ count('visibility', 'public') }}</p><p>朋友：{{ count('visibility', 'friends') }}</p><p>私有：{{ count('visibility', 'private') }}</p></el-card>
+      <el-card><template #header>可见范围</template><p>公开：{{ count('visibility', 'public') }}</p><p>分组：{{ count('visibility', 'groups') }}</p><p>私有：{{ count('visibility', 'private') }}</p></el-card>
     </div>
     <div class="ops"><el-button :loading="checking" @click="checkConsistency">扫描存储一致性</el-button><el-button type="warning" :loading="rebuilding" @click="rebuildThumbnails">创建缩略图重建任务</el-button><el-alert v-if="consistency" :type="consistency.healthy ? 'success' : 'warning'" :title="consistency.healthy ? `扫描 ${consistency.scanned} 项，未发现缺失文件` : `发现 ${consistency.missingOriginals.length + consistency.missingThumbnails.length} 个问题`" :closable="false" /></div>
     <el-alert class="note" type="info" title="运维提示" description="原图回流由 Ubuntu 定时任务执行；一致性扫描只读，不会自动删除文件。" show-icon :closable="false" />

@@ -1,4 +1,4 @@
-import { requireLogin, ROLES, canManageScopedResource } from '~/server/utils/permission'
+import { requireLogin, ROLES, canManageAlbum, canManagePhoto, isPhotoCompatibleWithAlbum } from '~/server/utils/permission'
 import type { Prisma } from '@prisma/client'
 import { logAudit } from '~/server/services/audit'
 import { approvePhoto, rejectPhoto, requestPhotoEdit } from '~/server/services/photo-review'
@@ -14,7 +14,7 @@ export default defineEventHandler(async (event) => {
   if (!photo) throw createError({ statusCode: 404, message: 'Photo not found' })
   const isAdmin = actor.role === ROLES.ADMIN || actor.role === ROLES.SUPERADMIN
   if (!isAdmin && photo.uploadedBy !== actor.id) throw createError({ statusCode: 403, message: '只能管理自己上传的照片' })
-  if (isAdmin && !canManageScopedResource(actor, photo.uploadedBy, photo.visibleTo) && !photo.albums.some(({ album }) => canManageScopedResource(actor, album.createdBy, album.visibleTo, false))) {
+  if (isAdmin && !canManagePhoto(actor, photo)) {
     throw createError({ statusCode: 403, message: 'Photo is outside your management groups' })
   }
   const data: Prisma.PhotoUpdateInput = {}
@@ -24,15 +24,33 @@ export default defineEventHandler(async (event) => {
     if (body.tags !== undefined) data.suggestedTags = JSON.stringify(body.tags)
   }
   if (isAdmin && body.status && ['published', 'hidden', 'archived'].includes(body.status)) data.status = body.status
-  if (isAdmin && body.visibility && ['public', 'friends', 'private', 'groups'].includes(body.visibility)) data.visibility = body.visibility
+  if (isAdmin && body.visibility && ['public', 'private', 'groups'].includes(body.visibility)) data.visibility = body.visibility
   if (isAdmin && body.visibleTo !== undefined) {
     const groups: string[] = Array.isArray(body.visibleTo) ? [...new Set<string>(body.visibleTo.map(String).map((v: string) => v.replace(/^group:/, '').trim()).filter(Boolean))] : []
     if (await prisma.group.count({ where: { name: { in: groups } } }) !== groups.length) throw createError({ statusCode: 400, message: 'Selected group does not exist' })
     if (actor.role !== ROLES.SUPERADMIN && groups.some((group) => !actor.groups.includes(group))) throw createError({ statusCode: 403, message: 'Admins can only use their own groups' })
     data.visibleTo = JSON.stringify(groups.map((group) => `group:${group}`))
   }
+  let removeFromAlbums = false
+  if (isAdmin && (body.visibility !== undefined || body.visibleTo !== undefined)) {
+    const nextPhoto = {
+      visibility: String(body.visibility || photo.visibility),
+      visibleTo: data.visibleTo === undefined ? photo.visibleTo : String(data.visibleTo),
+    }
+    if (nextPhoto.visibility === 'private') {
+      removeFromAlbums = true
+    } else if (photo.albums.some(({ album }) => !isPhotoCompatibleWithAlbum(nextPhoto, album))) {
+      throw createError({ statusCode: 400, message: 'Photo groups are incompatible with one or more current albums; remove it from those albums first' })
+    }
+  }
   let updated
   if (isAdmin && body.reviewStatus === 'approved') {
+    if (body.albumIds !== undefined) {
+      if (!Array.isArray(body.albumIds)) throw createError({ statusCode: 400, message: 'albumIds must be an array' })
+      const albumIds: number[] = [...new Set((body.albumIds as unknown[]).map(Number).filter((albumId) => Number.isInteger(albumId) && albumId > 0))]
+      const albums = await prisma.album.findMany({ where: { id: { in: albumIds } } })
+      if (albums.length !== albumIds.length || albums.some((album) => !canManageAlbum(actor, album))) throw createError({ statusCode: 403, message: 'One or more albums are outside your management scope' })
+    }
     updated = await approvePhoto(id, {
       visibility: body.visibility || photo.visibility,
       visibleTo: body.visibleTo !== undefined ? JSON.stringify(body.visibleTo) : photo.visibleTo || undefined,
@@ -55,7 +73,7 @@ export default defineEventHandler(async (event) => {
       data.reviewedBy = actor.id
       data.reviewedAt = new Date()
     }
-    updated = await updatePhotoState(id, data)
+    updated = await updatePhotoState(id, data, { removeFromAlbums })
   }
   await logAudit(event, 'photo_update', 'photo', id, photo, updated)
   return { success: true, photo: presentPhoto(updated, { includeOriginal: isAdmin, includeAdminMeta: isAdmin }) }

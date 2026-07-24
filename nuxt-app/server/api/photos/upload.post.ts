@@ -1,4 +1,4 @@
-import { requireLogin } from '~/server/utils/permission'
+import { canManageAlbum, isPhotoCompatibleWithAlbum, requireLogin } from '~/server/utils/permission'
 import { prisma } from '~/server/utils/db'
 import { saveUploadedPhoto } from '~/server/services/photo-storage'
 import { ALLOWED_MIME_TYPES, MAX_FILE_SIZE } from '~/server/services/photo-review'
@@ -19,7 +19,7 @@ export default defineEventHandler(async (event) => {
   const titlePart = form?.find((part) => part.name === 'title')
   const visibilityPart = form?.find((part) => part.name === 'visibility')
   const visibility = String(visibilityPart?.data?.toString() || 'private')
-  if (!['public', 'friends', 'private', 'groups'].includes(visibility)) throw createError({ statusCode: 400, message: '可见范围无效' })
+  if (!['public', 'private', 'groups'].includes(visibility)) throw createError({ statusCode: 400, message: '可见范围无效' })
   const groupsPart = form?.find((part) => part.name === 'groups')
   const albumIdsPart = form?.find((part) => part.name === 'albumIds')
   const groups = groupsPart?.data ? String(groupsPart.data).split(',').map((v) => v.trim()).filter(Boolean) : []
@@ -34,6 +34,7 @@ export default defineEventHandler(async (event) => {
     if (groupCount !== new Set(groups).size) throw createError({ statusCode: 400, message: 'Selected group does not exist' })
   }
   const albumIds = albumIdsPart?.data ? String(albumIdsPart.data).split(',').map(Number).filter((v) => Number.isInteger(v) && v > 0) : []
+  if (!isAdmin && albumIds.length) throw createError({ statusCode: 403, message: 'Only administrators can add uploaded photos to albums' })
   const title = String(titlePart?.data?.toString() || file.filename.replace(/\.[^.]+$/, ''))
   const chargeMb = Math.max(1, Math.ceil(file.data.length / (1024 * 1024)))
   const quota = await prisma.user.findUnique({ where: { id: user.id }, select: { usedQuotaMb: true, uploadQuotaMb: true } })
@@ -70,17 +71,11 @@ export default defineEventHandler(async (event) => {
   if (albumIds.length) {
     const albums = await prisma.album.findMany({
       where: { id: { in: albumIds } },
-      select: { id: true, visibility: true, visibleTo: true },
+      select: { id: true, createdBy: true, visibility: true, visibleTo: true },
     })
-    const allowedAlbums = isAdmin
-      ? albums
-      : albums.filter((album) => {
-          if (album.visibility === 'public') return true
-          if (album.visibility !== 'groups') return false
-          let visibleTo: unknown[] = []
-          try { visibleTo = album.visibleTo ? JSON.parse(album.visibleTo) : [] } catch { visibleTo = [] }
-          return Array.isArray(visibleTo) && visibleTo.some((group) => user.groups.includes(String(group).replace(/^group:/, '')))
-        })
+    if (albums.length !== new Set(albumIds).size) throw createError({ statusCode: 404, message: 'One or more selected albums do not exist' })
+    const allowedAlbums = albums.filter((album) => canManageAlbum(user, album) && isPhotoCompatibleWithAlbum(photo, album))
+    if (allowedAlbums.length !== albums.length) throw createError({ statusCode: 400, message: 'Selected album is outside your scope or incompatible with photo visibility' })
     await prisma.albumPhoto.createMany({ data: allowedAlbums.map((album) => ({ albumId: album.id, photoId: photo.id })) })
   }
   await logAudit(event, 'photo_upload', 'photo', photo.id, null, { fileSize: file.data.length, chargeMb, visibility })

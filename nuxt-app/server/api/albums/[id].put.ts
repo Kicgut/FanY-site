@@ -1,5 +1,5 @@
 import { prisma } from '~/server/utils/db'
-import { requireAdmin, ROLES, canManageScopedResource } from '~/server/utils/permission'
+import { requireAdmin, ROLES, canManageAlbum, isPhotoCompatibleWithAlbum } from '~/server/utils/permission'
 import { logAudit } from '~/server/services/audit'
 
 export default defineEventHandler(async (event) => {
@@ -7,7 +7,7 @@ export default defineEventHandler(async (event) => {
   const id = Number(getRouterParam(event, 'id'))
   const before = await prisma.album.findUnique({ where: { id } })
   if (!before) throw createError({ statusCode: 404, message: 'Album not found' })
-  if (!canManageScopedResource(actor, before.createdBy, before.visibleTo, false)) throw createError({ statusCode: 403, message: 'Album is outside your management groups' })
+  if (!canManageAlbum(actor, before)) throw createError({ statusCode: 403, message: 'Album is outside your management scope' })
   const body = await readBody(event)
   const data: any = {}
   if (body.name !== undefined) data.name = String(body.name).trim()
@@ -21,6 +21,16 @@ export default defineEventHandler(async (event) => {
     data.visibleTo = groups.length ? JSON.stringify(groups.map((group) => `group:${group}`)) : null
   }
   if ((data.visibility || before.visibility) === 'groups' && !data.visibleTo && !before.visibleTo) throw createError({ statusCode: 400, message: 'A group album needs at least one group' })
+  if (data.visibility !== undefined || data.visibleTo !== undefined) {
+    const nextAlbum = {
+      visibility: data.visibility === undefined ? before.visibility : String(data.visibility),
+      visibleTo: data.visibleTo === undefined ? before.visibleTo : String(data.visibleTo),
+    }
+    const members = await prisma.albumPhoto.findMany({ where: { albumId: id }, include: { photo: true } })
+    if (members.some(({ photo }) => !isPhotoCompatibleWithAlbum(photo, nextAlbum))) {
+      throw createError({ statusCode: 400, message: 'Album groups are incompatible with one or more existing photos; remove them first' })
+    }
+  }
   const album = await prisma.album.update({ where: { id }, data })
   await logAudit(event, 'album_update', 'album', id, before, album)
   return album

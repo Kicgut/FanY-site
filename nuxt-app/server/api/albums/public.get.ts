@@ -1,5 +1,5 @@
 import { presentPhoto, publicPhotoUrl } from '~/server/utils/photo-presentation'
-import { getRequestUser, canAccessVisibleTo, ROLES } from '~/server/utils/permission'
+import { canViewAlbum, canViewPhoto, getRequestUser } from '~/server/utils/permission'
 
 const publicPhotoWhere = {
   photo: {
@@ -8,6 +8,21 @@ const publicPhotoWhere = {
     reviewStatus: 'approved',
   },
 } as const
+
+function visiblePhotoWhere(user: Awaited<ReturnType<typeof getRequestUser>>) {
+  if (!user) return publicPhotoWhere
+  if (user.role === 'superadmin') return {}
+  return {
+    photo: {
+      status: 'published',
+      reviewStatus: 'approved',
+      OR: [
+        { visibility: 'public' },
+        ...user.groups.map((group) => ({ visibility: 'groups', visibleTo: { contains: `group:${group}` } })),
+      ],
+    },
+  }
+}
 
 function usableCoverUrl(value: string | null | undefined) {
   const url = publicPhotoUrl(value)
@@ -19,12 +34,7 @@ function usableCoverUrl(value: string | null | undefined) {
 export default defineEventHandler(async (event) => {
   try {
     const user = await getRequestUser(event)
-    const isAdmin = user?.role === ROLES.ADMIN || user?.role === ROLES.SUPERADMIN
     const albums = await prisma.album.findMany({
-      where: isAdmin ? undefined : { OR: [
-        { visibility: 'public' },
-        ...(user ? user.groups.map((group) => ({ visibility: 'groups', visibleTo: { contains: `group:${group}` } })) : []),
-      ] },
       select: {
         id: true,
         name: true,
@@ -36,19 +46,20 @@ export default defineEventHandler(async (event) => {
       },
       orderBy: { createdAt: 'desc' },
     })
+    const photoWhere = visiblePhotoWhere(user)
 
     const result = await Promise.all(albums.map(async (album) => {
       const [photoCount, previews] = await Promise.all([
-        prisma.albumPhoto.count({ where: { albumId: album.id, ...(isAdmin ? {} : publicPhotoWhere) } }),
+        prisma.albumPhoto.count({ where: { albumId: album.id, ...photoWhere } }),
         prisma.albumPhoto.findMany({
-          where: { albumId: album.id, ...(isAdmin ? {} : publicPhotoWhere) },
+          where: { albumId: album.id, ...photoWhere },
           select: { photo: { include: { tags: true } } },
           orderBy: { order: 'asc' },
           take: 10,
         }),
       ])
 
-      const previewPhotos = previews.map(({ photo }) => {
+      const previewPhotos = previews.filter(({ photo }) => canViewPhoto(user, photo)).map(({ photo }) => {
         const presented = presentPhoto(photo)
         return { id: presented.id, title: presented.title, thumbnailUrl: presented.thumbnailUrl || presented.mediumUrl }
       })
@@ -65,9 +76,8 @@ export default defineEventHandler(async (event) => {
     }))
 
     return { success: true, data: result.filter((album) => album.photoCount > 0).filter((album) => {
-      if (isAdmin) return true
       const source = albums.find((item) => item.id === album.id)
-      return source?.visibility !== 'groups' || canAccessVisibleTo(source.visibleTo, user)
+      return Boolean(source && canViewAlbum(user, source))
     }) }
   } catch (error: any) {
     console.error('Failed to fetch public albums:', error)

@@ -154,7 +154,7 @@ const searchInputValue = ref('')
 
 const visibilityOptions = [
   { value: 'public', label: '公开', color: 'success' },
-  { value: 'friends', label: '好友可见', color: 'warning' },
+  { value: 'groups', label: '分组可见', color: 'warning' },
   { value: 'private', label: '私密', color: 'info' },
 ] as const
 

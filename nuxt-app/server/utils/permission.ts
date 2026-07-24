@@ -136,6 +136,62 @@ export function visibleGroups(raw: string | null | undefined): string[] {
   return parseVisibleTo(raw).map((value) => value.replace(/^group:/, '')).filter(Boolean)
 }
 
+export function hasGroupIntersection(left: string | null | undefined, right: string | null | undefined): boolean {
+  const rightGroups = new Set(visibleGroups(right))
+  return visibleGroups(left).some((group) => rightGroups.has(group))
+}
+
+export function userHasVisibleGroup(user: AuthUser | null | undefined, visibleTo: string | null | undefined): boolean {
+  if (!user) return false
+  if (user.role === ROLES.SUPERADMIN) return true
+  const groups = new Set(visibleGroups(visibleTo))
+  return user.groups.some((group) => groups.has(group))
+}
+
+type ScopedPhoto = { uploadedBy: number | null | undefined, visibility: string | null | undefined, visibleTo: string | null | undefined, status?: string | null, reviewStatus?: string | null }
+type ScopedAlbum = { createdBy?: number | null, visibility: string | null | undefined, visibleTo: string | null | undefined }
+
+/** Photo viewing is deliberately independent from administrator role. */
+export function canViewPhoto(user: AuthUser | null | undefined, photo: ScopedPhoto): boolean {
+  if (user?.role === ROLES.SUPERADMIN || user?.id === photo.uploadedBy) return true
+  if (photo.status && photo.status !== 'published') return false
+  if (photo.reviewStatus && photo.reviewStatus !== 'approved') return false
+  if (photo.visibility === 'public') return true
+  if (photo.visibility === 'groups') return userHasVisibleGroup(user, photo.visibleTo)
+  return false
+}
+
+/** Every uploader manages their own photo; admins also manage public and shared-group photos. */
+export function canManagePhoto(actor: AuthUser, photo: ScopedPhoto): boolean {
+  if (actor.role === ROLES.SUPERADMIN || actor.id === photo.uploadedBy) return true
+  if (actor.role !== ROLES.ADMIN) return false
+  if (photo.visibility === 'public') return true
+  return photo.visibility === 'groups' && userHasVisibleGroup(actor, photo.visibleTo)
+}
+
+export function canViewAlbum(user: AuthUser | null | undefined, album: ScopedAlbum): boolean {
+  if (user?.role === ROLES.SUPERADMIN || user?.id === album.createdBy) return true
+  if (album.visibility === 'public') return true
+  return album.visibility === 'groups' && userHasVisibleGroup(user, album.visibleTo)
+}
+
+export function canManageAlbum(actor: AuthUser, album: ScopedAlbum): boolean {
+  if (actor.role === ROLES.SUPERADMIN) return true
+  if (actor.role !== ROLES.ADMIN) return false
+  if (actor.id === album.createdBy || album.visibility === 'public') return true
+  return album.visibility === 'groups' && userHasVisibleGroup(actor, album.visibleTo)
+}
+
+/** A grouped photo may only be placed in an album containing all of its groups. */
+export function isPhotoCompatibleWithAlbum(photo: Pick<ScopedPhoto, 'visibility' | 'visibleTo'>, album: Pick<ScopedAlbum, 'visibility' | 'visibleTo'>): boolean {
+  if (photo.visibility === 'private') return false
+  if (photo.visibility === 'public') return true
+  if (photo.visibility !== 'groups' || album.visibility !== 'groups') return false
+  const albumGroups = new Set(visibleGroups(album.visibleTo))
+  const photoGroups = visibleGroups(photo.visibleTo)
+  return photoGroups.length > 0 && photoGroups.every((group) => albumGroups.has(group))
+}
+
 /** Management is deliberately narrower than viewing: an administrator only
  * manages resources they own or resources assigned to one of their groups. */
 export function canManageScopedResource(actor: AuthUser, ownerId: number | null | undefined, visibleTo: string | null | undefined, ownerAlways = true): boolean {
@@ -157,13 +213,7 @@ export function requireSuperadmin(user: AuthUser): AuthUser {
  * and group visibility matches any group assigned to the user. `friends` is kept as
  * a legacy alias for group:friends during migration. */
 export function canAccessVisibility(visibility: string | null | undefined, visibleTo: string | null | undefined, user: AuthUser | null | undefined, ownerId?: number | null): boolean {
-  if (user?.role === ROLES.ADMIN || user?.role === ROLES.SUPERADMIN) return true
-  if (visibility === 'public') return true
-  if (!user) return false
-  if (visibility === 'private') return ownerId === user.id
-  if (visibility === 'friends') return user.groups.includes('friends')
-  if (visibility === 'groups' || visibleTo) return canAccessVisibleTo(visibleTo, user)
-  return false
+  return canViewPhoto(user, { uploadedBy: ownerId ?? null, visibility, visibleTo })
 }
 
 /** Build an AuthUser from a raw Prisma User row */

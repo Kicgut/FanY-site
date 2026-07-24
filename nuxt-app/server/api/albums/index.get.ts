@@ -1,4 +1,4 @@
-import { requireAdmin, canManageScopedResource } from '~/server/utils/permission'
+import { requireAdmin, canManageAlbum } from '~/server/utils/permission'
 import { presentPhoto, publicPhotoUrl } from '~/server/utils/photo-presentation'
 
 function usableCoverUrl(value: string | null | undefined) {
@@ -23,7 +23,7 @@ export default defineEventHandler(async (event) => {
       orderBy: { createdAt: 'desc' },
     })
 
-    const result = albums.filter((album) => canManageScopedResource(actor, album.createdBy, album.visibleTo, false)).map((album) => ({
+    const result = albums.filter((album) => canManageAlbum(actor, album)).map((album) => ({
       ...album,
       visibleTo: album.visibleTo ? (() => { try { return JSON.parse(album.visibleTo) } catch { return [] } })() : [],
       photoCount: album._count.photos,

@@ -1,4 +1,4 @@
-import { requireLocalTrusted, canManageScopedResource } from '~/server/utils/permission'
+import { requireLocalTrusted, canManageAlbum } from '~/server/utils/permission'
 import { logAudit } from '~/server/services/audit'
 
 export default defineEventHandler(async (event) => {
@@ -12,7 +12,7 @@ export default defineEventHandler(async (event) => {
   try {
     const before = await prisma.album.findUnique({ where: { id } })
     if (!before) throw Object.assign(new Error('Album not found'), { code: 'P2025' })
-    if (!canManageScopedResource(user, before.createdBy, before.visibleTo, false)) throw createError({ statusCode: 403, message: 'Album is outside your management groups' })
+    if (!canManageAlbum(user, before)) throw createError({ statusCode: 403, message: 'Album is outside your management scope' })
     await prisma.album.delete({ where: { id } })
     await logAudit(event, 'album_delete', 'album', id, before, null)
     return { success: true }

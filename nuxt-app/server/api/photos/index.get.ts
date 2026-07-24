@@ -1,4 +1,4 @@
-import { canAccessVisibleTo, canManageScopedResource, getRequestUser, getAccessOrigin, ROLES } from '~/server/utils/permission'
+import { canManagePhoto, canViewPhoto, getRequestUser, getAccessOrigin, ROLES } from '~/server/utils/permission'
 import { presentPhoto } from '~/server/utils/photo-presentation'
 
 export default defineEventHandler(async (event) => {
@@ -27,14 +27,13 @@ export default defineEventHandler(async (event) => {
       where.OR = [
         { uploadedBy: user.id },
         { status: 'published', reviewStatus: 'approved', visibility: 'public' },
-        { status: 'published', reviewStatus: 'approved', visibility: 'friends' },
         ...user.groups.map((group) => ({ status: 'published', reviewStatus: 'approved', visibility: 'groups', visibleTo: { contains: `group:${group}` } })),
       ]
     }
   } else if (query.status) {
     where.status = String(query.status)
   }
-  if (isAdmin && ['public', 'friends', 'private'].includes(requestedVisibility)) where.visibility = requestedVisibility
+  if (isAdmin && ['public', 'groups', 'private'].includes(requestedVisibility)) where.visibility = requestedVisibility
   if (isAdmin && ['pending', 'approved', 'rejected', 'needs_edit'].includes(reviewStatus)) where.reviewStatus = reviewStatus
   const from = query.takenFrom ? new Date(String(query.takenFrom)) : null
   const to = query.takenTo ? new Date(String(query.takenTo)) : null
@@ -57,12 +56,10 @@ export default defineEventHandler(async (event) => {
   ])
   const visiblePhotos = photos.filter((photo) => {
     if (isAdmin) {
-      return canManageScopedResource(user!, photo.uploadedBy, photo.visibleTo) || photo.albums.some(({ album }) => canManageScopedResource(user!, album.createdBy, album.visibleTo, false))
+      return canManagePhoto(user!, photo)
     }
     if (getAccessOrigin(event, user) === 'local_trusted') return true
-    if (photo.visibility === 'public') return true
-    if (photo.visibility === 'private') return user?.id === photo.uploadedBy
-    return canAccessVisibleTo(photo.visibleTo, user)
+    return canViewPhoto(user, photo)
   })
   const nextCursor = photos.length === limit ? String(photos[photos.length - 1]?.id || '') : null
   return { success: true, photos: visiblePhotos.map((photo) => presentPhoto(photo, { includeOriginal: isAdmin, includeAdminMeta: isAdmin })), total: isAdmin ? visiblePhotos.length : total, page, limit, nextCursor }

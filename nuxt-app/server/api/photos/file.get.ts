@@ -2,7 +2,7 @@ import { createReadStream } from 'node:fs'
 import { Readable } from 'node:stream'
 import { access, stat } from 'node:fs/promises'
 import { join, normalize, resolve } from 'node:path'
-import { canAccessVisibleTo, canManageScopedResource, getRequestUser, getAccessOrigin, ROLES, toAuthUser } from '~/server/utils/permission'
+import { canManagePhoto, canViewPhoto, getRequestUser, getAccessOrigin, toAuthUser } from '~/server/utils/permission'
 import { prisma } from '~/server/utils/db'
 import jwt from 'jsonwebtoken'
 import { getJwtSecret } from '~/server/utils/jwt'
@@ -52,15 +52,8 @@ export default defineEventHandler(async (event) => {
     }
   }
   const isTrusted = getAccessOrigin(event, user) === 'local_trusted'
-  const adminAllowed = Boolean(user && (canManageScopedResource(user, photo.uploadedBy, photo.visibleTo) || photo.albums.some(({ album }) => canManageScopedResource(user, album.createdBy, album.visibleTo, false))))
-  const allowed = adminAllowed || isTrusted || (
-    photo.status === 'published' && photo.reviewStatus === 'approved' && (
-      photo.visibility === 'public' ||
-      Boolean(user && photo.visibility === 'friends' && canAccessVisibleTo(photo.visibleTo, user)) ||
-      Boolean(user && photo.visibility === 'groups' && canAccessVisibleTo(photo.visibleTo, user)) ||
-      Boolean(user && photo.visibility === 'private' && photo.uploadedBy === user.id)
-    )
-  )
+  const adminAllowed = Boolean(user && canManagePhoto(user, photo))
+  const allowed = adminAllowed || isTrusted || canViewPhoto(user, photo)
   if (!allowed) throw createError({ statusCode: 404, message: '照片不存在' })
   if (type === 'original' && !adminAllowed && !isTrusted && !photo.allowOriginalDownload) {
     throw createError({ statusCode: 403, message: '原图下载未开放' })
@@ -106,8 +99,8 @@ export default defineEventHandler(async (event) => {
         setResponseHeader(event, 'Cache-Control', 'private, no-store')
         return sendStream(event, Readable.fromWeb(response.body as any))
       }
-    } catch {
-      // Keep the public error stable; do not expose Ubuntu or FRP details.
+    } catch (error) {
+      console.error(`[photo-original] Ubuntu proxy failed for photo ${photo.id}:`, error)
     }
   }
   throw createError({ statusCode: 404, message: '图片文件暂不可用' })

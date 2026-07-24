@@ -54,7 +54,7 @@ export function calculateEcsSyncPolicy(visibility: string, status: string): stri
 }
 
 /** Update photo state and derive the thumbnail sync policy atomically. */
-export async function updatePhotoState(photoId: number, data: Prisma.PhotoUpdateInput) {
+export async function updatePhotoState(photoId: number, data: Prisma.PhotoUpdateInput, options: { removeFromAlbums?: boolean } = {}) {
   const current = await prisma.photo.findUnique({
     where: { id: photoId },
     select: { visibility: true, status: true },
@@ -64,12 +64,15 @@ export async function updatePhotoState(photoId: number, data: Prisma.PhotoUpdate
   const nextVisibility = typeof data.visibility === 'string' ? data.visibility : current.visibility
   const nextStatus = typeof data.status === 'string' ? data.status : current.status
 
-  return prisma.photo.update({
-    where: { id: photoId },
-    data: {
-      ...data,
-      ecsSyncPolicy: calculateEcsSyncPolicy(nextVisibility, nextStatus),
-    },
+  return prisma.$transaction(async (tx) => {
+    if (options.removeFromAlbums) await tx.albumPhoto.deleteMany({ where: { photoId } })
+    return tx.photo.update({
+      where: { id: photoId },
+      data: {
+        ...data,
+        ecsSyncPolicy: calculateEcsSyncPolicy(nextVisibility, nextStatus),
+      },
+    })
   })
 }
 // ─── Photo Sync Service ────────────────────────────────────────────────────
