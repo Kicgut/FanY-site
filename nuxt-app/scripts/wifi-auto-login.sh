@@ -46,13 +46,23 @@ login_once() {
       --data-urlencode "DDDDD=${USERNAME}" \
       --data-urlencode "upass=${PASSWORD}" \
       --data-urlencode 'url=drappal' -d '0MKKey=123456' 2>/dev/null || true)
-    if grep -qiE 'EPortal|chunk-libs|id=app' "$body"; then
+    if grep -aqiE 'EPortal|chunk-libs|id=app' "$body"; then
       rm -f "$body"
       continue
     fi
-    if [[ "$code" == 2* ]] && grep -qiE 'success|成功|已经|已登录|login_ok|result[^0-9]*1|Dr.COMWebLoginID_3' "$body"; then
+    # Dr.COM returns GBK HTML; -a is required because some responses contain
+    # non-text bytes. The success page has a stable ASCII marker.
+    if [[ "$code" == 2* ]] && grep -aqiE 'success|成功|已经|已登录|login_ok|result[^0-9]*1|Dr.COMWebLoginID_3' "$body"; then
       rm -f "$body"
       log "login accepted via ${endpoint} (HTTP ${code})"
+      return 0
+    fi
+    # This gateway sometimes answers a valid login/renewal with HTTP 203 and
+    # a GBK page whose text is not stable. Network verification below is the
+    # authoritative result, so accept any non-SPA 2xx response as submitted.
+    if [[ "$code" == 2* ]]; then
+      rm -f "$body"
+      log "login request submitted via ${endpoint} (HTTP ${code}); verifying connectivity"
       return 0
     fi
     log "login rejected via ${endpoint} (HTTP ${code})"
