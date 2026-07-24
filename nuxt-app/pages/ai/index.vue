@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ref, reactive, nextTick, onMounted, computed } from 'vue'
+import { ElMessage } from 'element-plus'
 
 interface ChatMessage {
   role: 'user' | 'assistant'
@@ -18,6 +19,7 @@ const authFetch = useAuthFetch()
 const hasAccess = computed(() => user.value?.aiAccess === true)
 const accessLevel = computed(() => user.value?.aiAccessLevel || 'none')
 const aiStatus = ref<{ provider: string; model: string; status: string } | null>(null)
+const conversations = ref<Array<{ id: string; title: string | null; updatedAt: string; _count: { messages: number } }>>([])
 
 const ACCESS_LEVEL_LABELS: Record<string, string> = {
   none: '无权限',
@@ -48,8 +50,41 @@ onMounted(async () => {
   if (hasAccess.value) {
     addWelcomeMessage()
     fetchAiStatus()
+    loadConversations()
   }
 })
+
+async function loadConversations() {
+  try {
+    const res = await authFetch<{ success: boolean; data: { conversations: typeof conversations.value } }>('/api/ai/conversations')
+    conversations.value = res.data.conversations
+  } catch {}
+}
+
+async function openConversation(id: string) {
+  try {
+    const res = await authFetch<{ success: boolean; data: { conversation: { id: string; messages: Array<{ role: 'user' | 'assistant'; content: string; createdAt: string }> } } }>(`/api/ai/conversations/${id}`)
+    conversationId.value = res.data.conversation.id
+    messages.splice(0, messages.length, ...res.data.conversation.messages.map((message) => ({ role: message.role, content: message.content, timestamp: new Date(message.createdAt) })))
+    scrollToBottom()
+  } catch (err: any) {
+    ElMessage.error(err?.data?.message || '加载会话失败')
+  }
+}
+
+async function deleteConversation() {
+  if (!conversationId.value) return
+  try {
+    await authFetch(`/api/ai/conversations/${conversationId.value}`, { method: 'DELETE' })
+    conversations.value = conversations.value.filter((item) => item.id !== conversationId.value)
+    conversationId.value = undefined
+    messages.splice(0, messages.length)
+    addWelcomeMessage()
+    ElMessage.success('会话已删除')
+  } catch (err: any) {
+    ElMessage.error(err?.data?.message || '删除会话失败')
+  }
+}
 
 async function fetchAiStatus() {
   try {
@@ -170,6 +205,15 @@ function handleKeydown(e: KeyboardEvent) {
         </el-tag>
       </div>
 
+      <div v-if="conversations.length" class="conversation-tools">
+        <el-select :model-value="conversationId" placeholder="选择历史会话" clearable @change="(id: string) => id && openConversation(id)">
+          <el-option v-for="item in conversations" :key="item.id" :label="item.title || `会话 ${item.id.slice(0, 8)}`" :value="item.id">
+            <span>{{ item.title || `会话 ${item.id.slice(0, 8)}` }}</span><small>{{ item._count.messages }} 条消息</small>
+          </el-option>
+        </el-select>
+        <el-button v-if="conversationId" type="danger" plain @click="deleteConversation">删除当前会话</el-button>
+      </div>
+
       <!-- Messages Area -->
       <div ref="chatContainer" class="chat-messages">
         <div
@@ -285,6 +329,10 @@ function handleKeydown(e: KeyboardEvent) {
   background: #f5f7fa;
   border-bottom: 1px solid #ebeef5;
 }
+
+.conversation-tools { display: flex; gap: 10px; padding: 10px 20px; border-bottom: 1px solid #ebeef5; background: #fff; }
+.conversation-tools :deep(.el-select) { flex: 1; }
+.conversation-tools small { float: right; color: #909399; margin-left: 12px; }
 
 .header-left {
   display: flex;

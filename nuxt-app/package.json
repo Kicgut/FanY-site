@@ -8,8 +8,8 @@
     "generate": "nuxt generate",
     "preview": "nuxt preview",
     "postinstall": "nuxt prepare",
-    "photos:thumbnails": "node scripts/photo-thumbnails.mjs"
-    ,"test": "node --experimental-strip-types --test tests/**/*.test.ts"
+    "photos:thumbnails": "node scripts/photo-thumbnails.mjs",
+    "test": "node --experimental-strip-types --test tests/**/*.test.ts"
   },
   "dependencies": {
     "@element-plus/nuxt": "^1.1.5",
@@ -25,6 +25,7 @@
     "marked": "^18.0.5",
     "nuxt": "^3.17.0",
     "prisma": "^6.19.3",
+    "qrcode": "1.5.4",
     "sharp": "^0.35.3",
     "vue": "^3.5.0",
     "vue-router": "^4.5.0"
