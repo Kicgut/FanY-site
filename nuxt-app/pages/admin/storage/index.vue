@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
+import { ElMessage } from 'element-plus'
 
 definePageMeta({ layout: 'admin' })
 const authFetch = useAuthFetch()
@@ -10,10 +11,18 @@ const count = (key: 'syncStatus' | 'thumbnailStatus' | 'visibility', value: stri
 const gb = computed(() => (totalBytes.value / 1024 / 1024 / 1024).toFixed(2))
 const consistency = ref<any>(null)
 const checking = ref(false)
+const rebuilding = ref(false)
 
 async function checkConsistency() {
   checking.value = true
   try { consistency.value = (await authFetch<any>('/api/admin/storage/consistency')).data } finally { checking.value = false }
+}
+async function rebuildThumbnails() {
+  rebuilding.value = true
+  try {
+    const result: any = await authFetch('/api/admin/storage/thumbnails/rebuild', { method: 'POST', body: { limit: 20, retryFailed: true } })
+    ElMessage.success(`缩略图重建任务 #${result.data.id} 已创建，请到 Jobs 运维执行`)
+  } finally { rebuilding.value = false }
 }
 </script>
 
@@ -28,7 +37,7 @@ async function checkConsistency() {
       <el-card><template #header>缩略图同步</template><p>已完成：{{ count('thumbnailStatus', 'ready') }}</p><p>待处理：{{ count('thumbnailStatus', 'pending') }}</p><p>失败：{{ count('thumbnailStatus', 'failed') }}</p></el-card>
       <el-card><template #header>可见范围</template><p>公开：{{ count('visibility', 'public') }}</p><p>朋友：{{ count('visibility', 'friends') }}</p><p>私有：{{ count('visibility', 'private') }}</p></el-card>
     </div>
-    <div class="ops"><el-button :loading="checking" @click="checkConsistency">扫描存储一致性</el-button><el-alert v-if="consistency" :type="consistency.healthy ? 'success' : 'warning'" :title="consistency.healthy ? `扫描 ${consistency.scanned} 项，未发现缺失文件` : `发现 ${consistency.missingOriginals.length + consistency.missingThumbnails.length} 个缺失文件`" :closable="false" /></div>
+    <div class="ops"><el-button :loading="checking" @click="checkConsistency">扫描存储一致性</el-button><el-button type="warning" :loading="rebuilding" @click="rebuildThumbnails">创建缩略图重建任务</el-button><el-alert v-if="consistency" :type="consistency.healthy ? 'success' : 'warning'" :title="consistency.healthy ? `扫描 ${consistency.scanned} 项，未发现缺失文件` : `发现 ${consistency.missingOriginals.length + consistency.missingThumbnails.length} 个问题`" :closable="false" /></div>
     <el-alert class="note" type="info" title="运维提示" description="原图回流由 Ubuntu 定时任务执行；一致性扫描只读，不会自动删除文件。" show-icon :closable="false" />
   </div>
 </template>

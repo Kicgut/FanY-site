@@ -1,6 +1,7 @@
 import { requireAdmin } from '~/server/utils/permission'
 import { prisma } from '~/server/utils/db'
 import { runInboxProcessingJob } from '~/server/services/content-pipeline'
+import { runThumbnailRebuild } from '~/server/services/photo-thumbnails'
 
 export default defineEventHandler(async (event) => {
   const user = await requireAdmin(event)
@@ -9,7 +10,7 @@ export default defineEventHandler(async (event) => {
   const body = await readBody(event).catch(() => ({}))
   const action = String(body?.action || '')
   const job = await prisma.job.findUnique({ where: { id } })
-  if (!job || job.type !== 'content_pipeline_daily') throw createError({ statusCode: 404, message: 'Job not found' })
+  if (!job || !['content_pipeline_daily', 'photo_thumbnail_rebuild'].includes(job.type)) throw createError({ statusCode: 404, message: 'Job not found' })
 
   if (action === 'cancel') {
     if (!['pending', 'running'].includes(job.status)) throw createError({ statusCode: 409, message: 'Only pending or running jobs can be cancelled' })
@@ -22,7 +23,9 @@ export default defineEventHandler(async (event) => {
     return { success: true, data: retry }
   }
   if (action === 'run') {
-    const completed = await runInboxProcessingJob(id, user.id)
+    const completed = job.type === 'photo_thumbnail_rebuild'
+      ? await runThumbnailRebuild(id, user.id, JSON.parse(job.payload || '{}').limit || 20, JSON.parse(job.payload || '{}').retryFailed === true)
+      : await runInboxProcessingJob(id, user.id)
     return { success: true, data: completed }
   }
   throw createError({ statusCode: 400, message: 'Unsupported job action' })

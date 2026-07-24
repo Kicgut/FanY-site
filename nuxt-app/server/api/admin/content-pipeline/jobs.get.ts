@@ -4,7 +4,7 @@ import { prisma } from '~/server/utils/db'
 export default defineEventHandler(async (event) => {
   await requireAdmin(event)
   const jobs = await prisma.job.findMany({
-    where: { type: 'content_pipeline_daily' },
+    where: { type: { in: ['content_pipeline_daily', 'photo_thumbnail_rebuild'] } },
     orderBy: { createdAt: 'desc' },
     take: 50,
   })
