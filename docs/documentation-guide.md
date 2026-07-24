@@ -26,7 +26,19 @@ status: current
 | 代码约束、安全、测试、Git 协作 | `governance/` 对应规则 |
 | 学习总结 | 当前 `learning-notes/vN/` 中新增或更新主题 |
 
-## 3. 架构版本操作
+## 3. 三类文档的关系
+
+| 类型 | 回答的问题 | 状态 | 典型内容 |
+| --- | --- | --- | --- |
+| Architecture | 系统怎样组织和协作？ | 当前事实或精简历史 | 模块边界、服务关系、数据流、权限边界、部署拓扑 |
+| Design | 每个模块具体怎样实现？ | 当前有效约定 | API、数据模型、页面、状态流转、目录约定 |
+| Plan | 尚未实施的大改动怎样完成？ | 临时、未实施 | 目标版本、迁移步骤、取舍、风险、验收、回滚 |
+
+通常先确定 Architecture，再细化 Design，最后实施、测试和更新 Operations。若改动没有改变系统边界，例如已有 API 的字段、页面交互或输入校验，则直接更新 Design；Plan 只用于尚未实施且会改变架构边界的大改动。
+
+Plan 完成后不能继续作为当前说明：把已实施内容合并进 Architecture 和 Design，更新 Operations，随后删除 Plan。当前事实永远不以 Plan 为准。
+
+## 4. 架构版本操作
 
 ### 小更新
 
@@ -36,11 +48,11 @@ status: current
 
 仅当系统边界、跨主机数据流、权限模型、核心数据模型或部署拓扑发生变化时，创建 `architecture/plan-architecture.md`。实施完成后，将内容合并到当前架构，将上一主版本压缩为 `architecture/history/vX.0.md` 的总体摘要，再删除计划文档。
 
-## 4. 删除而非归档
+## 5. 删除而非归档
 
 本项目不为完成的 tasks、plans、实施记录、验证记录建立 archive。删除前确认其中仍有效的信息已进入当前架构、设计、运维或治理文档；Git 历史仍可追溯原文。
 
-## 5. 提交前检查
+## 6. 提交前检查
 
 ```powershell
 rg -n "project-management|agent-context|docs/deployment|docs/implementation" docs README.md

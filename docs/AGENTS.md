@@ -25,6 +25,14 @@
 
 `architecture/` 是唯一允许保留架构历史的目录。每份架构 Markdown 顶部必须包含 `version`、`status` 和 `updated`（历史摘要使用 `period`）。
 
+### Architecture、Design 与 Plan 的边界
+
+- **Architecture** 回答“系统如何组织”：模块边界、服务关系、跨主机数据流、权限边界、核心数据流与部署拓扑。它描述已经实现且核对过的事实，当前入口始终是 `current-architecture.md`。
+- **Design** 回答“模块如何落地”：API 合同、Prisma 数据模型、页面职责、审核状态、内容模型与目录约定。它只能在既定架构边界内细化实现，不得用设计文档悄悄改变系统边界。
+- **Plan** 回答“尚未实施的大改动如何从当前状态到达目标”：目标版本、范围、取舍、迁移步骤、风险、验收和回滚。Plan 不是当前事实，不能替代 Architecture 或 Design。
+
+默认顺序为：需求或问题 → Architecture（若系统边界变化）→ Design → 实现与测试 → Operations。已有架构内的 API、字段、页面或校验小改动可直接从 Design 开始；纯运行步骤变更直接更新 Operations。
+
 - `current-architecture.md` 是当前总体架构的唯一入口，复杂功能可拆分为同级的当前详细文档，例如 `photo-system.md`、`content-pipeline.md`。
 - 当前详细文档必须与 `current-architecture.md` 使用相同的大版本，并在底部注明其版本记录规则。
 - 小变更不新建架构文件：直接更新受影响的当前文档，在 `current-architecture.md` 底部追加“架构更新记录”，补丁版本递增，例如 `v3.0.0` → `v3.0.1`。
