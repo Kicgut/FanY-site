@@ -73,4 +73,5 @@
 - `FanY-site-build-<commit>` 目录是 Git 源码构建快照，不是 Docker 镜像；`FanY-site-build-<commit>.zip` 是源码快照压缩包。
 - `personal-website-<commit>.tar.gz` 是 `docker save` 导出的镜像包，`.sha256` 是传输校验文件。镜像包传输到 ECS 并 `docker load` 后才成为 ECS 本地镜像。
 - 构建完成并确认 ECS 部署成功后，可以清理旧的源码快照和本地镜像包，但必须保留正在运行版本对应的镜像包，或先确认已有远程/冷备份。
-- ECS 禁止构建；构建机使用固定 Git commit 导出源码快照、构建镜像、保存镜像包，再通过校验后传输。
+- **ECS 严禁执行任何 Docker 镜像构建**（包括 `docker build`、`docker compose build`）。ECS 仅允许接收已构建并校验的镜像包、`docker load`、数据库迁移、容器重建和健康检查；不得因资源不足或便利性例外。
+- 镜像必须优先在开发机、必要时在 Ubuntu 构建机上，使用固定 Git commit 导出源码快照并构建；完成后执行 `docker save`、生成 SHA-256 校验文件、校验后上传 ECS。禁止把源码上传 ECS 后再构建。
