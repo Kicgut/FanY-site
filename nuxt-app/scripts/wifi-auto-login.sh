@@ -10,6 +10,7 @@ LOCK_FILE="/run/lock/wifi-auto-login.lock"
 IFACE="${WIFI_AUTO_LOGIN_IFACE:-wlp2s0}"
 PORTAL_HOST="${WIFI_AUTO_LOGIN_PORTAL_HOST:-172.21.0.54}"
 CHECK_URL="${WIFI_AUTO_LOGIN_CHECK_URL:-https://www.gstatic.com/generate_204}"
+CHECK_HOST="${WIFI_AUTO_LOGIN_CHECK_HOST:-223.5.5.5}"
 INTERVAL="${WIFI_AUTO_LOGIN_INTERVAL:-30}"
 
 mkdir -p "$(dirname "$LOG_FILE")" "$(dirname "$LOCK_FILE")"
@@ -27,7 +28,11 @@ fi
 log() { printf '%s %s\n' "$(date -Is)" "$*" >>"$LOG_FILE"; }
 
 network_ok() {
-  curl -fsS -m 8 -o /dev/null "$CHECK_URL" 2>/dev/null
+  # Campus networks may block public HTTPS probes even after authentication.
+  # Use the original campus-reachable DNS IP first, then HTTP/HTTPS fallback.
+  ping -c 1 -W 3 "$CHECK_HOST" >/dev/null 2>&1 && return 0
+  curl -fsS -m 8 -o /dev/null "$CHECK_URL" 2>/dev/null && return 0
+  curl -fsS -m 8 -o /dev/null http://connectivitycheck.gstatic.com/generate_204 2>/dev/null
 }
 
 wifi_connected() {
