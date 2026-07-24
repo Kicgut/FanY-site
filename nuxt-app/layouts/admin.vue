@@ -29,6 +29,7 @@ const allMenu = [
   ['/admin/storage', '存储管理'],
   ['/admin/audit', '审计日志'],
   ['/admin/content-pipeline', '内容流水线'],
+  ['/admin/jobs', 'Jobs 运维'],
   ['/admin/hermes', 'AI 与技能'],
 ] as const
 
