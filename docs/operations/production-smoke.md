@@ -7,3 +7,5 @@ BASE_URL=http://127.0.0.1:3000 /opt/personal-website/scripts/production-smoke.sh
 ```
 
 该脚本验证首页、后台安全页、Jobs 页可访问，并验证认证边界：未登录请求 `/api/auth/me`、2FA 配置、Jobs、Storage 一律返回 401。若容器存在 Docker healthcheck，还会要求状态为 `healthy`。脚本失败时禁止继续切换流量或删除 rollback 镜像。
+
+可将 `scripts/production-monitor.sh` 配置为 systemd timer 或 cron；设置 `ALERT_WEBHOOK_URL` 后，失败会发送 JSON 告警。Webhook 不写入仓库，放在 `/etc/default/personal-website-monitor`。
