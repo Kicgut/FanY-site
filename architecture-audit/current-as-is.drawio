@@ -1,120 +1,42 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <mxfile host="drawio" version="26.0.0">
   <diagram id="current-as-is" name="Current As-Is">
-    <mxGraphModel dx="1600" dy="1000" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1654" pageHeight="1169" math="0" shadow="0">
+    <mxGraphModel grid="1" gridSize="10" page="1" pageWidth="1654" pageHeight="1169" math="0" shadow="0">
       <root>
-        <mxCell id="0" />
-        <mxCell id="1" parent="0" />
-        <mxCell id="2" value="客户端" style="swimlane;startSize=30;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontStyle=1;" vertex="1" parent="1">
-          <mxGeometry x="40" y="40" width="260" height="310" as="geometry" />
-        </mxCell>
-        <mxCell id="3" value="浏览器&#xa;公开 / 登录用户 / Admin" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="2">
-          <mxGeometry x="30" y="60" width="200" height="70" as="geometry" />
-        </mxCell>
-        <mxCell id="4" value="Ubuntu 定时 Worker&#xa;回流 / 缩略图同步" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;" vertex="1" parent="2">
-          <mxGeometry x="30" y="170" width="200" height="80" as="geometry" />
-        </mxCell>
-        <mxCell id="5" value="ECS 公网层" style="swimlane;startSize=30;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;fontStyle=1;" vertex="1" parent="1">
-          <mxGeometry x="360" y="40" width="700" height="620" as="geometry" />
-        </mxCell>
-        <mxCell id="6" value="Nginx&#xa;HTTP / API 反向代理" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;" vertex="1" parent="5">
-          <mxGeometry x="30" y="60" width="190" height="70" as="geometry" />
-        </mxCell>
-        <mxCell id="7" value="Nuxt 3 单体应用" style="swimlane;startSize=30;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontStyle=1;" vertex="1" parent="5">
-          <mxGeometry x="260" y="50" width="400" height="350" as="geometry" />
-        </mxCell>
-        <mxCell id="8" value="Vue 页面与布局&#xa;Public / AI / Admin" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="7">
-          <mxGeometry x="30" y="60" width="150" height="70" as="geometry" />
-        </mxCell>
-        <mxCell id="9" value="Nitro Server API&#xa;Auth / Article / Photo / Album&#xa;Content / Skill / AI" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;" vertex="1" parent="7">
-          <mxGeometry x="220" y="60" width="150" height="90" as="geometry" />
-        </mxCell>
-        <mxCell id="10" value="权限与服务层&#xa;permission / audit / photo-*&#xa;content-pipeline / skill-registry" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;" vertex="1" parent="7">
-          <mxGeometry x="110" y="200" width="190" height="100" as="geometry" />
-        </mxCell>
-        <mxCell id="11" value="SQLite / Prisma&#xa;用户、内容、照片、审计、Job" style="shape=cylinder3;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;" vertex="1" parent="5">
-          <mxGeometry x="40" y="460" width="190" height="100" as="geometry" />
-        </mxCell>
-        <mxCell id="12" value="ECS 运行时卷&#xa;data/blog-md&#xa;content-pipeline&#xa;uploads / 临时原图 / 缩略图" style="shape=cylinder3;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;" vertex="1" parent="5">
-          <mxGeometry x="280" y="450" width="210" height="120" as="geometry" />
-        </mxCell>
-        <mxCell id="13" value="frps / Host Gateway&#xa;到 Ubuntu 内部服务" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;" vertex="1" parent="5">
-          <mxGeometry x="530" y="470" width="140" height="90" as="geometry" />
-        </mxCell>
-        <mxCell id="14" value="Ubuntu 服务器 A" style="swimlane;startSize=30;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontStyle=1;" vertex="1" parent="1">
-          <mxGeometry x="1120" y="40" width="410" height="620" as="geometry" />
-        </mxCell>
-        <mxCell id="15" value="Photo Original API&#xa;原图受控读取" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;" vertex="1" parent="14">
-          <mxGeometry x="30" y="70" width="160" height="80" as="geometry" />
-        </mxCell>
-        <mxCell id="16" value="Skills API&#xa;SKILL.md 只读来源" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;" vertex="1" parent="14">
-          <mxGeometry x="220" y="70" width="160" height="80" as="geometry" />
-        </mxCell>
-        <mxCell id="17" value="本地照片与缩略图&#xa;/mnt/data/personal-website" style="shape=cylinder3;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;" vertex="1" parent="14">
-          <mxGeometry x="30" y="220" width="160" height="100" as="geometry" />
-        </mxCell>
-        <mxCell id="18" value="Hermes Skills 目录&#xa;~/.hermes/skills" style="shape=cylinder3;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;" vertex="1" parent="14">
-          <mxGeometry x="220" y="220" width="160" height="100" as="geometry" />
-        </mxCell>
-        <mxCell id="19" value="Immich&#xa;独立照片管理服务" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;dashed=1;" vertex="1" parent="14">
-          <mxGeometry x="125" y="400" width="160" height="80" as="geometry" />
-        </mxCell>
-        <mxCell id="20" value="外部 AI Provider&#xa;mock / OpenAI-compatible" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;dashed=1;" vertex="1" parent="1">
-          <mxGeometry x="730" y="740" width="220" height="80" as="geometry" />
-        </mxCell>
-        <mxCell id="21" value="已发现的关键边界问题&#xa;1. X-Forwarded-For 被直接信任&#xa;2. 部分 Article 写接口无鉴权&#xa;3. migration 与 schema 漂移" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontStyle=1;" vertex="1" parent="1">
-          <mxGeometry x="360" y="730" width="300" height="120" as="geometry" />
-        </mxCell>
-        <mxCell id="30" value="HTTPS" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;" edge="1" parent="1" source="3" target="6">
-          <mxGeometry relative="1" as="geometry" />
-        </mxCell>
-        <mxCell id="31" value="proxy" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;" edge="1" parent="1" source="6" target="9">
-          <mxGeometry relative="1" as="geometry" />
-        </mxCell>
-        <mxCell id="32" value="UI 调用" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;" edge="1" parent="1" source="8" target="9">
-          <mxGeometry relative="1" as="geometry" />
-        </mxCell>
-        <mxCell id="33" value="授权与业务编排" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;" edge="1" parent="1" source="9" target="10">
-          <mxGeometry relative="1" as="geometry" />
-        </mxCell>
-        <mxCell id="34" value="Prisma" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;" edge="1" parent="1" source="10" target="11">
-          <mxGeometry relative="1" as="geometry" />
-        </mxCell>
-        <mxCell id="35" value="文件读写" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;" edge="1" parent="1" source="10" target="12">
-          <mxGeometry relative="1" as="geometry" />
-        </mxCell>
-        <mxCell id="36" value="FRP / 内部 HTTP" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;" edge="1" parent="1" source="13" target="15">
-          <mxGeometry relative="1" as="geometry" />
-        </mxCell>
-        <mxCell id="37" value="FRP / 内部 HTTP" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;" edge="1" parent="1" source="13" target="16">
-          <mxGeometry relative="1" as="geometry" />
-        </mxCell>
-        <mxCell id="38" value="原图代理" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;" edge="1" parent="1" source="9" target="13">
-          <mxGeometry relative="1" as="geometry" />
-        </mxCell>
-        <mxCell id="39" value="Skill 同步/详情" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;" edge="1" parent="1" source="10" target="13">
-          <mxGeometry relative="1" as="geometry" />
-        </mxCell>
-        <mxCell id="40" value="读取" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;" edge="1" parent="1" source="15" target="17">
-          <mxGeometry relative="1" as="geometry" />
-        </mxCell>
-        <mxCell id="41" value="读取" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;" edge="1" parent="1" source="16" target="18">
-          <mxGeometry relative="1" as="geometry" />
-        </mxCell>
-        <mxCell id="42" value="Token 轮询 / 回写状态" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;" edge="1" parent="1" source="4" target="9">
-          <mxGeometry relative="1" as="geometry">
-            <Array as="points">
-              <mxPoint x="330" y="250" />
-              <mxPoint x="330" y="300" />
-            </Array>
-          </mxGeometry>
-        </mxCell>
-        <mxCell id="43" value="chat API" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;dashed=1;" edge="1" parent="1" source="10" target="20">
-          <mxGeometry relative="1" as="geometry" />
-        </mxCell>
-        <mxCell id="44" value="需要优先修复" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;strokeColor=#b85450;fontColor=#b85450;dashed=1;" edge="1" parent="1" source="21" target="9">
-          <mxGeometry relative="1" as="geometry" />
-        </mxCell>
+        <mxCell id="0"/><mxCell id="1" parent="0"/>
+        <mxCell id="client" value="客户端与运维入口" style="swimlane;startSize=30;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontStyle=1" vertex="1" parent="1"><mxGeometry x="30" y="30" width="250" height="520" as="geometry"/></mxCell>
+        <mxCell id="browser" value="浏览器&#xa;Public / 登录用户 / Admin" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf" vertex="1" parent="client"><mxGeometry x="25" y="70" width="200" height="75" as="geometry"/></mxCell>
+        <mxCell id="worker" value="Ubuntu 定时 Worker&#xa;回流、缩略图同步" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656" vertex="1" parent="client"><mxGeometry x="25" y="190" width="200" height="75" as="geometry"/></mxCell>
+        <mxCell id="git" value="GitHub Kicgut&#xa;master / release" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;dashed=1" vertex="1" parent="client"><mxGeometry x="25" y="330" width="200" height="75" as="geometry"/></mxCell>
+        <mxCell id="ecs" value="ECS 生产主机" style="swimlane;startSize=30;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;fontStyle=1" vertex="1" parent="1"><mxGeometry x="340" y="30" width="800" height="700" as="geometry"/></mxCell>
+        <mxCell id="nginx" value="Nginx&#xa;HTTPS / fany.top / 反向代理" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00" vertex="1" parent="ecs"><mxGeometry x="30" y="65" width="200" height="70" as="geometry"/></mxCell>
+        <mxCell id="nuxt" value="Nuxt 3 + Nitro 单体" style="swimlane;startSize=30;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontStyle=1" vertex="1" parent="ecs"><mxGeometry x="270" y="50" width="490" height="410" as="geometry"/></mxCell>
+        <mxCell id="ui" value="Vue 页面&#xa;Public / AI / Admin / Security" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf" vertex="1" parent="nuxt"><mxGeometry x="25" y="65" width="190" height="75" as="geometry"/></mxCell>
+        <mxCell id="api" value="Nitro Server API&#xa;Auth / Article / Photo / Album&#xa;AI / Content / Skill / Storage" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00" vertex="1" parent="nuxt"><mxGeometry x="255" y="60" width="210" height="95" as="geometry"/></mxCell>
+        <mxCell id="services" value="领域服务与安全策略&#xa;JWT + HttpOnly Refresh Session&#xa;TOTP / 恢复码 / Token 撤销&#xa;权限、审计、配额、同步策略" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6" vertex="1" parent="nuxt"><mxGeometry x="110" y="215" width="270" height="120" as="geometry"/></mxCell>
+        <mxCell id="db" value="SQLite + Prisma&#xa;13 migrations&#xa;Users / AuthSession / Articles&#xa;Photos / AI conversations / Jobs / Audit" style="shape=cylinder3;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366" vertex="1" parent="ecs"><mxGeometry x="35" y="520" width="230" height="120" as="geometry"/></mxCell>
+        <mxCell id="volumes" value="ECS 持久化卷&#xa;data/blog-md / content-pipeline&#xa;uploads / thumbnails / backups" style="shape=cylinder3;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366" vertex="1" parent="ecs"><mxGeometry x="310" y="520" width="230" height="120" as="geometry"/></mxCell>
+        <mxCell id="frp" value="FRP / Host Gateway&#xa;到 Ubuntu 内部服务" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00" vertex="1" parent="ecs"><mxGeometry x="595" y="530" width="160" height="90" as="geometry"/></mxCell>
+        <mxCell id="ubuntu" value="Ubuntu 服务主机" style="swimlane;startSize=30;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontStyle=1" vertex="1" parent="1"><mxGeometry x="1190" y="30" width="410" height="520" as="geometry"/></mxCell>
+        <mxCell id="photoapi" value="Photo Original API&#xa;受控原图读取" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366" vertex="1" parent="ubuntu"><mxGeometry x="25" y="70" width="165" height="75" as="geometry"/></mxCell>
+        <mxCell id="skillsapi" value="Skills API&#xa;SKILL.md 只读来源" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366" vertex="1" parent="ubuntu"><mxGeometry x="215" y="70" width="165" height="75" as="geometry"/></mxCell>
+        <mxCell id="photos" value="本地照片与缩略图&#xa;/mnt/data/personal-website" style="shape=cylinder3;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366" vertex="1" parent="ubuntu"><mxGeometry x="25" y="220" width="165" height="100" as="geometry"/></mxCell>
+        <mxCell id="hermes" value="Hermes Skills 目录&#xa;~/.hermes/skills" style="shape=cylinder3;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366" vertex="1" parent="ubuntu"><mxGeometry x="215" y="220" width="165" height="100" as="geometry"/></mxCell>
+        <mxCell id="ai" value="外部 AI Provider&#xa;mock / OpenAI-compatible" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;dashed=1" vertex="1" parent="1"><mxGeometry x="690" y="790" width="240" height="75" as="geometry"/></mxCell>
+        <mxCell id="drift" value="当前代码与设计仍有差距&#xa;AI 会话管理 UI / Jobs 运维 / Storage 一致性检查&#xa;E2E 与并发测试 / 发布保留自动化" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontStyle=1" vertex="1" parent="1"><mxGeometry x="330" y="790" width="300" height="100" as="geometry"/></mxCell>
+        <mxCell id="e1" value="HTTPS" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block" edge="1" parent="1" source="browser" target="nginx"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="e2" value="proxy" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block" edge="1" parent="1" source="nginx" target="api"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="e3" value="UI 调用" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block" edge="1" parent="1" source="ui" target="api"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="e4" value="领域授权与业务编排" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block" edge="1" parent="1" source="api" target="services"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="e5" value="Prisma" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block" edge="1" parent="1" source="services" target="db"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="e6" value="文件读写" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block" edge="1" parent="1" source="services" target="volumes"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="e7" value="FRP / 内部 HTTP" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block" edge="1" parent="1" source="frp" target="photoapi"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="e8" value="FRP / 内部 HTTP" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block" edge="1" parent="1" source="frp" target="skillsapi"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="e9" value="原图读取" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block" edge="1" parent="1" source="photoapi" target="photos"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="e10" value="Skill 同步" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block" edge="1" parent="1" source="skillsapi" target="hermes"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="e11" value="Token 轮换 / 回流" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block" edge="1" parent="1" source="worker" target="api"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="e12" value="chat API" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block;dashed=1" edge="1" parent="1" source="services" target="ai"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="e13" value="发布 / 部署" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block;dashed=1" edge="1" parent="1" source="git" target="ecs"><mxGeometry relative="1" as="geometry"/></mxCell>
       </root>
     </mxGraphModel>
   </diagram>

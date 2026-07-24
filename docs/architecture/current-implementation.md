@@ -18,7 +18,7 @@ tags:
 >
 > 当前新增认证接口：`POST /api/auth/logout`、`POST /api/auth/refresh`、`POST /api/auth/2fa/setup`、`POST /api/auth/2fa/enable`、`POST /api/auth/2fa/disable`；当前新增上传接口：`GET /api/photos/mine`、`POST /api/photos/:id/resubmit`。
 >
-> 尚未完全实现的设计项：完整持久化 AI 会话查询/删除、完整 Jobs/Storage 运维任务、自动化端到端测试覆盖、2FA 恢复码。生产发布必须使用 `prisma migrate deploy`，历史 Hermes 漂移需先由 owner 审核后 `migrate resolve --applied`。
+> 尚未完全实现的设计项：完整持久化 AI 会话查询/删除、完整 Jobs/Storage 运维任务、自动化端到端测试覆盖、2FA 恢复码的重新生成/撤销 UI。生产发布必须使用 `prisma migrate deploy`，历史 Hermes 漂移需先由 owner 审核后 `migrate resolve --applied`。
 
 > 📅 分析日期：2026-07-04
 > 🎯 用途：与 architecture-design.md 对比，了解已实现 vs 待实现

@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mxfile host="drawio" version="26.0.0">
+  <diagram id="future-roadmap" name="Remaining Plan">
+    <mxGraphModel grid="1" gridSize="10" page="1" pageWidth="1654" pageHeight="1169" math="0" shadow="0">
+      <root>
+        <mxCell id="0"/><mxCell id="1" parent="0"/>
+        <mxCell id="current" value="已落地基线（来自 current-as-is）" style="swimlane;startSize=30;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontStyle=1" vertex="1" parent="1"><mxGeometry x="30" y="40" width="330" height="650" as="geometry"/></mxCell>
+        <mxCell id="base" value="Nuxt / Nitro API&#xa;Auth、Photo、Article、AI、Storage" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf" vertex="1" parent="current"><mxGeometry x="30" y="70" width="270" height="80" as="geometry"/></mxCell>
+        <mxCell id="security" value="安全基线&#xa;Refresh Session / TOTP / 恢复码&#xa;权限、审计、配额、IP 限流" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6" vertex="1" parent="current"><mxGeometry x="30" y="200" width="270" height="100" as="geometry"/></mxCell>
+        <mxCell id="data" value="SQLite + Prisma&#xa;AI 会话已持久化&#xa;备份、迁移、回滚镜像" style="shape=cylinder3;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366" vertex="1" parent="current"><mxGeometry x="30" y="350" width="270" height="100" as="geometry"/></mxCell>
+        <mxCell id="deploy" value="ECS 生产&#xa;Nginx / Docker / FRP&#xa;磁盘已清理至约 42%" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00" vertex="1" parent="current"><mxGeometry x="30" y="500" width="270" height="90" as="geometry"/></mxCell>
+        <mxCell id="p3" value="P3：质量与可观测性（优先）" style="swimlane;startSize=30;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontStyle=1" vertex="1" parent="1"><mxGeometry x="410" y="40" width="350" height="650" as="geometry"/></mxCell>
+        <mxCell id="tests" value="自动化测试补齐&#xa;Auth / Photo Review / 配额并发&#xa;AI ownership / API 回归 / E2E" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656" vertex="1" parent="p3"><mxGeometry x="30" y="70" width="290" height="100" as="geometry"/></mxCell>
+        <mxCell id="ops" value="Jobs 运维面板&#xa;详情、重试、取消、失败原因&#xa;统一任务状态与审计" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656" vertex="1" parent="p3"><mxGeometry x="30" y="220" width="290" height="100" as="geometry"/></mxCell>
+        <mxCell id="storage" value="Storage 一致性运维&#xa;孤儿文件扫描、缩略图重建&#xa;清理前审计与恢复演练" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656" vertex="1" parent="p3"><mxGeometry x="30" y="370" width="290" height="100" as="geometry"/></mxCell>
+        <mxCell id="observe" value="监控与告警&#xa;ECS 磁盘、内存、备份新鲜度&#xa;登录失败、队列积压" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656" vertex="1" parent="p3"><mxGeometry x="30" y="520" width="290" height="80" as="geometry"/></mxCell>
+        <mxCell id="p4" value="P4：产品与安全完善" style="swimlane;startSize=30;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontStyle=1" vertex="1" parent="1"><mxGeometry x="810" y="40" width="350" height="650" as="geometry"/></mxCell>
+        <mxCell id="aichat" value="AI 会话管理&#xa;列表 / 详情 / 删除 / 归档&#xa;分页、权限与数据保留策略" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450" vertex="1" parent="p4"><mxGeometry x="30" y="70" width="290" height="100" as="geometry"/></mxCell>
+        <mxCell id="totp" value="2FA 生命周期 UI&#xa;恢复码重新生成/撤销&#xa;安全事件与设备管理" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450" vertex="1" parent="p4"><mxGeometry x="30" y="220" width="290" height="90" as="geometry"/></mxCell>
+        <mxCell id="retention" value="发布与数据保留自动化&#xa;保留最新 N 个 release&#xa;一份 rollback、日志轮转、备份策略" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450" vertex="1" parent="p4"><mxGeometry x="30" y="370" width="290" height="100" as="geometry"/></mxCell>
+        <mxCell id="review" value="架构校准闭环&#xa;每次迁移同步 current-as-is&#xa;代码、部署、文档三方核对" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450" vertex="1" parent="p4"><mxGeometry x="30" y="520" width="290" height="80" as="geometry"/></mxCell>
+        <mxCell id="done" value="完成定义&#xa;测试门禁通过 + 生产演练完成&#xa;架构图与实现无已知漂移" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontStyle=1" vertex="1" parent="1"><mxGeometry x="1210" y="270" width="280" height="120" as="geometry"/></mxCell>
+        <mxCell id="e1" value="基线" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block" edge="1" parent="1" source="base" target="tests"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="e2" value="数据边界" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block" edge="1" parent="1" source="data" target="storage"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="e3" value="安全回归" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block" edge="1" parent="1" source="security" target="totp"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="e4" value="P3 完成后" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block" edge="1" parent="1" source="tests" target="aichat"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="e5" value="运维闭环" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block" edge="1" parent="1" source="ops" target="retention"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="e6" value="可验收" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block" edge="1" parent="1" source="aichat" target="done"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="e7" value="可验收" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block" edge="1" parent="1" source="retention" target="done"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="e8" value="持续同步" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block;dashed=1" edge="1" parent="1" source="review" target="done"><mxGeometry relative="1" as="geometry"/></mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>
