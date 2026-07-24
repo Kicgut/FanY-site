@@ -59,3 +59,6 @@ sqlite3 /opt/personal-website/data/prod.db ".backup /path/prod.db.$(date +%F)"
 5. 校验 manifest/checksum。
 6. 启动服务。
 7. 运行一致性检查。
+## 自动化健康检查与恢复演练
+
+生产容器启动后执行 `scripts/production-healthcheck.sh`（默认检查 `http://127.0.0.1:3000/`、容器 healthcheck 与根分区使用率）。恢复演练必须在副本目录完成：复制最近的 `backups/prod.db-*.db` 到临时 SQLite 路径，使用同一镜像执行 `prisma migrate status`，再做只读查询；确认可读后删除临时副本，禁止直接覆盖生产 `data/prod.db`。
