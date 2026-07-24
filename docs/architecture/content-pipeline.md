@@ -1,101 +1,34 @@
-﻿---
-title: "Content Pipeline — 当前架构与实现状态"
-created: 2026-07-05 00:00
-updated: 2026-07-15 23:29
-status: final
-purpose: "说明 AI、Hermes、Markdown 和纯文本如何进入候选内容审核流，以及哪些步骤仍需人工确认。"
-scope: "内容流水线"
-related:
-  - path: "../project-management/tasks/08-content-pipeline.md"
-    relation: "tracks"
-  - path: "../agent-context/implementation-notes/2026-07-15-content-pipeline.md"
-    relation: "implementation-note"
-tags:
-  - architecture
-  - content-pipeline
+---
+title: 内容流水线当前架构
+version: 3.0.0
+status: current
+updated: 2026-07-24
 ---
 
-# Content Pipeline — 当前架构与实现状态
-
-内容流水线负责把 AI 对话、Markdown 和纯文本转成可审核的 Blog、Portfolio 或 Knowledge 候选。AI/Hermes 可以整理和生成候选，但不能自动公开发布。
-
-## 文章存储位置
-
-当前文章不使用 `content/blog` 作为发布目录。运行中的文章分为两个位置：
-
-1. **文章正文与数据库投影**：`nuxt-app/data/blog-md/<slug>.md`，同时在 SQLite 的 `Article` 表保存标题、状态、标签等元数据。后台文章 API 创建或更新文章时写入这里。
-2. **内容流水线材料**：`nuxt-app/data/content-pipeline/`，按 `00_inbox` 到 `06_archive` 保存原始输入、处理结果、候选、审核和归档材料。
-
-这两个 `data` 目录都是生产容器挂载的运行时数据卷，已在根目录和 `nuxt-app/.gitignore` 中忽略，不会进入 Git，也不应通过生产服务器提交。当前不自动把文章转移到 `content/blog`。
+# 内容流水线当前架构
 
 ## 数据流
 
 ```text
-AI 对话 / 管理员导入 / 手动放入文件
-                  ↓
-             00_inbox
-                  ↓
-              01_raw
-                  ↓
-           02_processed
-                  ↓
-          03_candidates
-                  ↓
-        管理员审核与修订
-                  ↓
-       approved → Blog/Portfolio draft
-                  ↓
-        人工确认后才可 public
+Markdown source → content pipeline Job → validation / transform
+                → persisted article data → public and admin APIs
 ```
 
-文件根目录由 `CONTENT_PIPELINE_ROOT` 配置，阶段目录为：
+文章源文件与流水线工作目录位于 ECS 持久化卷。管理员通过 API 或 Jobs 面板创建和执行任务；任务状态、错误与结果持久化，可重试或取消。
 
-```text
-00_inbox/       原始输入和 AI 对话归档
-01_raw/         已接收、保留来源的原始文件
-02_processed/   整理后的中间产物
-03_candidates/  数据库候选的 Markdown 镜像
-04_review/      审核辅助文件
-05_published/   已生成发布草稿的流水线产物
-06_archive/     拒绝、撤回或归档内容
-_system/        任务和系统元数据
-```
+## 边界与不变量
 
-## 当前实现
+- 只接受受控目录中的内容源；路径必须经过服务端校验。
+- 导入、更新和发布均经过授权与审计边界，不由浏览器直接写入服务器文件系统。
+- Job 失败保留原因，不把半完成状态伪装成成功。
+- 当前 API、数据模型与操作步骤分别以设计、代码和 Jobs 面板为准。
 
-| 能力 | 当前状态 | 说明 |
-| --- | --- | --- |
-| 候选模型 | 已实现 | `ContentCandidate`、`ContentRevision`、`ContentPublication` |
-| 候选创建和编辑 | 已实现 | 数据库为主，Markdown 为可审计镜像；编辑产生 revision |
-| AI 对话归档 | 已实现 | 私密 Markdown 写入 `00_inbox/conversations/` |
-| Markdown/TXT 导入 | 已实现 | 管理员导入到 inbox，并保留来源引用 |
-| inbox/raw 处理 | 已实现 | 处理到 processed/candidates，重复执行可幂等跳过 |
-| 审核状态机 | 已实现 | draft、submitted、reviewing、changes_requested、approved、rejected、published、archived |
-| 后台审核 | 已实现 | 查看、预览、修改、提交、批准、要求修改、拒绝、归档 |
-| 发布投影 | 已实现 | 批准后创建 Blog/Portfolio `draft`，不直接公开 |
-| 撤回 | 已实现 | 撤回发布投影并归档候选 |
-| Job 与定时触发 | 已实现 | 管理员 Job API；可选单实例 scheduler |
+## 运维
 
-## API 入口
+- 在后台 Jobs 页面查看、执行、取消或重试流水线任务。
+- 发布和恢复操作遵循 [`../operations/deploy-backup-restore.md`](../operations/deploy-backup-restore.md)。
+- 生产验证使用 [`../operations/production-smoke.md`](../operations/production-smoke.md)。
 
-- `/api/content/candidates`：候选 CRUD 和审核生命周期。
-- `/api/admin/content-pipeline/import`：管理员导入 Markdown/TXT。
-- `/api/admin/content-pipeline/process`：手动创建或立即执行处理 Job。
-- `/api/admin/content-pipeline/jobs`：查看最近处理任务。
-- `/api/ai/candidates`：从授权 AI 结果创建私密候选。
+## 版本记录
 
-所有入口都必须经过认证、管理员或 AI 权限校验、输入校验和审计记录。`approve` 只改变审核状态；`publish` 只生成站内 draft 投影。
-
-## 仍未完成或需要补强
-
-1. 尚未完成真实登录状态下的端到端验收。
-2. 当前 frontmatter 解析器支持标量字段和简单 tags 数组，尚未替代为完整 YAML 解析器。
-3. 多实例部署需要外部 scheduler 或分布式锁；内置 scheduler 只适合单实例。
-4. 任务 13（照片状态与 ECS 同步策略）和任务 14（用户上传重新提交）仍是独立未开始计划。
-
-## 安全不变量
-
-- 未批准候选不得出现在公开 Blog、Portfolio 或 Gallery 查询中。
-- Hermes 不得直接写入公开内容目录。
-- 私人对话原文只保存到受保护的 inbox，不作为公开文章来源自动发布。
-- 任何发布、撤回、批处理和失败重试都应留下 audit/job 记录。
+当前随总体架构 `v3.0.0` 维护；模块级小改动同步写入 `current-architecture.md` 的更新记录。

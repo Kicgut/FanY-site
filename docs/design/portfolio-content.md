@@ -1,6 +1,7 @@
 ---
 title: "作品集内容模型与展示规范"
-status: final
+updated: 2026-07-24
+status: current
 ---
 # 作品集内容模型与展示规范
 

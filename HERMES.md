@@ -7,7 +7,7 @@
 - **ECS 服务器**：运行公网网站、Nuxt/API、Docker、Nginx 和 frps，承担网站前台、管理后台、API 及 AI 网关。AI 配置写入 ECS 的 `nuxt-app/.env`。
 - **Ubuntu 服务器（服务器 A）**：提供本地后台服务，保存照片原图、私密内容和本地备份，运行 Immich、本地 Skills API、Skill 同步、frpc 及照片回流等服务。
 
-两台服务器不得混称：公网网站、API 和 AI 配置默认指 ECS；原图、Skill 同步、Immich 和本地高信任操作默认指 Ubuntu 服务器（服务器 A）。详细约定见 `docs/deployment/server-roles.md`。
+两台服务器不得混称：公网网站、API 和 AI 配置默认指 ECS；原图、Skill 同步、Immich 和本地高信任操作默认指 Ubuntu 服务器（服务器 A）。详细约定见 `docs/operations/server-roles.md`。
 
 ## 角色与权限
 
@@ -33,7 +33,7 @@
 00_inbox → 01_raw → 02_processed → 03_candidates → 04_review → 05_published → 06_archive
 ```
 
-`_system/` 保存状态和任务元数据。Hermes 默认只写 `03_candidates/` 或 `04_review/pending/`，不得直接写入公开内容目录。当前实现说明见 `docs/architecture/content-pipeline.md` 和 `docs/agent-context/implementation-notes/2026-07-15-content-pipeline.md`。
+`_system/` 保存状态和任务元数据。Hermes 默认只写 `03_candidates/` 或 `04_review/pending/`，不得直接写入公开内容目录。当前实现说明见 `docs/architecture/content-pipeline.md` 与 `docs/architecture/current-architecture.md`。
 
 处理规则：
 
@@ -56,4 +56,4 @@
 
 ## 隐私与 Git
 
-真实对话、Skill 运行目录、照片、数据库、日志、备份和密钥不得提交 Git。候选内容默认保存在本地 content-pipeline，审核通过前不得进入 Git 或公开站点。生成代码、文档或示例时遵守 `AGENTS.md` 和 `docs/implementation/git-version-control-governance.md`。
+真实对话、Skill 运行目录、照片、数据库、日志、备份和密钥不得提交 Git。候选内容默认保存在本地 content-pipeline，审核通过前不得进入 Git 或公开站点。生成代码、文档或示例时遵守 `AGENTS.md` 和 `docs/governance/git-version-control-governance.md`。

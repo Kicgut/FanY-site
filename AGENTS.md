@@ -11,7 +11,7 @@
 - **ECS 服务器**：运行公网网站、Nuxt/API、Docker、Nginx 和 frps，承担网站前台、管理后台、API 及 AI 网关。AI 配置写入 ECS 的 `nuxt-app/.env`。
 - **Ubuntu 服务器（服务器 A）**：提供本地后台服务，保存照片原图、私密内容和本地备份，运行 Immich、本地 Skills API、Skill 同步、frpc 及照片回流等服务。
 
-两台服务器不得混称：公网网站、API 和 AI 配置默认指 ECS；原图、Skill 同步、Immich 和本地高信任操作默认指 Ubuntu 服务器（服务器 A）。详细约定见 `docs/deployment/server-roles.md`。
+两台服务器不得混称：公网网站、API 和 AI 配置默认指 ECS；原图、Skill 同步、Immich 和本地高信任操作默认指 Ubuntu 服务器（服务器 A）。详细约定见 `docs/operations/server-roles.md`。
 
 核心原则：
 
@@ -23,9 +23,9 @@
 ## 权威文档与阅读顺序
 
 - 文档入口和目录：`docs/README.md`
-- 当前架构：`docs/architecture/`
-- 设计、实现、运维规范：`docs/design/`、`docs/implementation/`、`docs/operations/`
-- 任务和未完成计划：`docs/project-management/tasks/`、`docs/project-management/plans/`
+- 当前架构：`docs/architecture/current-architecture.md` 及相关模块文档
+- 设计、工程规范与运维手册：`docs/design/`、`docs/governance/`、`docs/operations/`
+- 未完成计划：`docs/planning/backlog.md`
 - Codex 专用约束：`CODEX.md`
 - Hermes 专用约束：`HERMES.md`
 
@@ -64,7 +64,7 @@
 
 ## Git 边界
 
-代码、文档、配置模板、migration 和测试进入 Git；真实数据、密钥、运行时目录和备份不得进入 Git。提交前参考 `docs/implementation/git-version-control-governance.md`。
+代码、文档、配置模板、migration 和测试进入 Git；真实数据、密钥、运行时目录和备份不得进入 Git。提交前参考 `docs/governance/git-version-control-governance.md`。
 
 ## 镜像构建目录与产物
 

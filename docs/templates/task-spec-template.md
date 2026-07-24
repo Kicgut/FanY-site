@@ -1,15 +1,14 @@
 ﻿---
-title: "Task Spec Template"
-created: 2026-07-15 23:29
-updated: 2026-07-15 23:29
+title: "Work Spec Template"
+updated: 2026-07-24
 status: active
-purpose: "项目执行、验证或上下文管理文档。"
+purpose: "为尚未开始的独立工作编写范围、验收与回滚说明。"
 scope: "全项目"
 related: []
 tags:
-  - docs\templates
+  - templates
 ---
-# Task Spec Template
+# Work Spec Template
 
 ## 1. 任务目标
 
@@ -17,7 +16,7 @@ tags:
 
 ## 2. 前置条件
 
-- 已完成哪些任务。
+- 已具备哪些条件。
 - 需要读取哪些文档。
 - 需要确认哪些决策。
 

@@ -1,8 +1,8 @@
 ﻿---
 title: "审核流程设计"
 created: 2026-07-15 23:29
-updated: 2026-07-15 23:29
-status: final
+updated: 2026-07-24
+status: current
 purpose: "项目架构、设计、实现或运维参考文档。"
 scope: "全项目"
 related: []

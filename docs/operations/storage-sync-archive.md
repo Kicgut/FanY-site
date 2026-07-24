@@ -1,7 +1,7 @@
 ﻿---
 title: "存储、同步与归档"
 created: 2026-07-15 23:29
-updated: 2026-07-15 23:29
+updated: 2026-07-24
 status: final
 purpose: "项目架构、设计、实现或运维参考文档。"
 scope: "全项目"
