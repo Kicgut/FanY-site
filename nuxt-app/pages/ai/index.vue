@@ -86,6 +86,18 @@ async function deleteConversation() {
   }
 }
 
+async function archiveConversation() {
+  if (!conversationId.value) return
+  try {
+    await authFetch(`/api/ai/conversations/${conversationId.value}`, { method: 'PATCH', body: { action: 'archive' } })
+    conversations.value = conversations.value.filter((item) => item.id !== conversationId.value)
+    conversationId.value = undefined
+    messages.splice(0, messages.length)
+    addWelcomeMessage()
+    ElMessage.success('会话已归档')
+  } catch (err: any) { ElMessage.error(err?.data?.message || '归档会话失败') }
+}
+
 async function fetchAiStatus() {
   try {
     const res = await authFetch<{ success: boolean; data: { provider: string; model: string; status: string } }>('/api/ai/status')
@@ -212,6 +224,7 @@ function handleKeydown(e: KeyboardEvent) {
           </el-option>
         </el-select>
         <el-button v-if="conversationId" type="danger" plain @click="deleteConversation">删除当前会话</el-button>
+        <el-button v-if="conversationId" type="warning" plain @click="archiveConversation">归档当前会话</el-button>
       </div>
 
       <!-- Messages Area -->

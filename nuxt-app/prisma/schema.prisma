@@ -48,10 +48,12 @@ model AiConversation {
   id        String      @id
   userId    Int
   title     String?
+  archivedAt DateTime?
   createdAt DateTime    @default(now())
   updatedAt DateTime    @default(now()) @updatedAt
   messages  AiMessage[]
   @@index([userId, updatedAt])
+  @@index([userId, archivedAt, updatedAt])
 }
 
 model AiMessage {
