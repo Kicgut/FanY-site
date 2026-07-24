@@ -54,4 +54,6 @@ Ubuntu 执行 `git pull --ff-only origin master`，安装仓库内的 `nuxt-app/
 
 ## 验收
 
+发布目录清理使用仓库内 `scripts/retain-release-artifacts.sh`，默认只保留最新 3 个归档和容器上的一份 rollback tag；脚本会拒绝操作非 `/opt/personal-website/releases` 目录，并且不会触碰 `data/`、`uploads/`、`backups/` 或当前 `latest` 镜像。
+
 构建机检查 commit、测试、镜像 digest 和 tar SHA-256；ECS 检查镜像、迁移、容器和网站；Ubuntu 检查 `photo-original-api`、`frpc` 和原图目录；最后验证 `ECS → photos.local:7080 → Ubuntu:9801` 以及上传、回流、checksum、临时原图删除。
