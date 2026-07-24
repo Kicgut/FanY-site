@@ -1,0 +1,14 @@
+[Unit]
+Description=Campus Wi-Fi captive portal auto-login watchdog
+After=NetworkManager-online.target
+Wants=NetworkManager-online.target
+
+[Service]
+Type=simple
+ExecStart=/home/aloof/wifi-auto-login.sh
+Restart=always
+RestartSec=10
+User=root
+
+[Install]
+WantedBy=multi-user.target
