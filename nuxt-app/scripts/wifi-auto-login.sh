@@ -48,7 +48,31 @@ ensure_wifi() {
 }
 
 login_once() {
-  local body code endpoint
+  local body code endpoint ip mac
+  ip=$(nmcli -g IP4.ADDRESS dev show "$IFACE" 2>/dev/null | sed -n '1s#/.*##p')
+  mac=$(nmcli -g GENERAL.HWADDR dev show "$IFACE" 2>/dev/null | head -1)
+  body=$(mktemp)
+  code=$(curl -sS -m 12 -o "$body" -w '%{http_code}' -G \
+    "http://${PORTAL_HOST}/drcom/login" \
+    --data-urlencode 'callback=wifiAutoLogin' \
+    --data-urlencode "DDDDD=${USERNAME}" \
+    --data-urlencode "upass=${PASSWORD}" \
+    --data-urlencode '0MKKey=123456' \
+    --data-urlencode 'R1=' --data-urlencode 'R2=' --data-urlencode 'R3=' \
+    --data-urlencode 'R6=0' --data-urlencode 'para=' --data-urlencode 'v6ip=' \
+    --data-urlencode 'terminal_type=1' --data-urlencode 'lang=zh-cn' \
+    --data-urlencode "wlan_user_ip=${ip}" --data-urlencode "wlan_user_mac=${mac}" \
+    --data-urlencode "wlan_ac_ip=${PORTAL_HOST}" 2>/dev/null || true)
+  if [[ "$code" == 2* ]] && grep -aqiE '"result"[[:space:]]*:[[:space:]]*(1|"ok")|Dr.COMWebLoginID_3|success' "$body"; then
+    rm -f "$body"
+    log "login accepted via /drcom/login (HTTP ${code}); verifying connectivity"
+    return 0
+  fi
+  log "login rejected via /drcom/login (HTTP ${code})"
+  rm -f "$body"
+  return 1
+  # Legacy fallback is intentionally unreachable unless the portal API is unavailable.
+  : <<'LEGACY_LOGIN'
   # Some campus gateways expose the legacy endpoint on port 80, while 801 may
   # be the EPortal administration SPA. Try both and reject the SPA response.
   for endpoint in \
@@ -82,6 +106,7 @@ login_once() {
     rm -f "$body"
   done
   return 1
+LEGACY_LOGIN
 }
 
 run_once() {
