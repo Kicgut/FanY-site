@@ -39,6 +39,11 @@ releases/
 *.mov
 *.mp4
 
+# 文档中的设计图和说明配图属于源码，应允许提交。
+!docs/**/*.jpg
+!docs/**/*.jpeg
+!docs/**/*.png
+
 # === Runtime article/content-pipeline data; mounted volumes, never tracked ===
 content/inbox/
 content/raw/
