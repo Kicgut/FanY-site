@@ -3,15 +3,16 @@ import { computed, onMounted, ref, watch } from 'vue'
 
 const route = useRoute()
 const menuOpen = ref(false)
-const hasAiAccess = ref(false)
 const currentUser = ref<{ name: string; role: string } | null>(null)
+const soundOn = ref(false)
 const currentYear = computed(() => new Date().getFullYear())
 
 const links = [
   { to: '/', label: '首页' },
   { to: '/blog', label: '博客' },
   { to: '/portfolio', label: '作品' },
-  { to: '/albums', label: '照片' },
+  { to: '/albums', label: '影像' },
+  { to: '/about', label: '关于' },
 ]
 
 const activePath = computed(() => route.path)
@@ -25,7 +26,6 @@ onMounted(() => {
     const user = JSON.parse(localStorage.getItem('user') || 'null')
     if (user) {
       currentUser.value = user
-      hasAiAccess.value = user?.aiAccess === true
     }
   } catch {
     currentUser.value = null
@@ -43,14 +43,14 @@ async function handleLogout() {
 </script>
 
 <template>
-  <div class="site-shell">
+  <div :class="['site-shell', { 'is-home': route.path === '/', 'is-blog': route.path.startsWith('/blog'), 'is-archive': route.path.startsWith('/albums') || route.path.startsWith('/photos'), 'has-public-nav': !route.path.startsWith('/photos/'), 'is-viewer': route.path.startsWith('/photos/') }]">
     <header class="site-header">
       <div class="header-inner">
         <NuxtLink to="/" class="brand" aria-label="返回首页">
           <span class="brand-mark">FY</span>
           <span class="brand-text">
             <strong>FAN / Y</strong>
-            <small>personal archive</small>
+            <small>ARCHIVE</small>
           </span>
         </NuxtLink>
 
@@ -66,38 +66,30 @@ async function handleLogout() {
         </button>
 
         <nav :class="['site-nav', { open: menuOpen }]" aria-label="主导航">
-          <NuxtLink
-            v-for="link in links"
-            :key="link.to"
-            :to="link.to"
-            :class="{ active: activePath === link.to || (link.to !== '/' && activePath.startsWith(link.to)) }"
-          >
-            {{ link.label }}
-          </NuxtLink>
-          <NuxtLink
-            to="/blog/archive"
-            :class="{ active: activePath === '/blog/archive' }"
-          >
-            归档
-          </NuxtLink>
-          <NuxtLink
-            to="/skills"
-            :class="{ active: activePath.startsWith('/skills') }"
-          >
-            Skills
-          </NuxtLink>
-          <NuxtLink v-if="hasAiAccess" to="/ai">AI</NuxtLink>
-          <span class="nav-divider" />
-          <NuxtLink v-if="currentUser" to="/admin" class="nav-pill">后台</NuxtLink>
-          <button
-            v-if="currentUser"
-            class="nav-action"
-            type="button"
-            @click="handleLogout"
-          >
-            退出
-          </button>
-          <NuxtLink v-else to="/admin/login" class="nav-pill">登录</NuxtLink>
+          <div class="primary-nav">
+            <NuxtLink
+              v-for="link in links"
+              :key="link.to"
+              :to="link.to"
+              :class="{ active: activePath === link.to || (link.to !== '/' && activePath.startsWith(link.to)) }"
+            >
+              {{ link.label }}
+            </NuxtLink>
+          </div>
+          <div class="nav-tools">
+            <button class="sound-toggle" type="button" :aria-pressed="soundOn" aria-label="切换声音" @click="soundOn = !soundOn">
+              <svg viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M4 10v4h4l5 4V6l-5 4H4Z" />
+                <path v-if="soundOn" d="M16 9.5c1.5 1.4 1.5 3.6 0 5M18.5 7c2.8 2.5 2.8 7.5 0 10" />
+                <path v-else d="m17 9 4 6m0-6-4 6" />
+              </svg>
+            </button>
+            <span class="online-status" aria-label="站点在线"><i /> ONLINE</span>
+            <span class="nav-divider" />
+            <NuxtLink v-if="currentUser" to="/admin" class="nav-tool">后台</NuxtLink>
+            <button v-if="currentUser" class="nav-action nav-tool" type="button" @click="handleLogout">退出</button>
+            <NuxtLink v-else to="/admin/login" class="nav-tool">登录</NuxtLink>
+          </div>
         </nav>
       </div>
     </header>
@@ -112,6 +104,8 @@ async function handleLogout() {
       <span>© {{ currentYear }} FAN / Y</span>
       <span class="footer-note">A personal archive of work, notes, and images.</span>
     </footer>
+
+    <ProductionFloatPanel />
   </div>
 </template>
 
@@ -213,6 +207,18 @@ async function handleLogout() {
   display: flex;
   align-items: center;
   gap: 8px;
+  flex: 1;
+  margin-left: auto;
+}
+
+.primary-nav,
+.nav-tools {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.nav-tools {
   margin-left: auto;
 }
 
@@ -265,6 +271,69 @@ async function handleLogout() {
   color: var(--color-text-secondary);
 }
 
+.site-shell.is-home {
+  background: #07121f;
+}
+
+.site-shell.has-public-nav .site-header {
+  position: fixed;
+  left: 50%;
+  top: 24px;
+  width: min(1600px, calc(100% - 76px));
+  transform: translateX(-50%);
+  border: 1px solid rgba(211, 218, 220, .34);
+  border-radius: 16px;
+  background: rgba(91, 101, 106, .31);
+  box-shadow: 0 18px 40px rgba(0, 0, 0, .2);
+  backdrop-filter: blur(24px) saturate(.72);
+}
+
+.site-shell.has-public-nav .header-inner {
+  max-width: none;
+  min-height: 66px;
+  padding-left: 32px;
+  padding-right: 28px;
+}
+
+.site-shell.has-public-nav .brand,
+.site-shell.has-public-nav .site-nav a,
+.site-shell.has-public-nav .nav-action {
+  color: #c7d6df;
+}
+
+.site-shell.has-public-nav .brand-mark {
+  width: auto;
+  height: auto;
+  background: none;
+  box-shadow: none;
+  color: #edf5f8;
+  font-size: 25px;
+  font-weight: 400;
+}
+
+.site-shell.has-public-nav .brand-text strong { display: none; }
+.site-shell.has-public-nav .brand-text small { color: #8fa2af; font-size: 13px; letter-spacing: .18em; }
+.site-shell.has-public-nav .site-nav { position: relative; justify-content: center; gap: 0; }
+.site-shell.has-public-nav .primary-nav { justify-content: center; gap: 12px; }
+.site-shell.has-public-nav .nav-tools { position: absolute; right: 0; gap: 8px; }
+.site-shell.has-public-nav .primary-nav a { border-radius: 0; padding: 22px 15px; }
+.site-shell.has-public-nav .primary-nav a:hover,
+.site-shell.has-public-nav .primary-nav a.active { color: #f1f7fa; background: transparent; border-color: transparent; box-shadow: inset 0 -2px #55c9ef; }
+.site-shell.has-public-nav .nav-divider { background: rgba(174, 206, 219, .25); }
+.site-shell.has-public-nav .nav-tool { align-self: center; display: inline-flex; align-items: center; justify-content: center; min-height: 34px; padding: 6px 17px; border: 1px solid rgba(210, 219, 221, .48); border-radius: 10px; background: rgba(145, 153, 157, .14); line-height: 1; }
+.site-shell.has-public-nav .sound-toggle { display: inline-grid; place-items: center; width: 36px; height: 34px; padding: 5px 8px; border: 0; color: #d6e3e9; background: transparent; cursor: pointer; }
+.site-shell.has-public-nav .sound-toggle svg { width: 19px; height: 19px; fill: none; stroke: currentColor; stroke-linecap: round; stroke-linejoin: round; stroke-width: 1.6; }
+.site-shell.has-public-nav .online-status { display: inline-flex; align-items: center; gap: 6px; color: #a6bac5; font: 10px var(--font-mono); letter-spacing: .08em; }
+.site-shell.has-public-nav .online-status i { width: 8px; height: 8px; border-radius: 50%; background: #5bd2f3; box-shadow: 0 0 12px #5bd2f3; }
+.site-shell.has-public-nav .site-footer { border-top-color: rgba(163, 196, 211, .2); color: #77909f; }
+.site-shell.has-public-nav .footer-note { color: #8ca3b0; }
+
+.site-shell.is-blog { background: #061322; color: #e9f2f5; }
+.site-shell.is-archive { background: #061321; color: #dce9ee; }
+.site-shell.is-viewer .site-header,
+.site-shell.is-viewer .site-footer { display: none; }
+.site-shell.is-viewer { background: #050f1c; }
+
 @media (max-width: 780px) {
   .header-inner {
     min-height: 64px;
@@ -295,6 +364,18 @@ async function handleLogout() {
     display: flex;
   }
 
+  .primary-nav,
+  .nav-tools {
+    width: 100%;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 6px;
+  }
+
+  .nav-tools {
+    margin-left: 0;
+  }
+
   .site-nav a,
   .nav-action {
     justify-content: flex-start;
@@ -313,5 +394,15 @@ async function handleLogout() {
     padding-left: 16px;
     padding-right: 16px;
   }
+
+  .site-shell.has-public-nav .site-header { top: 12px; width: calc(100% - 24px); }
+  .site-shell.has-public-nav .header-inner { padding-left: 18px; padding-right: 12px; }
+  .site-shell.has-public-nav .site-nav { top: 64px; background: rgba(8, 22, 35, .96); }
+  .site-shell.has-public-nav .primary-nav { gap: 6px; }
+  .site-shell.has-public-nav .nav-tools { position: static; }
+  .site-shell.has-public-nav .primary-nav a { padding: 13px 14px; }
+  .site-shell.has-public-nav .online-status,
+  .site-shell.has-public-nav .sound-toggle,
+  .site-shell.has-public-nav .nav-divider { display: none; }
 }
 </style>

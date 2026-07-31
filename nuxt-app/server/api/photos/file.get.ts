@@ -8,19 +8,31 @@ import jwt from 'jsonwebtoken'
 import { getJwtSecret } from '~/server/utils/jwt'
 
 const ECS_UPLOADS_ROOT = '/app/public/uploads'
+const LOCAL_UPLOADS_ROOT = resolve(process.cwd(), 'public/uploads')
 const ALLOWED_TYPES = new Set(['thumbnail', 'medium', 'original'])
 
 function asSafeLocalPath(value: string | null | undefined) {
-  if (!value || value.startsWith('/api/') || /^https?:\/\//i.test(value)) return null
-  const candidate = value.startsWith('/app/')
-    ? value
-    : value.startsWith('/uploads/')
-      ? join('/app/public', value)
+  if (!value || /^https?:\/\//i.test(value)) return null
+  let source = value
+  if (source.startsWith('/api/photos/file')) {
+    const path = new URL(source, 'http://localhost').searchParams.get('path')
+    if (!path) return null
+    source = path
+  }
+  if (source.startsWith('/api/')) return null
+  const candidate = source.startsWith('/app/public/uploads/')
+    ? join(LOCAL_UPLOADS_ROOT, source.slice('/app/public/uploads/'.length))
+    : source.startsWith('/app/')
+      ? source
+    : source.startsWith('/uploads/')
+      ? join(LOCAL_UPLOADS_ROOT, source.slice('/uploads/'.length))
       : null
   if (!candidate) return null
-  const root = resolve(ECS_UPLOADS_ROOT)
+  const root = source.startsWith('/app/public/uploads/') || source.startsWith('/uploads/') ? resolve(LOCAL_UPLOADS_ROOT) : resolve(ECS_UPLOADS_ROOT)
   const absolute = resolve(normalize(candidate))
-  return absolute === root || absolute.startsWith(`${root}/`) ? absolute : null
+  const normalizedAbsolute = absolute.replaceAll('\\', '/')
+  const normalizedRoot = root.replaceAll('\\', '/')
+  return normalizedAbsolute === normalizedRoot || normalizedAbsolute.startsWith(`${normalizedRoot}/`) ? absolute : null
 }
 
 function candidates(photo: any, type: string, allowOriginalFallback = false) {

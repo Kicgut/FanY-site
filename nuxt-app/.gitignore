@@ -60,3 +60,8 @@ data/content-pipeline/
 *.dng
 *.mov
 *.mp4
+
+# Public homepage art assets are intentional source-controlled UI resources.
+!public/images/
+!public/images/home/
+!public/images/home/**
