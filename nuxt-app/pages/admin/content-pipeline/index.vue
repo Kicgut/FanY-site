@@ -4,6 +4,8 @@ import { ElMessageBox } from 'element-plus'
 
 const authFetch = useAuthFetch()
 definePageMeta({ layout: 'admin' })
+const route = useRoute()
+const router = useRouter()
 
 interface Candidate {
   id: number
@@ -20,7 +22,7 @@ interface Candidate {
 
 const candidates = ref<Candidate[]>([])
 const loading = ref(false)
-const activeTab = ref('draft')
+const activeTab = ref(typeof route.query.status === 'string' ? route.query.status : 'draft')
 const previewVisible = ref(false)
 const previewContent = ref<Candidate | null>(null)
 const approveDialogVisible = ref(false)
@@ -39,15 +41,17 @@ const editForm = ref({ title: '', content: '', contentType: 'blog', tags: '', de
 const importInput = ref<HTMLInputElement | null>(null)
 
 const statusTabs = [
-  { label: 'Draft', value: 'draft' },
-  { label: 'Submitted', value: 'submitted' },
-  { label: 'Changes Requested', value: 'changes_requested' },
-  { label: 'Approved', value: 'approved' },
-  { label: 'Published', value: 'published' },
-  { label: 'Rejected', value: 'rejected' },
+  { label: '草稿', value: 'draft' },
+  { label: '已提交', value: 'submitted' },
+  { label: '需修改', value: 'changes_requested' },
+  { label: '已批准', value: 'approved' },
+  { label: '正式内容草稿', value: 'published' },
+  { label: '已拒绝', value: 'rejected' },
 ]
 
 const filteredCandidates = computed(() => candidates.value.filter((candidate) => candidate.status === activeTab.value))
+const statusLabel = (status: string) => ({ draft: '草稿', submitted: '已提交', reviewing: '审核中', changes_requested: '需修改', approved: '已批准', published: '正式内容草稿', rejected: '已拒绝' } as Record<string, string>)[status] || status
+watch(activeTab, (status) => router.replace({ query: status === 'draft' ? {} : { status } }))
 
 async function fetchCandidates() {
   loading.value = true
@@ -282,46 +286,49 @@ async function handleUnpublish(id: number) {
   <div class="pipeline-page">
     <div class="page-header">
       <div>
-        <h2>Content Pipeline</h2>
+        <p class="kicker">WORKFLOW / REVIEW</p>
+        <h1>内容流水线</h1>
         <p class="page-description">AI、人工和 Markdown 内容必须经过审核后才能生成正式草稿。</p>
       </div>
       <div class="page-actions">
         <input ref="importInput" type="file" accept=".md,.markdown,.txt" hidden @change="handleImport" />
-        <el-button @click="processInbox">Process Inbox</el-button>
-        <el-button @click="triggerImport">Import Markdown/TXT</el-button>
-        <el-button type="primary" @click="openCreate">New Candidate</el-button>
+        <el-button @click="processInbox">处理收件箱</el-button>
+        <el-button @click="triggerImport">导入 Markdown</el-button>
+        <el-button type="primary" @click="openCreate">新建候选内容</el-button>
       </div>
     </div>
+
+    <div class="workflow-track" aria-label="内容状态流程"><span>草稿</span><i>→</i><span>已提交</span><i>→</i><span>审核中</span><i>→</i><span>已批准</span><i>→</i><span>正式内容草稿</span><i>→</i><span>人工公开</span></div>
 
     <el-tabs v-model="activeTab" @tab-change="fetchCandidates">
       <el-tab-pane v-for="tab in statusTabs" :key="tab.value" :label="tab.label" :name="tab.value" />
     </el-tabs>
 
-    <el-table v-loading="loading" :data="filteredCandidates" stripe border style="width: 100%">
-      <el-table-column prop="title" label="Title" min-width="220" />
-      <el-table-column label="Type" width="110" align="center">
+    <div class="table-surface"><el-table v-loading="loading" :data="filteredCandidates" stripe style="width: 100%">
+      <el-table-column prop="title" label="内容" min-width="220" />
+      <el-table-column label="类型" width="110" align="center">
         <template #default="{ row }">{{ row.contentType }}</template>
       </el-table-column>
-      <el-table-column label="Source" width="100" align="center">
+      <el-table-column label="来源" width="100" align="center">
         <template #default="{ row }"><el-tag :type="sourceType(row.source)" size="small">{{ sourceLabel(row.source) }}</el-tag></template>
       </el-table-column>
-      <el-table-column label="Status" width="140" align="center">
-        <template #default="{ row }"><el-tag :type="statusType(row.status)" size="small">{{ row.status }}</el-tag></template>
+      <el-table-column label="状态" width="140" align="center">
+        <template #default="{ row }"><el-tag :type="statusType(row.status)" size="small">{{ statusLabel(row.status) }}</el-tag></template>
       </el-table-column>
-      <el-table-column prop="createdAt" label="Created" width="180" />
-      <el-table-column label="Actions" width="270" fixed="right">
+      <el-table-column prop="createdAt" label="创建时间" width="180" />
+      <el-table-column label="下一步" width="270" fixed="right">
         <template #default="{ row }">
-          <el-button type="primary" text size="small" @click="handlePreview(row)">Preview</el-button>
-          <el-button v-if="row.status === 'draft' || row.status === 'changes_requested'" type="info" text size="small" @click="openEdit(row)">Edit</el-button>
-          <el-button v-if="row.status === 'draft' || row.status === 'changes_requested'" type="info" text size="small" @click="handleSubmit(row.id)">Submit</el-button>
-          <el-button v-if="row.status === 'submitted' || row.status === 'reviewing'" type="success" text size="small" @click="openApprove(row.id)">Approve</el-button>
-          <el-button v-if="row.status === 'submitted' || row.status === 'reviewing'" type="warning" text size="small" @click="handleRequestChanges(row.id)">Changes</el-button>
-          <el-button v-if="row.status === 'submitted' || row.status === 'reviewing'" type="danger" text size="small" @click="openReject(row.id)">Reject</el-button>
-          <el-button v-if="row.status === 'approved'" type="warning" text size="small" @click="openPublish(row.id)">Publish Draft</el-button>
-          <el-button v-if="row.status === 'published'" type="danger" text size="small" @click="handleUnpublish(row.id)">Unpublish</el-button>
+          <el-button type="primary" text size="small" @click="handlePreview(row)">预览</el-button>
+          <el-button v-if="row.status === 'draft' || row.status === 'changes_requested'" type="info" text size="small" @click="openEdit(row)">编辑</el-button>
+          <el-button v-if="row.status === 'draft' || row.status === 'changes_requested'" type="info" text size="small" @click="handleSubmit(row.id)">提交审核</el-button>
+          <el-button v-if="row.status === 'submitted' || row.status === 'reviewing'" type="success" text size="small" @click="openApprove(row.id)">批准</el-button>
+          <el-button v-if="row.status === 'submitted' || row.status === 'reviewing'" type="warning" text size="small" @click="handleRequestChanges(row.id)">需修改</el-button>
+          <el-button v-if="row.status === 'submitted' || row.status === 'reviewing'" type="danger" text size="small" @click="openReject(row.id)">拒绝</el-button>
+          <el-button v-if="row.status === 'approved'" type="warning" text size="small" @click="openPublish(row.id)">生成正式草稿</el-button>
+          <el-button v-if="row.status === 'published'" type="danger" text size="small" @click="handleUnpublish(row.id)">下架</el-button>
         </template>
       </el-table-column>
-    </el-table>
+    </el-table></div>
 
     <el-dialog v-model="previewVisible" title="Content Preview" width="720px">
       <div v-if="previewContent">
@@ -403,10 +410,14 @@ async function handleUnpublish(id: number) {
 </template>
 
 <style scoped>
-.pipeline-page { width: 100%; }
-.page-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
-.page-header h2 { margin: 0; }
+.pipeline-page { max-width: 1280px; }
+.page-header { display: flex; justify-content: space-between; align-items: center; gap: 16px; margin-bottom: 16px; }
+.kicker { margin: 0 0 8px; color: #72d9ed; font: 11px var(--font-mono); letter-spacing: .15em; }
+.page-header h1 { margin: 0; color: #edf8fb; font-size: 27px; }
 .page-actions { display: flex; gap: 8px; align-items: center; }
-.page-description, .muted { color: #909399; font-size: 0.9rem; }
-.preview-body { white-space: pre-wrap; font-size: 0.95rem; line-height: 1.6; max-height: 480px; overflow-y: auto; background: #f5f7fa; padding: 16px; border-radius: 4px; }
+.page-description, .muted { color: #9eb5c2; font-size: 0.9rem; }
+.workflow-track { display: flex; flex-wrap: wrap; align-items: center; gap: 9px; margin: 0 0 14px; padding: 12px 14px; border: 1px solid rgba(148,184,214,.18); border-radius: 12px; color: #a9c0cc; font: 12px var(--font-mono); }.workflow-track i { color: #5acde7; font-style: normal; }
+.table-surface { padding: 6px 12px 12px; border: 1px solid rgba(148,184,214,.2); border-radius: 14px; background: rgba(14,26,42,.72); }
+.preview-body { white-space: pre-wrap; font-size: 0.95rem; line-height: 1.6; max-height: 480px; overflow-y: auto; background: rgba(6,16,28,.55); padding: 16px; border-radius: 8px; }
+@media (max-width: 720px) { .page-header { align-items: flex-start; flex-direction: column; }.page-actions { flex-wrap: wrap; }.table-surface { padding: 6px; overflow: auto; }.table-surface :deep(.el-table) { min-width: 760px; } }
 </style>

@@ -116,3 +116,37 @@ body::-webkit-scrollbar-thumb {
     scroll-behavior: auto !important;
   }
 }
+
+/* Admin control room: Element Plus surfaces inherit the operational dark theme. */
+.admin-layout .el-card,
+.admin-layout .el-table,
+.admin-layout .el-dialog,
+.admin-layout .el-drawer,
+.admin-layout .el-empty,
+.admin-layout .el-alert {
+  --el-bg-color: #0e1a2a;
+  --el-bg-color-overlay: #111e2f;
+  --el-fill-color-blank: #0e1a2a;
+  --el-fill-color-light: rgba(148, 184, 214, .07);
+  --el-fill-color-lighter: rgba(148, 184, 214, .045);
+  --el-fill-color-dark: #091422;
+  --el-text-color-primary: #e8f2f7;
+  --el-text-color-regular: #c0d1db;
+  --el-text-color-secondary: #8fa8b7;
+  --el-border-color: rgba(148, 184, 214, .2);
+  --el-border-color-light: rgba(148, 184, 214, .15);
+  --el-table-border-color: rgba(148, 184, 214, .17);
+  --el-table-header-bg-color: rgba(148, 184, 214, .055);
+  --el-table-row-hover-bg-color: rgba(81, 199, 227, .07);
+}
+.admin-layout .el-card,
+.admin-layout .el-table,
+.admin-layout .el-alert { border-color: rgba(148, 184, 214, .2); }
+.admin-layout .el-table tr,
+.admin-layout .el-table th.el-table__cell,
+.admin-layout .el-table td.el-table__cell { background: transparent; }
+.admin-layout .el-input__wrapper,
+.admin-layout .el-select__wrapper { background: rgba(6, 16, 28, .5); box-shadow: 0 0 0 1px rgba(148, 184, 214, .22) inset; }
+.admin-layout .el-input__inner,
+.admin-layout .el-select__placeholder { color: #d7e7ee; }
+.admin-layout .el-button--default { --el-button-bg-color: rgba(148, 184, 214, .08); --el-button-border-color: rgba(148, 184, 214, .26); --el-button-text-color: #d6e7ee; --el-button-hover-bg-color: rgba(81, 199, 227, .14); --el-button-hover-border-color: #65d5ed; --el-button-hover-text-color: #dffbff; }

@@ -199,10 +199,6 @@ model Portfolio {
   title        String
   slug         String   @unique
   description  String?
-  content      String?
-  coverImage   String?
-  images       String?
-  link         String?
   tags         String?
   category     String?
   featured     Boolean  @default(false)
@@ -210,8 +206,108 @@ model Portfolio {
   status       String   @default("draft")
   reviewStatus String   @default("approved")
   createdBy    String   @default("owner")
+  type         String   @default("project")
+  displayStatus String  @default("experiment")
+  publishedAt  DateTime?
+  year         Int?
+  rolesJson    String?
+  techStackJson String?
+  mediumJson   String?
+  location     String?
+  toolMode     String?
+  version      Int      @default(1)
+  archivedAt   DateTime?
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
+  media        PortfolioMedia[]
+  resources    PortfolioResource[]
+  blocks       PortfolioBlock[]
+  promptEntries PortfolioPromptEntry[]
+  @@index([type, status, reviewStatus, updatedAt])
+  @@index([year, status, reviewStatus])
+}
+
+model PortfolioMedia {
+  id           Int      @id @default(autoincrement())
+  portfolioId  Int
+  kind         String
+  storageKey   String?
+  publicUrl    String?
+  mimeType     String?
+  sizeBytes    Int?
+  derivativeStatus String? @default("pending")
+  posterUrl    String?
+  alt          String?
+  caption      String?
+  width        Int?
+  height       Int?
+  duration     Int?
+  sortOrder    Int      @default(0)
+  status       String   @default("draft")
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  portfolio    Portfolio @relation(fields: [portfolioId], references: [id], onDelete: Cascade)
+  @@index([portfolioId, status, sortOrder])
+}
+
+model PortfolioResource {
+  id          Int      @id @default(autoincrement())
+  portfolioId Int
+  kind        String
+  label       String
+  url         String
+  external    Boolean  @default(true)
+  sortOrder   Int      @default(0)
+  isPrimary   Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  portfolio   Portfolio @relation(fields: [portfolioId], references: [id], onDelete: Cascade)
+  @@index([portfolioId, sortOrder])
+}
+
+model PortfolioBlock {
+  id          Int      @id @default(autoincrement())
+  portfolioId Int
+  kind        String
+  anchor      String?
+  title       String?
+  payloadJson String
+  sortOrder   Int      @default(0)
+  visibility  String   @default("draft")
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  portfolio   Portfolio @relation(fields: [portfolioId], references: [id], onDelete: Cascade)
+  @@index([portfolioId, visibility, sortOrder])
+}
+
+model PortfolioPromptEntry {
+  id           Int      @id @default(autoincrement())
+  portfolioId  Int
+  title        String
+  slug         String
+  category     String?
+  summary      String?
+  body         String
+  variablesJson String?
+  examplesJson String?
+  riskLevel    String   @default("low")
+  sortOrder    Int      @default(0)
+  status       String   @default("draft")
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  portfolio    Portfolio @relation(fields: [portfolioId], references: [id], onDelete: Cascade)
+  tags         PortfolioPromptTag[]
+  @@unique([portfolioId, slug])
+  @@index([portfolioId, status, category, sortOrder])
+}
+
+model PortfolioPromptTag {
+  id             Int      @id @default(autoincrement())
+  promptEntryId  Int
+  name           String
+  promptEntry    PortfolioPromptEntry @relation(fields: [promptEntryId], references: [id], onDelete: Cascade)
+  @@unique([promptEntryId, name])
+  @@index([name])
 }
 
 model AuditLog {

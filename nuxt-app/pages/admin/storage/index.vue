@@ -28,13 +28,13 @@ async function rebuildThumbnails() {
 
 <template>
   <div class="page">
-    <div class="page-header"><div><h2>存储管理</h2><p>查看照片数量、文件大小和同步状态。</p></div><el-button @click="refresh">刷新</el-button></div>
+    <div class="page-header"><div><p class="kicker">SYSTEM / STORAGE</p><h1>存储健康</h1><p>查看可用资产、回流与缩略图队列；扫描只读，重建会创建可追踪任务。</p></div><el-button @click="refresh">刷新</el-button></div>
     <el-alert v-if="error" type="error" title="加载存储统计失败" :description="error.message" show-icon />
     <div v-loading="status === 'pending'" class="grid">
       <el-card><template #header>照片总数</template><strong>{{ stats.photoCount || 0 }}</strong><small>张</small></el-card>
       <el-card><template #header>估算占用空间</template><strong>{{ gb }}</strong><small>GB</small></el-card>
-      <el-card><template #header>原图回流</template><p>已回流：{{ count('syncStatus', 'synced') }}</p><p>待回流：{{ count('syncStatus', 'pending') }}</p><p>失败：{{ count('syncStatus', 'failed') }}</p></el-card>
-      <el-card><template #header>缩略图同步</template><p>已完成：{{ count('thumbnailStatus', 'ready') }}</p><p>待处理：{{ count('thumbnailStatus', 'pending') }}</p><p>失败：{{ count('thumbnailStatus', 'failed') }}</p></el-card>
+      <el-card><template #header>原图回流</template><p>已回流：{{ count('syncStatus', 'synced') }}</p><p>等待：{{ count('syncStatus', 'pending') }}</p><NuxtLink v-if="count('syncStatus', 'failed')" to="/admin/jobs?status=failed" class="issue-link">{{ count('syncStatus', 'failed') }} 项失败，查看任务 →</NuxtLink><p v-else class="healthy">没有回流异常</p></el-card>
+      <el-card><template #header>缩略图</template><p>已完成：{{ count('thumbnailStatus', 'ready') }}</p><p>待处理：{{ count('thumbnailStatus', 'pending') }}</p><NuxtLink v-if="count('thumbnailStatus', 'failed')" to="/admin/jobs?status=failed" class="issue-link">{{ count('thumbnailStatus', 'failed') }} 项异常，查看任务 →</NuxtLink><p v-else class="healthy">没有缩略图异常</p></el-card>
       <el-card><template #header>可见范围</template><p>公开：{{ count('visibility', 'public') }}</p><p>分组：{{ count('visibility', 'groups') }}</p><p>私有：{{ count('visibility', 'private') }}</p></el-card>
     </div>
     <div class="ops"><el-button :loading="checking" @click="checkConsistency">扫描存储一致性</el-button><el-button type="warning" :loading="rebuilding" @click="rebuildThumbnails">创建缩略图重建任务</el-button><el-alert v-if="consistency" :type="consistency.healthy ? 'success' : 'warning'" :title="consistency.healthy ? `扫描 ${consistency.scanned} 项，未发现缺失文件` : `发现 ${consistency.missingOriginals.length + consistency.missingThumbnails.length} 个问题`" :closable="false" /></div>
@@ -43,5 +43,5 @@ async function rebuildThumbnails() {
 </template>
 
 <style scoped>
-.page{width:100%}.page-header{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:20px}.page-header h2{margin:0 0 6px}.page-header p{margin:0;color:#909399}.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:16px}.grid strong{font-size:32px}.grid small{margin-left:6px;color:#909399}.grid p{margin:8px 0}.ops{display:flex;align-items:center;gap:14px;margin-top:20px}.ops .el-alert{flex:1}.note{margin-top:20px}
+.page{max-width:1280px}.page-header{display:flex;justify-content:space-between;align-items:flex-start;gap:16px;margin-bottom:20px}.kicker{margin:0 0 8px!important;color:#72d9ed!important;font:11px var(--font-mono);letter-spacing:.15em}.page-header h1{margin:0 0 6px;color:#edf8fb;font-size:27px}.page-header p{margin:0;color:#9eb5c2;font-size:13px}.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:16px}.grid :deep(.el-card__header){color:#cce1e9;font-size:13px}.grid strong{font-size:32px;color:#eaf8fc}.grid small{margin-left:6px;color:#91aab9}.grid p{margin:8px 0;color:#a9c0cb;font-size:13px}.healthy{color:#83d9c6!important}.issue-link{display:block;margin-top:12px;color:#e2b46d;font-size:12px;text-decoration:none}.ops{display:flex;align-items:center;gap:14px;margin-top:20px}.ops .el-alert{flex:1}.note{margin-top:20px}@media(max-width:700px){.page-header{flex-direction:column}.ops{align-items:stretch;flex-direction:column}}
 </style>

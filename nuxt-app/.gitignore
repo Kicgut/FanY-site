@@ -61,7 +61,9 @@ data/content-pipeline/
 *.mov
 *.mp4
 
-# Public homepage art assets are intentional source-controlled UI resources.
+# Static UI assets are intentional source-controlled resources. Runtime uploads
+# remain ignored by the explicit public/uploads/ rule above.
 !public/images/
-!public/images/home/
-!public/images/home/**
+!public/images/**
+!assets/images/
+!assets/images/**

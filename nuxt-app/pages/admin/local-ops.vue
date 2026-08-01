@@ -64,11 +64,11 @@ onMounted(async () => {
 
 function originLabel(origin: string | undefined): string {
   switch (origin) {
-    case 'local_trusted': return '✅ Local Trusted'
-    case 'remote_owner': return '⚠️ Remote Owner'
-    case 'remote_user': return '🔒 Remote User'
-    case 'public': return '🌐 Public'
-    default: return '❓ Unknown'
+    case 'local_trusted': return '本地受信任'
+    case 'remote_owner': return '远程受限'
+    case 'remote_user': return '远程用户'
+    case 'public': return '公共访问'
+    default: return '未知环境'
   }
 }
 
@@ -85,7 +85,7 @@ function originColor(origin: string | undefined): string {
 
 <template>
   <div class="local-ops-page">
-    <h1>🔒 Security — Local Trust Operations</h1>
+    <header class="page-header"><div><p class="kicker">RESTRICTED / LOCAL TRUST</p><h1>本地高权限</h1><p>这些操作由服务端再次校验访问来源；页面可见性不能替代权限验证。</p></div></header>
 
     <el-alert
       type="warning"
@@ -94,27 +94,25 @@ function originColor(origin: string | undefined): string {
       style="margin-bottom: 24px"
     >
       <template #title>
-        Remote admins have limited permissions
+        远程访问受限
       </template>
-      Even if you are logged in as an admin, <strong>dangerous operations</strong> (deletes, skill sync, shell execution)
-      are only allowed when accessing from a <strong>local trusted network</strong>. This protects the system
-      from remote compromise.
+      即使是超级管理员，删除、Skill 同步等<strong>高风险操作</strong>也只能在<strong>本地受信任网络</strong>中执行。这用于降低远程账户受损后的影响范围。
     </el-alert>
 
     <!-- Current Access Origin -->
     <el-card shadow="never" style="margin-bottom: 24px">
       <template #header>
-        <span style="font-weight: 600">Your Current Access</span>
+        <span style="font-weight: 600">当前访问环境</span>
       </template>
       <div v-if="loading" v-loading="true" style="height: 40px" />
       <div v-else>
         <el-descriptions :column="2" border>
-          <el-descriptions-item label="Access Origin">
+          <el-descriptions-item label="访问环境">
             <el-tag :color="originColor(accessInfo?.origin)" effect="dark" style="border: none; color: #fff">
               {{ originLabel(accessInfo?.origin) }}
             </el-tag>
           </el-descriptions-item>
-          <el-descriptions-item label="Your IP">
+          <el-descriptions-item label="来源地址">
             {{ accessInfo?.ip ?? 'Unknown' }}
           </el-descriptions-item>
         </el-descriptions>
@@ -125,9 +123,7 @@ function originColor(origin: string | undefined): string {
           show-icon
           style="margin-top: 12px"
         >
-          You are a <strong>remote owner</strong>. You can manage content and users, but
-          <strong>cannot perform destructive operations</strong> (delete, skill sync).
-          Access from your local network to unlock full admin capabilities.
+          当前是<strong>远程受限</strong>环境。你仍可管理内容和用户，但无法执行删除、Skill 同步等高风险操作；请在本地受信任网络访问。
         </el-alert>
         <el-alert
           v-if="accessInfo?.origin === 'local_trusted'"
@@ -136,25 +132,25 @@ function originColor(origin: string | undefined): string {
           show-icon
           style="margin-top: 12px"
         >
-          You have <strong>local trusted</strong> access. All admin operations are available.
+          当前是<strong>本地受信任</strong>环境。高风险操作仍需要服务端权限校验与审计记录。
         </el-alert>
       </div>
     </el-card>
 
-    <!-- Protected Operations Table -->
-    <el-card shadow="never" style="margin-bottom: 24px">
+    <!-- Protected operations remain unavailable remotely. -->
+    <el-card v-if="accessInfo?.origin === 'local_trusted'" shadow="never" style="margin-bottom: 24px">
       <template #header>
-        <span style="font-weight: 600">Operations Requiring Local Trusted Access</span>
+        <span style="font-weight: 600">受限操作说明</span>
       </template>
       <el-table :data="dangerousOps" stripe>
-        <el-table-column prop="name" label="Operation" width="160" />
-        <el-table-column prop="endpoint" label="Endpoint" width="240">
+        <el-table-column prop="name" label="操作" width="180" />
+        <el-table-column prop="endpoint" label="服务端入口" width="240">
           <template #default="{ row }">
             <code>{{ row.endpoint }}</code>
           </template>
         </el-table-column>
-        <el-table-column prop="description" label="Description" />
-        <el-table-column prop="requires" label="Requires" width="180">
+        <el-table-column prop="description" label="影响说明" />
+        <el-table-column prop="requires" label="权限要求" width="180">
           <template #default="{ row }">
             <el-tag type="danger" size="small">{{ row.requires }}</el-tag>
           </template>
@@ -162,30 +158,26 @@ function originColor(origin: string | undefined): string {
       </el-table>
     </el-card>
 
-    <!-- Trusted CIDR Ranges -->
-    <el-card shadow="never" style="margin-bottom: 24px">
+    <el-card v-if="accessInfo?.origin === 'local_trusted'" shadow="never" style="margin-bottom: 24px">
       <template #header>
-        <span style="font-weight: 600">Trusted Network Ranges (LOCAL_TRUSTED_CIDRS)</span>
+        <span style="font-weight: 600">受信任网络范围</span>
       </template>
       <ul class="cidr-list">
         <li v-for="cidr in trustedCidrs" :key="cidr">{{ cidr }}</li>
       </ul>
       <p style="margin-top: 12px; color: #909399; font-size: 0.85rem">
-        These are configured via the <code>LOCAL_TRUSTED_CIDRS</code> environment variable.
-        Requests from IPs matching any of these CIDRs are considered <strong>local trusted</strong>.
+        这些范围由 <code>LOCAL_TRUSTED_CIDRS</code> 配置；命中后仍需完成账户和服务端权限校验。
       </p>
     </el-card>
 
-    <!-- How to access locally -->
-    <el-card shadow="never">
+    <el-card v-if="accessInfo?.origin !== 'local_trusted'" shadow="never">
       <template #header>
-        <span style="font-weight: 600">How to Access from Local Network</span>
+        <span style="font-weight: 600">如何获得本地受信任访问</span>
       </template>
       <ol style="line-height: 2">
-        <li>Connect to your home/office LAN (Wi-Fi or Ethernet).</li>
-        <li>Access the admin panel via the local IP, e.g. <code>http://192.168.x.x:3000/admin</code>.</li>
-        <li>Or via a VPN that routes your traffic into the trusted CIDR range.</li>
-        <li>Your IP will be checked against <code>LOCAL_TRUSTED_CIDRS</code> automatically.</li>
+        <li>连接到配置为受信任的本地网络。</li>
+        <li>通过本地入口访问后台，并重新登录。</li>
+        <li>系统会根据 <code>LOCAL_TRUSTED_CIDRS</code> 自动判定访问环境。</li>
       </ol>
     </el-card>
   </div>
@@ -196,10 +188,7 @@ function originColor(origin: string | undefined): string {
   max-width: 960px;
 }
 
-.local-ops-page h1 {
-  margin-bottom: 24px;
-  font-size: 1.5rem;
-}
+.page-header { margin-bottom: 20px; }.kicker { margin: 0 0 8px; color: #dfb467; font: 11px var(--font-mono); letter-spacing: .14em; }.page-header h1 { margin: 0; color: #edf8fb; font-size: 27px; }.page-header p:not(.kicker) { margin: 8px 0 0; color: #9eb5c2; font-size: 13px; }
 
 .cidr-list {
   margin: 0;
@@ -213,7 +202,7 @@ function originColor(origin: string | undefined): string {
 }
 
 code {
-  background: #f5f7fa;
+  background: rgba(148,184,214,.1);
   padding: 2px 6px;
   border-radius: 3px;
   font-size: 0.85rem;

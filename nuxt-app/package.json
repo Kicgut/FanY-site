@@ -9,7 +9,9 @@
     "preview": "nuxt preview",
     "postinstall": "nuxt prepare",
     "photos:thumbnails": "node scripts/photo-thumbnails.mjs",
-    "test": "node --experimental-strip-types --test tests/**/*.test.ts"
+    "test": "node --experimental-strip-types --test tests/**/*.test.ts",
+    "portfolio:fixture": "node scripts/portfolio-fixture.mjs",
+    "portfolio:preflight": "node scripts/portfolio-release-preflight.mjs"
   },
   "dependencies": {
     "@element-plus/nuxt": "^1.1.5",
@@ -28,7 +30,8 @@
     "qrcode": "1.5.4",
     "sharp": "^0.35.3",
     "vue": "^3.5.0",
-    "vue-router": "^4.5.0"
+    "vue-router": "^4.5.0",
+    "zod": "^3.25.76"
   },
   "devDependencies": {
     "@types/bcryptjs": "^3.0.0",

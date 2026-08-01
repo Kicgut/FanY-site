@@ -543,11 +543,21 @@ export async function publishCandidate(candidateId: number, target: string, acto
         title: candidate.title,
         slug,
         description: candidate.description,
-        content: candidate.content,
         tags: candidate.tagsJson,
+        type: 'project',
+        displayStatus: 'experiment',
         status: 'draft',
-        reviewStatus: 'approved',
+        reviewStatus: 'pending',
         createdBy: String(actorId),
+        blocks: {
+          create: {
+            kind: 'richText',
+            title: candidate.title,
+            payloadJson: JSON.stringify({ markdown: candidate.content }),
+            visibility: 'draft',
+            sortOrder: 0,
+          },
+        },
       },
     })
     await tx.contentPublication.create({

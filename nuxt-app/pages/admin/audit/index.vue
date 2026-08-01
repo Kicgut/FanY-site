@@ -3,6 +3,8 @@ import { ref, reactive, onMounted } from 'vue'
 import { ElMessage } from 'element-plus'
 
 const authFetch = useAuthFetch()
+const route = useRoute()
+const router = useRouter()
 
 definePageMeta({ layout: 'admin' })
 
@@ -34,11 +36,11 @@ const stats = ref<StatsEntry[]>([])
 
 // Filters
 const filters = reactive({
-  action: '',
-  resourceType: '',
-  userId: '',
-  startDate: '',
-  endDate: '',
+  action: typeof route.query.action === 'string' ? route.query.action : '',
+  resourceType: typeof route.query.resourceType === 'string' ? route.query.resourceType : '',
+  userId: typeof route.query.userId === 'string' ? route.query.userId : '',
+  startDate: typeof route.query.startDate === 'string' ? route.query.startDate : '',
+  endDate: typeof route.query.endDate === 'string' ? route.query.endDate : '',
 })
 
 // Detail dialog
@@ -103,6 +105,13 @@ function handleSizeChange(newSize: number) {
 
 function handleSearch() {
   page.value = 1
+  const query: Record<string, string> = {}
+  if (filters.action) query.action = filters.action
+  if (filters.resourceType) query.resourceType = filters.resourceType
+  if (filters.userId) query.userId = filters.userId
+  if (filters.startDate) query.startDate = filters.startDate
+  if (filters.endDate) query.endDate = filters.endDate
+  router.replace({ query })
   fetchLogs()
 }
 
@@ -142,12 +151,12 @@ onMounted(() => {
 
 <template>
   <div class="audit-page">
-    <h2>Audit Logs</h2>
+    <header class="page-header"><div><p class="kicker">SYSTEM / AUDIT</p><h1>审计日志</h1><p>按资源、操作者、行为和时间追溯关键操作；详情仅展示脱敏影响摘要。</p></div></header>
 
     <!-- Stats -->
     <el-card v-if="stats.length" class="stats-card" shadow="never">
       <template #header>
-        <span>Action Statistics</span>
+        <span>近期行为摘要</span>
       </template>
       <el-tag
         v-for="s in stats"
@@ -162,58 +171,58 @@ onMounted(() => {
     <!-- Filters -->
     <el-card class="filter-card" shadow="never">
       <el-form :inline="true" :model="filters" @submit.prevent="handleSearch">
-        <el-form-item label="Action">
-          <el-select v-model="filters.action" clearable placeholder="All actions" style="width: 160px">
+        <el-form-item label="行为">
+          <el-select v-model="filters.action" clearable placeholder="全部行为" style="width: 160px">
             <el-option v-for="a in actionOptions" :key="a" :label="a" :value="a" />
           </el-select>
         </el-form-item>
-        <el-form-item label="Resource">
-          <el-select v-model="filters.resourceType" clearable placeholder="All types" style="width: 130px">
+        <el-form-item label="资源">
+          <el-select v-model="filters.resourceType" clearable placeholder="全部资源" style="width: 130px">
             <el-option v-for="r in resourceTypeOptions" :key="r" :label="r" :value="r" />
           </el-select>
         </el-form-item>
-        <el-form-item label="User ID">
-          <el-input v-model="filters.userId" placeholder="User ID" style="width: 100px" />
+        <el-form-item label="用户 ID">
+          <el-input v-model="filters.userId" placeholder="用户 ID" style="width: 100px" />
         </el-form-item>
-        <el-form-item label="Start">
-          <el-date-picker v-model="filters.startDate" type="datetime" placeholder="Start date" style="width: 180px" value-format="YYYY-MM-DDTHH:mm:ss" />
+        <el-form-item label="开始">
+          <el-date-picker v-model="filters.startDate" type="datetime" placeholder="开始时间" style="width: 180px" value-format="YYYY-MM-DDTHH:mm:ss" />
         </el-form-item>
-        <el-form-item label="End">
-          <el-date-picker v-model="filters.endDate" type="datetime" placeholder="End date" style="width: 180px" value-format="YYYY-MM-DDTHH:mm:ss" />
+        <el-form-item label="结束">
+          <el-date-picker v-model="filters.endDate" type="datetime" placeholder="结束时间" style="width: 180px" value-format="YYYY-MM-DDTHH:mm:ss" />
         </el-form-item>
         <el-form-item>
-          <el-button type="primary" @click="handleSearch">Search</el-button>
-          <el-button @click="handleReset">Reset</el-button>
+          <el-button type="primary" @click="handleSearch">应用筛选</el-button>
+          <el-button @click="handleReset">清除</el-button>
         </el-form-item>
       </el-form>
     </el-card>
 
     <!-- Table -->
-    <el-table :data="logs" v-loading="loading" stripe style="width: 100%">
-      <el-table-column prop="createdAt" label="Time" width="180">
+    <div class="table-surface"><el-table :data="logs" v-loading="loading" stripe style="width: 100%">
+      <el-table-column prop="createdAt" label="时间" width="180">
         <template #default="{ row }">
           {{ formatTime(row.createdAt) }}
         </template>
       </el-table-column>
-      <el-table-column label="User" width="140">
+      <el-table-column label="操作者" width="140">
         <template #default="{ row }">
           {{ row.user?.name || row.userId || '-' }}
         </template>
       </el-table-column>
-      <el-table-column prop="action" label="Action" width="150">
+      <el-table-column prop="action" label="行为" width="150">
         <template #default="{ row }">
           <el-tag size="small">{{ row.action }}</el-tag>
         </template>
       </el-table-column>
-      <el-table-column prop="resourceType" label="Resource Type" width="120" />
-      <el-table-column prop="resourceId" label="Resource ID" width="110" />
+      <el-table-column prop="resourceType" label="资源类型" width="120" />
+      <el-table-column prop="resourceId" label="资源 ID" width="110" />
       <el-table-column prop="ip" label="IP" width="140" />
-      <el-table-column label="Detail" width="80">
+      <el-table-column label="详情" width="80">
         <template #default="{ row }">
-          <el-button size="small" text type="primary" @click="showDetail(row)">View</el-button>
+          <el-button size="small" text type="primary" @click="showDetail(row)">查看</el-button>
         </template>
       </el-table-column>
-    </el-table>
+    </el-table></div>
 
     <!-- Pagination -->
     <div class="pagination-wrapper">
@@ -263,6 +272,8 @@ onMounted(() => {
   max-width: 1200px;
 }
 
+.page-header { margin-bottom: 18px; }.kicker { margin: 0 0 8px; color: #72d9ed; font: 11px var(--font-mono); letter-spacing: .15em; }.page-header h1 { margin: 0; color: #edf8fb; font-size: 27px; }.page-header p:not(.kicker) { margin: 8px 0 0; color: #9eb5c2; font-size: 13px; }
+
 .stats-card {
   margin-bottom: 16px;
 }
@@ -275,6 +286,8 @@ onMounted(() => {
 .filter-card {
   margin-bottom: 16px;
 }
+
+.table-surface { padding: 6px 12px 12px; border: 1px solid rgba(148,184,214,.2); border-radius: 14px; background: rgba(14,26,42,.72); }
 
 .pagination-wrapper {
   display: flex;
@@ -293,12 +306,12 @@ onMounted(() => {
 
 .json-section h4 {
   margin-bottom: 8px;
-  color: #303133;
+  color: #dcecf3;
 }
 
 .json-block {
-  background: #f5f7fa;
-  border: 1px solid #e4e7ed;
+  background: rgba(6,16,28,.55);
+  border: 1px solid rgba(148,184,214,.18);
   border-radius: 4px;
   padding: 12px;
   font-size: 12px;
@@ -311,4 +324,6 @@ onMounted(() => {
   font-size: 12px;
   word-break: break-all;
 }
+
+@media (max-width: 720px) { .filter-card :deep(.el-form) { display: grid; }.filter-card :deep(.el-form-item) { margin-right: 0; }.table-surface { padding: 6px; overflow: auto; }.table-surface :deep(.el-table) { min-width: 840px; }.pagination-wrapper { justify-content: flex-start; overflow: auto; } }
 </style>

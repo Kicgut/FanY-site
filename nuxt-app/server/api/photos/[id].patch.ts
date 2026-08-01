@@ -63,9 +63,13 @@ export default defineEventHandler(async (event) => {
       albumIds: body.albumIds,
     }, actor)
   } else if (isAdmin && body.reviewStatus === 'rejected') {
-    updated = await rejectPhoto(id, String(body.reviewNote || ''), actor)
+    const reviewNote = String(body.reviewNote || '').trim()
+    if (!reviewNote) throw createError({ statusCode: 400, message: '拒绝照片时必须填写原因' })
+    updated = await rejectPhoto(id, reviewNote, actor)
   } else if (isAdmin && body.reviewStatus === 'needs_edit') {
-    updated = await requestPhotoEdit(id, String(body.reviewNote || ''), actor)
+    const reviewNote = String(body.reviewNote || '').trim()
+    if (!reviewNote) throw createError({ statusCode: 400, message: '要求修改时必须填写说明' })
+    updated = await requestPhotoEdit(id, reviewNote, actor)
   } else {
     if (isAdmin && ['pending', 'approved', 'rejected', 'needs_edit'].includes(body.reviewStatus)) {
       data.reviewStatus = body.reviewStatus

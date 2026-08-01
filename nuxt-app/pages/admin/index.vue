@@ -1,32 +1,32 @@
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
-
+import { computed } from 'vue'
 definePageMeta({ layout: 'admin' })
-
-const user = ref<{ id: number; name: string; username: string; role: string } | null>(null)
-
-onMounted(() => {
-  try {
-    user.value = JSON.parse(localStorage.getItem('user') || 'null')
-  } catch {
-    user.value = null
-  }
-})
+const authFetch = useAuthFetch()
+const { data, status, error, refresh } = await useAsyncData('admin-overview', () => authFetch<any>('/api/admin/overview'))
+const overview = computed(() => data.value?.data)
+const pendingTotal = computed(() => (overview.value?.pendingPhotos || 0) + (overview.value?.pendingCandidates || 0) + (overview.value?.failedJobs || 0))
+const formatTime = (value: string) => new Intl.DateTimeFormat('zh-CN', { month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit' }).format(new Date(value))
+const queues = computed(() => [
+  { label: '照片待审核', detail: '完成审核不会自动公开照片', count: overview.value?.pendingPhotos || 0, to: '/admin/photos?review=pending', action: '处理审核' },
+  { label: '内容待审核', detail: '批准后仅生成正式内容草稿', count: overview.value?.pendingCandidates || 0, to: '/admin/content-pipeline?status=submitted', action: '查看候选' },
+  { label: '失败任务', detail: '查看错误摘要后再决定是否重试', count: overview.value?.failedJobs || 0, to: '/admin/jobs?status=failed', action: '查看任务' },
+])
 </script>
 
 <template>
-  <div>
-    <h1>Admin Dashboard</h1>
-
-    <el-card v-if="user" style="max-width: 400px; margin-top: 20px">
-      <template #header>
-        <span>User Info</span>
-      </template>
-      <el-descriptions :column="1" border>
-        <el-descriptions-item label="Name">{{ user.name }}</el-descriptions-item>
-        <el-descriptions-item label="Username">{{ user.username }}</el-descriptions-item>
-        <el-descriptions-item label="Role">{{ user.role }}</el-descriptions-item>
-      </el-descriptions>
-    </el-card>
-  </div>
+  <section class="control-room">
+    <header class="page-header"><div><p class="kicker">CONTROL / ROOM</p><h1>今日工作概览</h1><p>优先处理需要人工决定的审核与异常，所有高风险操作仍受访问环境限制。</p></div><el-button :loading="status === 'pending'" @click="refresh">刷新概览</el-button></header>
+    <el-alert v-if="error" type="error" title="概览数据加载失败，请刷新后重试" show-icon :closable="false" />
+    <el-skeleton v-if="status === 'pending'" :rows="8" animated />
+    <template v-else>
+      <div :class="['environment-strip', { trusted: overview?.origin === 'local_trusted' }]"><span class="signal" /><div><strong>{{ overview?.origin === 'local_trusted' ? '本地受信任环境' : '远程受限环境' }}</strong><span>{{ overview?.origin === 'local_trusted' ? '可在权限许可下执行本地高权限操作。' : '删除、技能同步等高风险操作不可用，请在本地受信任网络访问。' }}</span></div><NuxtLink v-if="overview?.origin !== 'local_trusted'" to="/admin/local-ops">查看权限说明</NuxtLink></div>
+      <div class="dashboard-grid"><section class="queue-panel"><div class="panel-head"><div><h2>待处理队列</h2><p>{{ pendingTotal ? `当前有 ${pendingTotal} 项需要关注` : '当前没有需要处理的事项' }}</p></div><span class="total-count">{{ pendingTotal }}</span></div><div class="queue-list"><NuxtLink v-for="queue in queues" :key="queue.label" :to="queue.to" class="queue-item"><div><strong>{{ queue.label }}</strong><span>{{ queue.detail }}</span></div><b>{{ queue.count }}</b><em>{{ queue.action }} →</em></NuxtLink></div></section>
+        <aside class="health-panel"><h2>系统健康</h2><div class="health-row"><span>运行中任务</span><strong>{{ overview?.runningJobs || 0 }}</strong></div><div class="health-row"><span>失败任务</span><strong :class="{ warning: overview?.failedJobs }">{{ overview?.failedJobs || 0 }}</strong></div><NuxtLink to="/admin/storage" class="health-link">查看存储与回流状态 →</NuxtLink><div class="quick-actions"><span>快捷操作</span><NuxtLink to="/admin/articles/new">新建文章</NuxtLink><NuxtLink to="/admin/albums">创建相册</NuxtLink></div></aside></div>
+      <section class="activity-panel"><div class="panel-head"><div><h2>最近活动</h2><p>仅展示脱敏的资源与操作摘要。</p></div><NuxtLink to="/admin/audit">查看审计日志 →</NuxtLink></div><div v-if="overview?.recentAudit?.length" class="activity-list"><div v-for="item in overview.recentAudit" :key="item.id" class="activity-item"><span class="activity-dot" /><div><strong>{{ item.action }}</strong><span>{{ item.resourceType }}{{ item.resourceId ? ` #${item.resourceId}` : '' }} · {{ item.actor }}</span></div><time>{{ formatTime(item.createdAt) }}</time></div></div><el-empty v-else description="还没有可显示的审计记录" /></section>
+    </template>
+  </section>
 </template>
+
+<style scoped>
+.control-room{max-width:1280px}.page-header,.panel-head{display:flex;align-items:flex-start;justify-content:space-between;gap:20px}.page-header{margin-bottom:20px}.kicker{margin:0 0 8px;color:#72d9ed;font:11px var(--font-mono);letter-spacing:.15em}.page-header h1{margin:0;color:#eff9fc;font-size:28px;letter-spacing:-.03em}.page-header p:not(.kicker),.panel-head p{margin:8px 0 0;color:#9eb5c2;font-size:13px;line-height:1.6}.environment-strip{display:flex;align-items:center;gap:12px;margin-bottom:20px;padding:13px 16px;border:1px solid rgba(211,164,88,.3);border-radius:12px;color:#e1c284;background:rgba(128,87,30,.12)}.environment-strip.trusted{border-color:rgba(67,198,172,.3);color:#87e0cf;background:rgba(31,128,111,.12)}.signal{width:9px;height:9px;border-radius:50%;background:currentColor;box-shadow:0 0 14px currentColor}.environment-strip div{display:grid;gap:3px;flex:1}.environment-strip span{font-size:12px}.environment-strip a{color:inherit;font-size:12px}.dashboard-grid{display:grid;grid-template-columns:minmax(0,1.45fr) minmax(270px,.7fr);gap:18px}.queue-panel,.health-panel,.activity-panel{border:1px solid rgba(148,184,214,.2);border-radius:14px;background:rgba(14,26,42,.74);box-shadow:inset 0 1px rgba(226,246,251,.04)}.queue-panel,.health-panel{padding:20px}.panel-head h2,.health-panel h2{margin:0;color:#e7f4f8;font-size:16px}.total-count{display:grid;width:34px;height:34px;place-items:center;border-radius:10px;color:#9deafa;background:rgba(70,197,226,.12);font:14px var(--font-mono)}.queue-list{margin-top:16px;border-top:1px solid rgba(148,184,214,.16)}.queue-item{display:grid;grid-template-columns:minmax(0,1fr) 30px 78px;align-items:center;gap:14px;padding:15px 0;border-bottom:1px solid rgba(148,184,214,.13);color:inherit;text-decoration:none}.queue-item:hover strong,.queue-item:hover em{color:#91e7f8}.queue-item div{display:grid;gap:4px}.queue-item strong{font-size:14px}.queue-item span{color:#8ea7b6;font-size:12px}.queue-item b{color:#dff9ff;font:16px var(--font-mono);text-align:right}.queue-item em{color:#abc5d0;font-size:12px;font-style:normal;text-align:right}.health-panel{display:grid;align-content:start;gap:14px}.health-row{display:flex;justify-content:space-between;padding:11px 0;border-bottom:1px solid rgba(148,184,214,.14);color:#a8bfca;font-size:13px}.health-row strong{color:#89e3d3;font:15px var(--font-mono)}.health-row strong.warning{color:#e4b56e}.health-link{color:#8ddff2;font-size:12px;text-decoration:none}.quick-actions{display:grid;gap:8px;margin-top:8px;padding-top:14px;border-top:1px solid rgba(148,184,214,.14)}.quick-actions span{color:#7993a2;font:10px var(--font-mono);letter-spacing:.12em}.quick-actions a{color:#d6e8ee;font-size:13px;text-decoration:none}.activity-panel{margin-top:18px;padding:20px}.panel-head>a{color:#8edff1;font-size:12px;text-decoration:none}.activity-list{margin-top:16px;border-top:1px solid rgba(148,184,214,.14)}.activity-item{display:grid;grid-template-columns:10px minmax(0,1fr) auto;gap:10px;align-items:center;padding:12px 0;border-bottom:1px solid rgba(148,184,214,.12)}.activity-dot{width:6px;height:6px;border-radius:50%;background:#5ccde5}.activity-item div{display:grid;gap:3px}.activity-item strong{font-size:13px}.activity-item span,.activity-item time{color:#8ba4b3;font-size:12px}.activity-item time{font-family:var(--font-mono)}@media(max-width:800px){.dashboard-grid{grid-template-columns:1fr}.environment-strip{align-items:flex-start}.environment-strip a{white-space:nowrap}.page-header{flex-direction:column}.queue-item{grid-template-columns:minmax(0,1fr) 24px}.queue-item em{display:none}.activity-item{grid-template-columns:10px minmax(0,1fr)}.activity-item time{grid-column:2}.activity-panel{padding:16px}}
+</style>

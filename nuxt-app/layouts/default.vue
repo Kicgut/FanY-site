@@ -43,7 +43,7 @@ async function handleLogout() {
 </script>
 
 <template>
-  <div :class="['site-shell', { 'is-home': route.path === '/', 'is-blog': route.path.startsWith('/blog'), 'is-archive': route.path.startsWith('/albums') || route.path.startsWith('/photos'), 'has-public-nav': !route.path.startsWith('/photos/'), 'is-viewer': route.path.startsWith('/photos/') }]">
+  <div :class="['site-shell', { 'is-home': route.path === '/', 'is-blog': route.path.startsWith('/blog'), 'is-portfolio': route.path.startsWith('/portfolio'), 'is-about': route.path === '/about', 'is-archive': route.path.startsWith('/albums') || route.path.startsWith('/photos'), 'has-public-nav': !route.path.startsWith('/photos/'), 'is-viewer': route.path.startsWith('/photos/') }]">
     <header class="site-header">
       <div class="header-inner">
         <NuxtLink to="/" class="brand" aria-label="返回首页">
@@ -327,6 +327,8 @@ async function handleLogout() {
 .site-shell.has-public-nav .online-status i { width: 8px; height: 8px; border-radius: 50%; background: #5bd2f3; box-shadow: 0 0 12px #5bd2f3; }
 .site-shell.has-public-nav .site-footer { border-top-color: rgba(163, 196, 211, .2); color: #77909f; }
 .site-shell.has-public-nav .footer-note { color: #8ca3b0; }
+.site-shell.is-portfolio,
+.site-shell.is-about { background: #061321; color: #dce9ee; }
 
 .site-shell.is-blog { background: #061322; color: #e9f2f5; }
 .site-shell.is-archive { background: #061321; color: #dce9ee; }

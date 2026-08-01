@@ -43,6 +43,14 @@ releases/
 !docs/**/*.jpg
 !docs/**/*.jpeg
 !docs/**/*.png
+!docs/**/*.webp
+!docs/**/*.gif
+
+# Frontend static UI assets are source-controlled, not runtime uploads.
+!nuxt-app/public/images/
+!nuxt-app/public/images/**
+!nuxt-app/assets/images/
+!nuxt-app/assets/images/**
 
 # === Runtime article/content-pipeline data; mounted volumes, never tracked ===
 content/inbox/

@@ -14,9 +14,9 @@ interface PortfolioItem {
   slug: string
   title: string
   description?: string | null
-  coverImage?: string | null
-  tags?: string | null
-  category?: string | null
+  cover?: { url?: string | null } | null
+  labels?: string[]
+  type?: string
   featured: boolean
 }
 
@@ -33,11 +33,11 @@ interface Album {
 const { data: articleResponse } = await useFetch<{ articles: Article[] }>('/api/articles', {
   query: { status: 'published', limit: 1 },
 })
-const { data: portfolioResponse } = await useFetch<{ success: boolean; data: PortfolioItem[] }>('/api/portfolio')
+const { data: portfolioResponse } = await useFetch<{ success: boolean; data: { items: PortfolioItem[] } }>('/api/portfolio')
 const { data: albumResponse } = await useFetch<{ success: boolean; data: Album[] }>('/api/albums/public')
 
 const latestArticle = computed(() => articleResponse.value?.articles?.[0] || null)
-const featuredWork = computed(() => portfolioResponse.value?.data?.find(item => item.featured) || portfolioResponse.value?.data?.[0] || null)
+const featuredWork = computed(() => portfolioResponse.value?.data?.items?.find(item => item.featured) || portfolioResponse.value?.data?.items?.[0] || null)
 const latestAlbum = computed(() => albumResponse.value?.data?.[0] || null)
 const companionPaused = ref(false)
 const homeAssets = {
@@ -64,7 +64,7 @@ const formatDate = (value?: string | null) => value
   ? new Date(value).toLocaleDateString('zh-CN', { year: 'numeric', month: '2-digit', day: '2-digit' }).replace(/\//g, ' / ')
   : '最近更新'
 
-const workTags = (item?: PortfolioItem | null) => (item?.tags || '').split(',').map(tag => tag.trim()).filter(Boolean).slice(0, 3)
+const workTags = (item?: PortfolioItem | null) => (item?.labels || []).slice(0, 3)
 
 useHead({ title: '首页' })
 useSeoMeta({
@@ -116,8 +116,8 @@ useSeoMeta({
         <section class="content-panel work-panel">
           <div class="panel-heading"><span>SELECTED PROJECTS</span><NuxtLink to="/portfolio">更多 <b>→</b></NuxtLink></div>
           <NuxtLink v-if="featuredWork" :to="`/portfolio/${featuredWork.slug}`" class="work-feature">
-            <div class="work-thumb"><img v-if="featuredWork.coverImage" :src="featuredWork.coverImage" :alt="featuredWork.title" loading="lazy"><span v-else>◌</span></div>
-            <div class="panel-copy"><h2>{{ featuredWork.title }}</h2><p>{{ featuredWork.description || '项目、实验与内容系统的精选记录。' }}</p><div class="panel-meta"><span v-for="tag in workTags(featuredWork)" :key="tag">{{ tag }}</span><span v-if="featuredWork.category">{{ featuredWork.category }}</span></div></div>
+            <div class="work-thumb"><img v-if="featuredWork.cover?.url" :src="featuredWork.cover.url" :alt="featuredWork.title" loading="lazy"><span v-else>◌</span></div>
+            <div class="panel-copy"><h2>{{ featuredWork.title }}</h2><p>{{ featuredWork.description || '项目、实验与内容系统的精选记录。' }}</p><div class="panel-meta"><span v-for="tag in workTags(featuredWork)" :key="tag">{{ tag }}</span><span v-if="featuredWork.type">{{ featuredWork.type }}</span></div></div>
           </NuxtLink>
           <NuxtLink v-else to="/portfolio" class="empty-panel">作品正在整理中，去作品集看看 →</NuxtLink>
         </section>

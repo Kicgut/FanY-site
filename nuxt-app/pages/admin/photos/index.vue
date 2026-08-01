@@ -1,15 +1,18 @@
 <script setup lang="ts">
-import { ElMessage } from 'element-plus'
+import { ElMessage, ElMessageBox } from 'element-plus'
 
 definePageMeta({ layout: 'admin' })
 
 const authFetch = useAuthFetch()
 const isAdmin = computed(() => { try { const role = JSON.parse(localStorage.getItem('user') || '{}').role; return role === 'admin' || role === 'superadmin' } catch { return false } })
+const route = useRoute()
+const router = useRouter()
 
-const search = ref('')
-const statusFilter = ref('')
-const reviewFilter = ref('')
-const visibilityFilter = ref('')
+const queryValue = (key: string, fallback = '') => typeof route.query[key] === 'string' ? route.query[key] : fallback
+const search = ref(queryValue('q'))
+const statusFilter = ref(queryValue('status'))
+const reviewFilter = ref(queryValue('review', 'pending'))
+const visibilityFilter = ref(queryValue('visibility'))
 const busy = ref<number | null>(null)
 const retryBusy = ref(false)
 
@@ -30,6 +33,22 @@ const { data, status, error, refresh } = await useAsyncData(
 const photos = computed(() => data.value?.photos || [])
 const { data: groupData } = await useAsyncData('photo-groups', () => authFetch<{ success: boolean; data: { id: number; name: string }[] }>('/api/admin/groups'))
 const groups = computed(() => groupData.value?.data ?? [])
+
+watch([search, statusFilter, reviewFilter, visibilityFilter], () => {
+  const query: Record<string, string> = {}
+  if (search.value.trim()) query.q = search.value.trim()
+  if (statusFilter.value) query.status = statusFilter.value
+  if (reviewFilter.value) query.review = reviewFilter.value
+  if (visibilityFilter.value) query.visibility = visibilityFilter.value
+  router.replace({ query })
+})
+
+watch(() => route.query, () => {
+  if (queryValue('q') !== search.value) search.value = queryValue('q')
+  if (queryValue('status') !== statusFilter.value) statusFilter.value = queryValue('status')
+  if (queryValue('review', 'pending') !== reviewFilter.value) reviewFilter.value = queryValue('review', 'pending')
+  if (queryValue('visibility') !== visibilityFilter.value) visibilityFilter.value = queryValue('visibility')
+})
 
 function displayGroups(values: unknown): string[] {
   return Array.isArray(values) ? values.map(String).map((value) => value.replace(/^group:/, '')) : []
@@ -88,9 +107,20 @@ async function updatePhoto(photo: any, field: 'status' | 'visibility', value: st
 }
 
 async function reviewPhoto(photo: any, reviewStatus: string) {
+  let reviewNote = ''
+  if (reviewStatus === 'rejected' || reviewStatus === 'needs_edit') {
+    try {
+      const result = await ElMessageBox.prompt(
+        reviewStatus === 'rejected' ? '请说明拒绝原因，上传者将据此处理。' : '请说明需要修改的内容。',
+        reviewStatus === 'rejected' ? '拒绝照片' : '要求修改',
+        { inputType: 'textarea', inputPlaceholder: '请输入原因', inputValidator: value => value.trim() ? true : '请填写原因', confirmButtonText: '确认', cancelButtonText: '取消' },
+      )
+      reviewNote = result.value.trim()
+    } catch { return }
+  }
   busy.value = photo.id
   try {
-    await authFetch(`/api/photos/${photo.id}`, { method: 'PATCH', body: { reviewStatus } })
+    await authFetch(`/api/photos/${photo.id}`, { method: 'PATCH', body: { reviewStatus, ...(reviewNote ? { reviewNote } : {}) } })
     photo.reviewStatus = reviewStatus
     photo.status = reviewStatus === 'approved' ? 'published' : 'hidden'
     ElMessage.success(reviewStatus === 'approved' ? '审核已通过' : '审核状态已更新')
@@ -151,10 +181,7 @@ function authImageUrl(url?: string | null) {
       <div>
         <div class="eyebrow">MEDIA / CONTROL ROOM</div>
         <h2>照片管理</h2>
-        <p>
-          这里负责单张照片的展示状态与可见范围。
-          相册归属与批量收纳在“相册管理”里完成。
-        </p>
+        <p>先处理待审核与回流失败，再调整展示状态和可见范围；相册归属在“相册管理”中完成。</p>
       </div>
       <div class="header-actions"><el-button :loading="retryBusy" @click="retryBackflow">重试失败回流</el-button><el-button @click="refresh">刷新</el-button></div>
     </div>
@@ -162,7 +189,7 @@ function authImageUrl(url?: string | null) {
     <el-alert
       class="hint"
       title="操作说明"
-      description="鼠标悬停可查看动作用途。预览会优先使用中图；原图只在明确点击后加载。"
+      description="审核通过仅代表允许进入展示流程，不会自动公开。预览优先使用中图；原图只在明确点击后加载。"
       type="info"
       show-icon
       :closable="false"
@@ -288,6 +315,14 @@ function authImageUrl(url?: string | null) {
 
       <el-empty v-if="status !== 'pending' && !photos.length" description="没有符合条件的照片" />
     </div>
+
+    <div v-if="status !== 'pending' && photos.length" class="mobile-photo-list">
+      <article v-for="photo in photos" :key="photo.id" class="mobile-photo-card">
+        <img :src="authImageUrl(photo.thumbnailUrl || photo.mediumUrl || photo.originalUrl)" :alt="photo.title" />
+        <div class="mobile-photo-copy"><div><strong>{{ photo.title }}</strong><span>{{ photo.filename }}</span></div><div class="mobile-status"><el-tag size="small" :type="photo.reviewStatus === 'pending' ? 'warning' : photo.reviewStatus === 'approved' ? 'success' : 'info'">{{ label(photo.reviewStatus) }}</el-tag><span>{{ label(photo.visibility) }}</span></div><div class="mobile-actions"><el-button size="small" @click="openPreview(photo)">预览</el-button><el-button v-if="isAdmin && photo.reviewStatus === 'pending'" size="small" type="success" :loading="busy === photo.id" @click="reviewPhoto(photo, 'approved')">通过</el-button><el-button v-if="isAdmin && photo.reviewStatus === 'pending'" size="small" type="danger" plain :loading="busy === photo.id" @click="reviewPhoto(photo, 'rejected')">拒绝</el-button><NuxtLink :to="`/admin/albums`">相册归属</NuxtLink></div></div>
+      </article>
+    </div>
+    <el-empty v-if="status !== 'pending' && !photos.length" class="mobile-empty" description="没有符合条件的照片" />
 
     <el-dialog v-model="previewVisible" width="min(92vw, 1080px)" class="preview-dialog">
       <template #header>
@@ -541,8 +576,11 @@ function authImageUrl(url?: string | null) {
     flex-direction: column;
   }
 
-  .table-wrap {
-    overflow: auto;
-  }
+  .table-wrap { display: none; }
+  .mobile-photo-list { display: grid; gap: 12px; }
+  .mobile-photo-card { display: grid; grid-template-columns: 108px minmax(0,1fr); overflow: hidden; border: 1px solid rgba(148,184,214,.2); border-radius: 12px; background: rgba(14,26,42,.72); }.mobile-photo-card > img { width: 108px; height: 122px; object-fit: cover; background: var(--color-bg-secondary); }.mobile-photo-copy { display: grid; align-content: space-between; gap: 10px; padding: 12px; min-width: 0; }.mobile-photo-copy strong,.mobile-photo-copy span { display: block; }.mobile-photo-copy strong { color: #e4f3f8; font-size: 13px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }.mobile-photo-copy > div > span { margin-top: 4px; color: #91a9b7; font: 11px var(--font-mono); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }.mobile-status { display: flex; align-items: center; gap: 8px; }.mobile-status > span { margin: 0!important; }.mobile-actions { display: flex; align-items: center; flex-wrap: wrap; gap: 6px; }.mobile-actions a { color: #86dff1; font-size: 12px; text-decoration: none; }
 }
+
+@media (min-width: 701px) { .mobile-photo-list { display: none; } }
+@media (min-width: 701px) { .mobile-empty { display: none; } }
 </style>

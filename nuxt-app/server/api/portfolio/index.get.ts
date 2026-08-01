@@ -1,7 +1,6 @@
-export default defineEventHandler(async () => {
-  const items = await prisma.portfolio.findMany({
-    where: { status: 'published', reviewStatus: 'approved' },
-    orderBy: [{ featured: 'desc' }, { order: 'asc' }, { createdAt: 'desc' }],
-  })
-  return { success: true, data: items }
+import { getPublicPortfolioList } from '~/server/services/portfolio'
+
+export default defineEventHandler(async (event) => {
+  const data = await getPublicPortfolioList(getQuery(event))
+  return { success: true, data }
 })

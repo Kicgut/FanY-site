@@ -1,48 +1,17 @@
 <script setup lang="ts">
-import { onMounted, ref } from 'vue'
+import { computed, onMounted, ref } from 'vue'
 import { ElMessage } from 'element-plus'
-
 definePageMeta({ layout: 'admin' })
-const authFetch = useAuthFetch()
-const jobs = ref<any[]>([])
-const loading = ref(false)
-
-async function loadJobs() {
-  loading.value = true
-  try { jobs.value = (await authFetch<any>('/api/admin/content-pipeline/jobs')).data || [] }
-  catch (error: any) { ElMessage.error(error?.data?.message || '加载任务失败') }
-  finally { loading.value = false }
-}
-
-async function action(job: any, operation: 'run' | 'retry' | 'cancel') {
-  try {
-    await authFetch(`/api/admin/content-pipeline/jobs/${job.id}`, { method: 'PATCH', body: { action: operation } })
-    ElMessage.success(operation === 'run' ? '任务已执行' : operation === 'retry' ? '任务已重新排队' : '任务已取消')
-    await loadJobs()
-  } catch (error: any) { ElMessage.error(error?.data?.message || '任务操作失败') }
-}
-
+const authFetch = useAuthFetch(); const route = useRoute(); const router = useRouter()
+const jobs = ref<any[]>([]); const loading = ref(false); const active = ref(typeof route.query.status === 'string' ? route.query.status : 'active')
+const labels: Record<string, string> = { pending: '排队中', running: '运行中', failed: '失败', completed_with_errors: '完成但有错误', completed: '已完成', cancelled: '已取消' }
+const filtered = computed(() => active.value === 'active' ? jobs.value.filter(job => ['pending', 'running'].includes(job.status)) : active.value === 'failed' ? jobs.value.filter(job => ['failed', 'completed_with_errors'].includes(job.status)) : jobs.value.filter(job => !['pending', 'running', 'failed', 'completed_with_errors'].includes(job.status)))
+watch(active, value => router.replace({ query: value === 'active' ? {} : { status: value } }))
+async function loadJobs() { loading.value = true; try { jobs.value = (await authFetch<any>('/api/admin/content-pipeline/jobs')).data || [] } catch (error: any) { ElMessage.error(error?.data?.message || '加载任务失败') } finally { loading.value = false } }
+async function action(job: any, operation: 'run' | 'retry' | 'cancel') { try { await authFetch(`/api/admin/content-pipeline/jobs/${job.id}`, { method: 'PATCH', body: { action: operation } }); ElMessage.success(operation === 'run' ? '任务已开始执行' : operation === 'retry' ? '任务已重新排队' : '任务已取消'); await loadJobs() } catch (error: any) { ElMessage.error(error?.data?.message || '任务操作失败') } }
 onMounted(loadJobs)
 </script>
 
-<template>
-  <div class="page">
-    <div class="header"><div><h2>Jobs 运维</h2><p>查看内容流水线任务，执行、重试或取消操作。</p></div><el-button :loading="loading" @click="loadJobs">刷新</el-button></div>
-    <el-table v-loading="loading" :data="jobs" stripe border>
-      <el-table-column prop="id" label="ID" width="80" />
-      <el-table-column prop="type" label="类型" min-width="190" />
-      <el-table-column prop="status" label="状态" width="170" />
-      <el-table-column prop="attempts" label="尝试次数" width="110" />
-      <el-table-column prop="createdAt" label="创建时间" width="190" />
-      <el-table-column label="操作" width="240" fixed="right">
-        <template #default="{ row }">
-          <el-button v-if="row.status === 'pending'" type="primary" text @click="action(row, 'run')">执行</el-button>
-          <el-button v-if="['failed', 'completed_with_errors', 'cancelled'].includes(row.status)" type="warning" text @click="action(row, 'retry')">重试</el-button>
-          <el-button v-if="['pending', 'running'].includes(row.status)" type="danger" text @click="action(row, 'cancel')">取消</el-button>
-        </template>
-      </el-table-column>
-    </el-table>
-  </div>
-</template>
+<template><section class="jobs-page"><header class="page-header"><div><p class="kicker">SYSTEM / JOBS</p><h1>任务中心</h1><p>从异常原因进入重试或安全退出；任务会在页面离开后持续追踪。</p></div><el-button :loading="loading" @click="loadJobs">刷新</el-button></header><el-tabs v-model="active" class="job-tabs"><el-tab-pane label="运行中" name="active" /><el-tab-pane label="失败与异常" name="failed" /><el-tab-pane label="已完成" name="completed" /></el-tabs><div class="jobs-surface"><el-table v-loading="loading" :data="filtered" :empty-text="active === 'failed' ? '当前没有失败任务' : '当前没有任务'" class="jobs-table"><el-table-column prop="type" label="任务" min-width="200" /><el-table-column label="状态" width="150"><template #default="{ row }"><span :class="['status', row.status]">{{ labels[row.status] || row.status }}</span></template></el-table-column><el-table-column label="进度 / 尝试" width="130"><template #default="{ row }">{{ row.attempts || 0 }} 次尝试</template></el-table-column><el-table-column label="最后错误" min-width="240"><template #default="{ row }"><span class="error-summary">{{ row.error || '—' }}</span></template></el-table-column><el-table-column label="操作" width="150" fixed="right"><template #default="{ row }"><el-button v-if="row.status === 'pending'" type="primary" text @click="action(row, 'run')">执行</el-button><el-button v-if="['failed', 'completed_with_errors', 'cancelled'].includes(row.status)" type="warning" text @click="action(row, 'retry')">重试</el-button><el-button v-if="['pending', 'running'].includes(row.status)" type="danger" text @click="action(row, 'cancel')">取消</el-button></template></el-table-column></el-table></div></section></template>
 
-<style scoped>.page{width:100%}.header{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:20px}.header h2{margin:0 0 6px}.header p{margin:0;color:#667085}</style>
+<style scoped>.jobs-page{max-width:1280px}.page-header{display:flex;justify-content:space-between;align-items:flex-start;gap:16px;margin-bottom:16px}.kicker{margin:0 0 8px;color:#72d9ed;font:11px var(--font-mono);letter-spacing:.15em}.page-header h1{margin:0;color:#edf8fb;font-size:27px}.page-header p:not(.kicker){margin:8px 0 0;color:#9bb3bf;font-size:13px}.job-tabs{margin-bottom:12px}.jobs-surface{padding:6px 12px 14px;border:1px solid rgba(148,184,214,.2);border-radius:14px;background:rgba(14,26,42,.72)}.status{display:inline-flex;padding:3px 8px;border-radius:999px;background:rgba(148,184,214,.1);color:#b9cbd4;font-size:12px}.status.running{color:#92e5f5;background:rgba(58,190,221,.13)}.status.failed,.status.completed_with_errors{color:#edbd75;background:rgba(180,118,39,.13)}.status.completed{color:#91dec9;background:rgba(44,156,132,.13)}.error-summary{color:#a7bac5;font:12px var(--font-mono)}@media(max-width:700px){.page-header{flex-direction:column}.jobs-surface{padding:6px;overflow:auto}.jobs-table{min-width:680px}}</style>
