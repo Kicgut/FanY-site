@@ -1,92 +1,80 @@
 ---
 name: server-infrastructure
-description: 项目两台服务器的职责边界、照片数据流、SSH 连接和安全操作规范。
+description: 维护本项目双服务器基础设施、生产部署、FRP 链路或照片存储与同步时使用。覆盖 ECS 网站服务器与 Ubuntu 服务器 A 的职责边界、实际目录、SSH 检查、镜像发布和高风险操作约束。
 ---
 
-# Server Infrastructure Skill
+# 双服务器基础设施
 
-本 skill 用于处理本项目的 ECS 网站服务器与 Ubuntu 原图服务器。执行任何远程命令前，先判断目标机器和操作范围，不能把两台服务器视为同一台主机。
+将 ECS（公网网站）和 Ubuntu 服务器 A（原图与本地高信任服务）视为独立主机。执行远程命令前，确认目标机器、绝对路径、影响范围和验证方式；不要因两台主机共享仓库而混用其职责。
 
-## 共享仓库与部署模型
+## 当前仓库和运行目录
 
-本项目是一个同时服务两台生产服务器的 monorepo。两台服务器都可以拉取同一个 Git 仓库，但不要求运行仓库中的全部代码：
+仓库根目录的 Nuxt 应用位于 `nuxt-app/`。其中的 `docker-compose.yml`、`Dockerfile`、`server/`、`prisma/`、`scripts/` 与 `config/` 是应用和运维配置的来源；根目录的 `docs/`、`.codex/` 与 `scripts/` 为项目级文档、技能和辅助脚本。
 
-- ECS 运行网站、API、Docker、Nginx、frps，以及 ECS 需要的照片缩略图/临时原图能力。
-- Ubuntu 运行原图服务、备份、Skills API、frpc 和其他本地高信任服务。
-- 仓库允许存在对另一台服务器有用但当前机器不运行的冗余代码；代码归属通过配置、systemd、Docker Compose 和启动命令决定。
-- 开发机是主要构建环境。ECS 资源紧张，生产镜像应在开发机完成 `docker build`，再通过受控传输把镜像/构建产物送到 ECS 部署。
-- Ubuntu 资源相对充足，且网站主进程不在 Ubuntu；Ubuntu 可以拉取仓库代码，并只启用需要的 systemd 服务。
-
-生产机器应尽量保持少量本地修改：代码、脚本、service 模板和 compose 配置进入 Git；真实 `.env`、token、数据库、照片、日志和备份留在服务器外部配置/数据目录。
-
-禁止直接在 ECS 上进行源码开发或大规模修改。只有紧急、低风险的配置或文本修复才可临时修改；修改后必须立即记录原因、执行 `git diff`、提交到独立提交并 push，不能让生产工作区长期漂移。ECS 的运行目录必须保持仓库的 `nuxt-app/` 布局，不得把应用代码平铺到仓库根目录运行。
-
-## Git 忽略边界
-
-- `photos/`、`thumbnails/`、`uploads/`、`public/uploads/`、`data/`、`backups/`、`releases/` 和数据库文件默认不跟踪。
-- JPG、PNG、WebP、RAW、视频等用户媒体扩展名全局忽略，防止上传文件被误加到 Git。
-- `content/inbox/`、`content/raw/`、`content/generated/`、`content/drafts/` 和 `data/content-pipeline/` 是运行时输入或候选内容，默认不跟踪。
-- 动态博客正文位于 ECS 挂载卷 `data/blog-md/`，内容流水线位于 `data/content-pipeline/`，两者都不进入 Git；当前不使用 `content/blog/` 作为发布目录。
-- 修改 ignore 规则后必须用 `git check-ignore -v <path>` 验证，并检查 `git status --ignored`，不能只凭目录名称猜测。
-
-推荐发布路径：
+ECS 的应用 Compose 从 `/opt/personal-website/nuxt-app/docker-compose.yml` 运行。按该 Compose 的相对挂载，持久化目录为：
 
 ```text
-开发机修改 → 本地验证 → Git commit/push
-                         ├─ ECS：开发机 build 镜像 → 传输镜像 → compose 部署
-                         └─ Ubuntu：git pull → 安装/重载需要的 service → 验证
+/opt/personal-website/
+├── nuxt-app/                 # Compose 文件和受版本控制的部署配置
+├── data/prod.db              # 宿主机数据库
+├── uploads/                  # 运行时上传文件
+│   └── photos/
+│       ├── ecs-originals/    # 临时原图
+│       └── thumbnails/       # 缩略图和中图
+├── backups/                  # 容器挂载的备份目录
+└── releases/                 # 已校验的镜像包与校验文件
 ```
 
-不要在 ECS 上直接 `npm install`、`pnpm build` 或编译大型依赖；不要在 Ubuntu 上启动公网网站容器。
+容器内的对应关系是：`/app/data` ← `../data`、`/app/public/uploads` 和 `/app/.output/public/uploads` ← 同一个 `../uploads`、`/app/backups` ← `../backups`。不要把容器路径 `/app/...` 写成 ECS 宿主机路径，也不要使用已废弃的 `/opt/personal-website/public/uploads` 或 `app/nuxt-app` 布局。
+
+Ubuntu 服务器 A 的原图根目录是 `/mnt/data/personal-website/photos/`，通常按 `incoming/`、`public/`、`friends/`、`private/` 和月份组织。缩略图根目录是 `/mnt/data/personal-website/thumbnails/`。仓库中的 Ubuntu service 模板从 `/mnt/data/personal-website/nuxt-app/scripts/` 启动；真实环境文件位于 `/etc/default/` 或用户的 `~/.config/personal-website/`，不进入 Git。
 
 ## 服务器职责
 
-### `you-ecs`（公网网站服务器）
+### ECS（SSH 别名 `yyh-ecs`）
 
-- 运行 Nuxt 网站、Server API 和管理后台。
-- 运行 `personal-website` Docker 容器，通常监听 `3000`。
-- 运行 Nginx（公网入口）和 `frps`（FRP 服务端）。
-- 宿主机项目目录通常为 `/opt/personal-website`。
-- SQLite 生产数据库通常为 `/opt/personal-website/data/prod.db`。
-- 照片挂载目录为 `/opt/personal-website/uploads`，其中 `photos/thumbnails` 用于展示，`photos/ecs-originals` 是待回流的临时原图。
-- 负责上传接收、审核、权限 API、缩略图/中图展示和同步状态管理。
+- 运行 Nuxt 网站、Server API、`personal-website` 容器、Nginx 和 `frps`。
+- 保存 SQLite 生产数据库、展示用上传文件、缩略图和尚未回流的临时原图。
+- 接收已构建的镜像包，执行校验、`docker load`、数据库迁移、容器重建和健康检查。
+- 不保存永久原图，不运行 Ubuntu 的原图 API、Immich、`frpc` 或本地 Skills 服务。
 
-### `you-ubuntu-a`（Ubuntu 原图与本地服务服务器）
+### Ubuntu 服务器 A（SSH 别名 `yyh-ubuntu-a`）
 
-- 保存照片永久原图和私密资产，不承担公网网站主站职责。
-- 原图根目录通常为 `/mnt/data/personal-website/photos`，按 `public/`、`friends/`、`private/`、`incoming/` 分类。
-- 运行原图访问服务、备份、Immich、本地 Skills API 或其他本地高信任服务；实际端口必须以现场配置为准。
-- 运行 `frpc`，主动连接 ECS 的 `frps`；不直接修改 ECS 网站容器配置。
-- 原图服务和 FRP 照片代理未确认前，不得假设某个端口或 URL 已经可用。
+- 保存永久原图、私密内容和本地备份。
+- 运行 `photo-original-api`、照片回流和缩略图同步任务、Immich、本地 Skills API/同步及其他本地高信任服务。
+- 运行 `frpc`，向 ECS 上的 `frps` 建立隧道；不运行公网网站容器。
 
-## 数据流与边界
+## Git 与数据边界
+
+- 根 `.gitignore` 忽略根级 `photos/`、`thumbnails/`、`uploads/`、`backups/`、`releases/`、数据库、媒体文件和内容流水线运行时目录；`nuxt-app/.gitignore` 还忽略应用目录内的 `data/`、`uploads/` 和 `backups/`。
+- `nuxt-app/public/images/`、`nuxt-app/assets/images/` 与 `docs/**` 中被明确放行的设计素材属于源码，应提交 Git；运行时 `public/uploads/` 不应提交。
+- 对某一路径的实际忽略规则使用 `git check-ignore -v <path>` 验证，不要仅凭目录名判断。
+- 真实 `.env`、JWT/FRP/照片 token、数据库、照片、日志、备份及运行时内容不得写入 Git、命令输出或任务报告。
+
+## 照片流与路径边界
 
 ```text
-浏览器 → ECS Nuxt/API
-上传   → ECS 临时保存原图 + 生成 thumb/medium
-审核   → ECS 决定 visibility/status/reviewStatus
-同步   → ECS 展示缩略图；按策略将需要的缩略图同步到 ECS
-回流   → ECS 临时原图经受控 SSH/SCP 写入 Ubuntu 原图目录
-原图   → ECS API 按权限调用 Ubuntu 原图服务或受控回源
+浏览器 → ECS Nuxt/API → ECS uploads/photos/ecs-originals
+                         └→ ECS uploads/photos/thumbnails（展示）
+审核与状态变更 → 受控同步/回流任务 → Ubuntu 永久原图或缩略图目录
+原图请求 → ECS 权限 API → 已验证的 FRP/原图 API 链路 → Ubuntu
 ```
 
-- `private` 原图不得通过公开 ECS 资源路径暴露。
-- 缩略图和原图是不同数据层；日常画廊请求不应把原图当作首屏资源。
-- 数据库中的 `originalPath`、`thumbPath` 等路径只供服务端使用，不得直接返回给普通客户端。
-- 上传、审核、同步、回流必须使用显式状态和可重试流程；删除或清理 ECS 原图前必须确认 Ubuntu 已完成校验和持久化。
+- 原图与缩略图属于不同数据层；`private` 原图绝不能通过公开 ECS 静态路径提供。
+- `originalPath`、`thumbPath`、`ecsThumbPath` 等为服务端内部路径，普通客户端只能获得受控 URL。
+- 回流完成前保留 ECS 临时原图；仅在 Ubuntu 落盘、checksum 和状态更新均已成功后，才可在明确授权下清理临时文件。
+- 不假定 `photos.local:7080`、原图 API 端口或 FRP 代理已可用。先读取现场配置并做健康检查；仓库内 FRP 配置含占位 token，不能当作生产事实。
 
-## SSH 连接
+## 发布和远程变更
 
-本机 SSH 配置使用别名：
+1. 在开发机、Ubuntu 构建机或 CI 固定 Git commit，执行验证并构建 `personal-website:<commit>` 镜像。
+2. 导出镜像包和 SHA-256 校验文件，传输到 ECS 的 `/opt/personal-website/releases/`。
+3. 在 ECS 校验 checksum，加载镜像、保留可回滚 tag、执行 Prisma migration、重建 `app` 容器并做健康检查。
+4. 只在需要 Ubuntu 服务变更时于 Ubuntu `git pull --ff-only`，安装或重载对应的 systemd 服务，再验证原图 API、`frpc` 和目录权限。
 
-```bash
-ssh yyh-ecs
-ssh yyh-ubuntu-a
-```
+严禁在 ECS 执行 `docker build`、`docker compose build`、`pnpm install` 或 `pnpm build`。不要通过 `git pull`、`git checkout` 或复制源码把 ECS 当开发机；生产工作区出现意外改动时，先保全 diff 和运行时数据，再决定恢复策略。
 
-`yyh-ubuntu-a` 通过 ECS 的 `ProxyCommand` 和 FRP TCP 端口转发连接到 Ubuntu。不要绕过别名直接猜测公网端口。
-
-常用只读检查：
+执行重启、`docker compose up/pull/run`、迁移、修改 `.env`、修改 Nginx/FRP、批量同步、回流、移动或删除文件前，必须先确认目标和影响范围。默认只读检查包括：
 
 ```bash
 ssh yyh-ecs "hostname; id -un; docker ps; ss -ltnp"
@@ -94,44 +82,15 @@ ssh yyh-ubuntu-a "hostname; id -un; df -h / /mnt/data; systemctl is-active frpc"
 ssh yyh-ubuntu-a "find /mnt/data/personal-website/photos -maxdepth 2 -type d -print"
 ```
 
-通过 ECS 检查 Ubuntu 的 FRP/SSH 链路：
+使用 `yyh-ubuntu-a` 别名访问服务器 A；它依赖 ECS 的 ProxyCommand/FRP 链路。不要绕过别名猜测公网端口。
 
-```bash
-ssh yyh-ecs "systemctl is-active frps; ss -ltnp | grep -E ':7000|:6022|:7080'"
-ssh yyh-ubuntu-a "systemctl is-active frpc; journalctl -u frpc -n 80 --no-pager"
-```
+## 验收与定位
 
-## 操作分级
+变更报告必须分别说明“代码/配置已修改”“ECS 已部署”“Ubuntu 服务已更新”“数据已同步”。至少验证：
 
-### 默认允许：只读
+- ECS：容器健康、`3000` 端口、Nginx、应用日志和数据库迁移状态；
+- Ubuntu：`/mnt/data` 挂载、原图服务、`frpc`、文件权限与磁盘空间；
+- 链路：ECS `frps`、Ubuntu `frpc` 和实际代理端口；
+- 应用：权限 API 返回受控 URL，未向客户端泄漏 `/app/...` 或 `/mnt/data/...` 路径。
 
-- `hostname`、`id`、`df`、`du`、`find`、`ss`、`ps`、`systemctl is-active/status`。
-- `docker ps/inspect/logs`、`git status`、读取 compose/Nginx/FRP 配置。
-- `curl` 健康检查和只读 API 查询。
-
-### 必须先确认目标和影响范围
-
-- 重启容器、Nginx、frpc/frps 或其他 systemd 服务。
-- `docker compose up/pull`、数据库迁移、修改 `.env`、修改 Nginx/FRP 配置。
-- 批量同步、回流、移动或删除任何照片文件。
-
-### 禁止默认执行
-
-- `rm -rf`、清空上传目录、删除数据库或冷存储。
-- 在 Ubuntu 上运行网站部署命令，或在 ECS 上把原图目录当作永久资产目录。
-- 把 FRP token、SSH 私钥、JWT secret 或真实 `.env` 内容写入代码、日志或 Git。
-
-## 远程变更流程
-
-1. 先在本地确认 `git status`，记录目标机器、路径和预期影响。
-2. 先执行只读检查并保存结果；涉及照片时先做数量、checksum 或 dry-run 校验。
-3. 变更 ECS 网站时优先使用项目部署脚本和 Docker Compose；变更 Ubuntu 原图服务时优先使用对应 systemd/service 配置。
-4. 变更后分别验证 ECS 网站/API、Ubuntu 原图服务、FRP 链路和照片权限。
-5. 报告必须区分“代码已修改”“服务器已部署”“数据已同步”三种状态。
-
-## 故障定位顺序
-
-1. ECS：容器健康、端口 `3000`、Nginx `80/443`、应用日志和数据库状态。
-2. Ubuntu：原图服务进程/端口、`/mnt/data` 挂载、照片文件权限和磁盘空间。
-3. 链路：ECS `frps`、Ubuntu `frpc`、代理名称/域名和对应端口。
-4. 应用：确认 API 返回的是受控 URL，而不是 `/app/...` 或 `/mnt/data/...` 内部路径。
+以 `docs/operations/production-deployment.md`、`docs/operations/server-roles.md`、`docs/design/data-storage.md` 为当前运维事实来源；历史学习笔记不能覆盖当前代码和这些手册。

@@ -1,73 +1,69 @@
-#!/bin/bash
-# ============================================
-# Deploy Script for ECS
-# Run this after ecs-init.sh
-# Usage: bash deploy.sh [git-repo-url]
-# ============================================
+#!/usr/bin/env bash
+# Deploy a prebuilt, verified image on ECS. Never build on ECS.
+# Usage: deploy.sh <image.tar.gz> <image-reference> [image.tar.gz.sha256]
 
-set -e
+set -euo pipefail
 
-PROJECT_DIR="/opt/personal-website"
-REPO_URL="${1:-}"
+PROJECT_DIR="${PROJECT_DIR:-/opt/personal-website}"
+COMPOSE_FILE="$PROJECT_DIR/nuxt-app/docker-compose.yml"
 
-echo "=== Deploy Personal Website ==="
+usage() {
+  echo "Usage: $0 <image.tar.gz> <image-reference> [image.tar.gz.sha256]" >&2
+  echo "Example: $0 /opt/personal-website/releases/personal-website-<commit>.tar.gz personal-website:<commit>" >&2
+  exit 2
+}
 
-# --- 0. Port conflict check ---
-echo "[0/4] Checking port 3000..."
-if ss -tlnp | grep -q ":3000 "; then
-  echo "  ⚠️  Port 3000 is already in use!"
-  ss -tlnp | grep ":3000 "
-  echo "  Change PORT in docker-compose.yml or stop the conflicting service."
+[[ $# -ge 2 && $# -le 3 ]] || usage
+
+archive=$1
+image_ref=$2
+checksum_file=${3:-"${archive}.sha256"}
+
+[[ -f "$archive" ]] || { echo "Image archive not found: $archive" >&2; exit 1; }
+[[ -f "$checksum_file" ]] || { echo "Checksum file not found: $checksum_file" >&2; exit 1; }
+[[ -f "$COMPOSE_FILE" ]] || { echo "Compose file not found: $COMPOSE_FILE" >&2; exit 1; }
+
+echo "Verifying image archive..."
+checksum_dir=$(dirname "$checksum_file")
+(
+  cd "$checksum_dir"
+  sha256sum -c "$(basename "$checksum_file")"
+)
+
+echo "Loading verified image..."
+docker load --input "$archive"
+docker image inspect "$image_ref" >/dev/null
+
+had_current_image=false
+if docker image inspect personal-website:latest >/dev/null 2>&1; then
+  echo "Creating a pre-deployment database backup..."
+  bash "$PROJECT_DIR/nuxt-app/scripts/backup-db.sh"
+  docker tag personal-website:latest personal-website:rollback
+  had_current_image=true
+fi
+
+docker tag "$image_ref" personal-website:latest
+
+echo "Applying explicit Prisma migrations..."
+if ! docker compose -f "$COMPOSE_FILE" run --rm app npx prisma migrate deploy; then
+  if [[ "$had_current_image" == true ]]; then
+    docker tag personal-website:rollback personal-website:latest
+  fi
+  echo "Migration failed; the running container was not replaced." >&2
   exit 1
-else
-  echo "  Port 3000 is free ✅"
 fi
 
-# --- 1. Clone or pull project ---
-if [ -d "$PROJECT_DIR/.git" ]; then
-  echo "[1/4] Pulling latest code..."
-  cd "$PROJECT_DIR"
-  git pull
-elif [ -n "$REPO_URL" ]; then
-  echo "[1/4] Cloning project..."
-  git clone "$REPO_URL" "$PROJECT_DIR"
-  cd "$PROJECT_DIR"
-else
-  echo "Usage: bash deploy.sh [git-repo-url]"
-  echo "  First time: bash deploy.sh https://github.com/user/repo.git"
-  echo "  Update:     bash deploy.sh"
-  exit 1
-fi
+echo "Recreating application container..."
+docker compose -f "$COMPOSE_FILE" up -d --no-build app
+docker compose -f "$COMPOSE_FILE" ps app
 
-# --- 2. Setup .env ---
-if [ ! -f .env ]; then
-  echo "[2/4] Creating .env from template..."
-  cp .env.example .env
-  # Generate random JWT secret
-  JWT_SECRET=$(openssl rand -hex 32)
-  sed -i "s/change-me-in-production/${JWT_SECRET}/" .env
-  echo "  .env created with random JWT_SECRET"
-else
-  echo "[2/4] .env already exists, skipping..."
-fi
+for _ in {1..10}; do
+  if curl -fsS http://127.0.0.1:3000/ >/dev/null; then
+    echo "Deployment complete: personal-website:latest"
+    exit 0
+  fi
+  sleep 3
+done
 
-# --- 3. Build and start ---
-echo "[3/4] Building Docker image..."
-docker compose build --no-cache
-
-echo "[4/4] Starting services..."
-docker compose up -d
-
-# --- 4. Verify ---
-echo ""
-echo "=== Deploy Complete ==="
-echo "Checking service status..."
-docker compose ps
-echo ""
-echo "Health check..."
-sleep 5
-if curl -sf http://localhost:3000/ > /dev/null; then
-  echo "✅ Website is running at http://localhost:3000"
-else
-  echo "⚠️  Website not responding yet, wait 30s and check: curl http://localhost:3000/"
-fi
+echo "Container started but the local health check did not pass." >&2
+exit 1

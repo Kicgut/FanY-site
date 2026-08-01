@@ -1,6 +1,6 @@
-# ECS 部署进度
+# ECS 部署基线（历史主机信息）
 
-> 更新时间：2026-07-04 15:xx
+> 更新于：2026-08-01。以下主机信息仅作排障线索；不得将历史部署步骤作为当前发布指南。
 
 ## 服务器信息
 
@@ -14,13 +14,13 @@
 | 磁盘 | 40GB /dev/vda3 (ext4)，已用 7.2GB |
 | 项目路径 | /opt/personal-website |
 
-## 已完成步骤
+## 已确认的基础条件
 
 | # | 步骤 | 状态 | 说明 |
 |---|------|------|------|
 | 1 | SSH key 授权 | ✅ | 本机 ed25519 公钥已加入 ECS authorized_keys |
 | 2 | GitHub SSH key | ✅ | 已添加到 GitHub 账号 Kicgut |
-| 3 | 代码克隆 | ✅ | 通过 SSH 反向隧道代理，git clone 到 /opt/personal-website |
+| 3 | 部署配置目录 | ✅ | `/opt/personal-website/nuxt-app` 保存 Compose 配置；不在 ECS 构建源码 |
 | 4 | Docker 安装 | ✅ | v29.6.1，使用阿里云镜像源（download.docker.com 国内不可达） |
 | 5 | Docker Compose | ✅ | v5.3.0 |
 | 6 | Swap 配置 | ✅ | 4GB，使用 acs-plugin-manager 自动配置 + fstab + swappiness=20 |
@@ -34,15 +34,11 @@
 | gohttpserver | 8000 | ✅ 正常运行 |
 | SSH | 22 | ✅ 正常运行 |
 
-## 未完成步骤
+## 当前发布方式
 
-| # | 步骤 | 说明 |
-|---|------|------|
-| 7 | 创建 .env 文件 | 命令超时，需重试 |
-| 8 | Docker 构建镜像 | docker compose build，可能需要 5-10 分钟 |
-| 9 | 启动服务 | docker compose up -d |
-| 10 | Nginx 反向代理 | 可选，当前可通过 3000 端口直接访问 |
-| 11 | HTTPS 配置 | 需要域名，可选 |
+在构建机生成并校验镜像包，再上传到 ECS 的 `/opt/personal-website/releases/`。ECS 只运行 `nuxt-app/scripts/deploy.sh <archive> personal-website:<commit>`，该脚本会加载镜像、备份、迁移并以 `--no-build` 重建容器。
+
+严禁在 ECS 执行 `docker build`、`docker compose build`、`pnpm install` 或 `pnpm build`。当前权威手册是 [`docs/operations/production-deployment.md`](../../docs/operations/production-deployment.md)。
 
 ## 踩坑记录
 

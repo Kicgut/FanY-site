@@ -1,8 +1,8 @@
 ﻿---
 title: "存储、同步与归档"
 created: 2026-07-15 23:29
-updated: 2026-07-24
-status: final
+updated: 2026-08-01
+status: current
 purpose: "项目架构、设计、实现或运维参考文档。"
 scope: "全项目"
 related: []
@@ -16,21 +16,20 @@ tags:
 只同步：
 
 ```text
-visibility=public
-status=active
-reviewStatus=approved
-syncStatus!=synced
+ecsSyncPolicy=pending
+visibility in (public, friends)
+status=published
 ```
 
 同步到：
 
 ```text
-ECS /opt/personal-website/public/uploads/photos/
+ECS /opt/personal-website/uploads/photos/thumbnails/
 ```
 
 ## 2. 原图不同步到 ECS
 
-默认不把原图同步到 ECS。
+默认不把永久原图同步到 ECS；ECS 的 `uploads/photos/ecs-originals/` 仅用于上传后、回流前的临时原图。
 
 例外必须人工确认，并记录 audit log。
 
@@ -60,5 +59,5 @@ ECS /opt/personal-website/public/uploads/photos/
 
 - DB 有记录但文件不存在。
 - 文件存在但 DB 无记录。
-- public active 缩略图未同步。
-- private/friends 文件意外出现在 ECS。
+- `public`/`friends` 且 `published` 的缩略图未同步。
+- `private` 缩略图、任何永久原图，或无对应可见性与状态记录的文件意外出现在 ECS。

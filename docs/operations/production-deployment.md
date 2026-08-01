@@ -1,7 +1,7 @@
 ---
 title: "双服务器共享仓库生产部署指南"
 created: 2026-07-20 20:45
-updated: 2026-07-23 00:00
+updated: 2026-08-01
 status: active
 purpose: "说明开发机、ECS 和 Ubuntu 之间的构建、传输、部署和回滚边界。"
 scope: "部署与运维"
@@ -34,7 +34,15 @@ FanY-site-build/
 
 在构建机固定一个 Git commit，执行 `pnpm install --frozen-lockfile`、`npx prisma validate`、`npx tsc --noEmit`、`pnpm build`，然后执行 `docker build -t personal-website:<commit> .`、`docker save personal-website:<commit> | gzip > personal-website-<commit>.tar.gz` 和 `sha256sum`。构建机可以是开发机、Ubuntu 或 CI 主机，不要求必须是 ECS。
 
-将 tar 包和 sha256 文件通过 `scp` 传到 ECS `/opt/personal-website/releases/`。ECS 只执行 `sha256sum -c`、`docker load`、打 tag、`./scripts/backup-db.sh`、`docker compose run --rm app npx prisma migrate deploy`、`docker compose up -d app` 和健康检查。失败时恢复上一个已验证 image tag；不得删除 `data/`、`uploads/`、`backups/`。
+将 tar 包和 sha256 文件通过 `scp` 传到 ECS `/opt/personal-website/releases/`。在 ECS 从 `/opt/personal-website/nuxt-app/` 保留的部署配置运行：
+
+```bash
+bash /opt/personal-website/nuxt-app/scripts/deploy.sh \
+  /opt/personal-website/releases/personal-website-<commit>.tar.gz \
+  personal-website:<commit>
+```
+
+该脚本校验 SHA-256、加载镜像、对已有站点创建 SQLite 备份、保留 `personal-website:rollback`、执行 `prisma migrate deploy`、以 `--no-build` 重建 `app` 并检查本地健康端点。首次部署没有运行中容器时不会创建旧库备份。失败时不替换运行中的容器，并恢复 `latest` tag；不得删除 `data/`、`uploads/`、`backups/`。
 
 ### Migration 漂移预检
 

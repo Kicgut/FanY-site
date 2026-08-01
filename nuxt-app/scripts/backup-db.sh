@@ -1,46 +1,18 @@
-#!/bin/bash
-# backup-db.sh — Simple SQLite backup script
-# Copies dev.db to /mnt/data/personal-website/db/prod.db.YYYY-MM-DD
-# Keeps last 30 days of backups
+#!/usr/bin/env bash
+# Create a consistent production SQLite backup on ECS before a release.
 
 set -euo pipefail
 
-DB_SOURCE="/mnt/data/personal-website/nuxt-app/prisma/dev.db"
-BACKUP_DIR="/mnt/data/personal-website/db"
-DATE_TAG=$(date +%Y-%m-%d)
-BACKUP_FILE="${BACKUP_DIR}/prod.db.${DATE_TAG}"
-KEEP_DAYS=30
+PROJECT_DIR="${PROJECT_DIR:-/opt/personal-website}"
+COMPOSE_FILE="$PROJECT_DIR/nuxt-app/docker-compose.yml"
+BACKUP_DIR="${BACKUP_DIR:-$PROJECT_DIR/backups}"
+backup_name="prod.db.$(date +%Y%m%d-%H%M%S).backup"
 
-# Ensure backup directory exists
+[[ -f "$COMPOSE_FILE" ]] || { echo "Compose file not found: $COMPOSE_FILE" >&2; exit 1; }
 mkdir -p "$BACKUP_DIR"
 
-# Check source exists
-if [ ! -f "$DB_SOURCE" ]; then
-  echo "[ERROR] Source database not found: $DB_SOURCE"
-  exit 1
-fi
+docker compose -f "$COMPOSE_FILE" exec -T --user root app \
+  sqlite3 /app/data/prod.db ".backup '/app/backups/$backup_name'"
 
-# Create backup
-cp "$DB_SOURCE" "$BACKUP_FILE"
-echo "[OK] Backup created: $BACKUP_FILE ($(du -h "$BACKUP_FILE" | cut -f1))"
-
-# Clean up old backups (keep last $KEEP_DAYS days)
-DELETED=0
-find "$BACKUP_DIR" -name "prod.db.*" -type f -mtime +${KEEP_DAYS} | while read -r old_file; do
-  rm -f "$old_file"
-  echo "[CLEANUP] Removed old backup: $old_file"
-  DELETED=$((DELETED + 1))
-done
-
-# Summary
-TOTAL_BACKUPS=$(find "$BACKUP_DIR" -name "prod.db.*" -type f | wc -l)
-TOTAL_SIZE=$(du -sh "$BACKUP_DIR" 2>/dev/null | cut -f1)
-
-echo ""
-echo "=== Backup Summary ==="
-echo "Source:    $DB_SOURCE"
-echo "Latest:    $BACKUP_FILE"
-echo "Total:     $TOTAL_BACKUPS backup(s) in $BACKUP_DIR"
-echo "Dir size:  $TOTAL_SIZE"
-echo "Retention: last $KEEP_DAYS days"
-echo "Done."
+[[ -s "$BACKUP_DIR/$backup_name" ]] || { echo "Backup was not created: $BACKUP_DIR/$backup_name" >&2; exit 1; }
+echo "Database backup created: $BACKUP_DIR/$backup_name"

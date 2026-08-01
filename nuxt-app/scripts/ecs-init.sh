@@ -67,8 +67,8 @@ echo "  Use Alibaba Cloud Security Group to manage port access."
 echo "  RustDesk default ports: 21115-21119 (TCP/UDP), 8000 (web)"
 
 # --- 6. Create project directory ---
-echo "[6/6] Preparing project directory..."
-mkdir -p /opt/personal-website
+echo "[6/6] Preparing persistent and release directories..."
+mkdir -p /opt/personal-website/{data,uploads,backups,releases}
 echo "  Project directory: /opt/personal-website"
 
 echo ""
@@ -80,9 +80,10 @@ echo "  ✅ No firewall rules changed"
 echo "  ✅ No existing services touched"
 echo ""
 echo "Next steps:"
-echo "  1. cd /opt/personal-website"
-echo "  2. git clone <your-repo> ."
-echo "  3. bash deploy.sh"
+echo "  1. Place the versioned Compose configuration at /opt/personal-website/nuxt-app"
+echo "  2. Upload a prebuilt image and .sha256 file to /opt/personal-website/releases"
+echo "  3. Run nuxt-app/scripts/deploy.sh <archive> personal-website:<commit>"
+echo "  ECS must not run docker build, docker compose build, pnpm install, or pnpm build."
 echo ""
 echo "IMPORTANT: Add these ports in Alibaba Cloud Security Group:"
 echo "  - 80 (HTTP)   - for website"
