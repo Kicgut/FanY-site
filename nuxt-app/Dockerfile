@@ -16,7 +16,9 @@ RUN corepack enable && corepack prepare pnpm@11.9.0 --activate
 
 # 先复制依赖清单（利用层缓存）
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml .pnpmrc ./
-RUN pnpm install --frozen-lockfile
+RUN pnpm config set fetch-timeout 600000 \
+    && pnpm config set fetch-retries 5 \
+    && pnpm install --frozen-lockfile
 
 # 生成 Prisma client
 COPY prisma ./prisma/
