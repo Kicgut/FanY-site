@@ -19,12 +19,13 @@ export default defineEventHandler(async (event) => {
   const photoWhere: any = user?.role === 'superadmin' ? {} : { status: 'published', reviewStatus: 'approved' }
 
   if (!user) photoWhere.visibility = 'public'
-  else if (user.role !== 'superadmin' && user.id !== album.createdBy) {
+  else if (user.role !== 'superadmin') {
     photoWhere.OR = [
       { visibility: 'public' },
       ...(user.groups.includes('all')
         ? [{ visibility: 'groups' }]
         : user.groups.map((group) => ({ visibility: 'groups', visibleTo: { contains: `group:${group}` } }))),
+      { visibility: 'private', uploadedBy: user.id },
     ]
   }
 
