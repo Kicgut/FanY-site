@@ -13,6 +13,8 @@ const search = ref(queryValue('q'))
 const statusFilter = ref(queryValue('status'))
 const reviewFilter = ref(queryValue('review', 'pending'))
 const visibilityFilter = ref(queryValue('visibility'))
+const page = ref(Math.max(1, Number(queryValue('page', '1')) || 1))
+const pageSize = 20
 const busy = ref<number | null>(null)
 const retryBusy = ref(false)
 
@@ -20,26 +22,33 @@ const { data, status, error, refresh } = await useAsyncData(
   'admin-photos',
   () => authFetch<any>('/api/photos', {
     query: {
-      limit: 100,
+      page: page.value,
+      limit: pageSize,
       ...(search.value.trim() ? { title: search.value.trim() } : {}),
       ...(visibilityFilter.value ? { visibility: visibilityFilter.value } : {}),
       ...(statusFilter.value ? { status: statusFilter.value } : {}),
       ...(reviewFilter.value ? { reviewStatus: reviewFilter.value } : {}),
     },
   }),
-  { watch: [search, visibilityFilter, statusFilter, reviewFilter] },
+  { watch: [search, visibilityFilter, statusFilter, reviewFilter, page] },
 )
 
 const photos = computed(() => data.value?.photos || [])
+const totalPhotos = computed(() => Number(data.value?.total || 0))
 const { data: groupData } = await useAsyncData('photo-groups', () => authFetch<{ success: boolean; data: { id: number; name: string }[] }>('/api/admin/groups'))
 const groups = computed(() => groupData.value?.data ?? [])
 
 watch([search, statusFilter, reviewFilter, visibilityFilter], () => {
+  page.value = 1
+})
+
+watch([search, statusFilter, reviewFilter, visibilityFilter, page], () => {
   const query: Record<string, string> = {}
   if (search.value.trim()) query.q = search.value.trim()
   if (statusFilter.value) query.status = statusFilter.value
   if (reviewFilter.value) query.review = reviewFilter.value
   if (visibilityFilter.value) query.visibility = visibilityFilter.value
+  if (page.value > 1) query.page = String(page.value)
   router.replace({ query })
 })
 
@@ -48,6 +57,8 @@ watch(() => route.query, () => {
   if (queryValue('status') !== statusFilter.value) statusFilter.value = queryValue('status')
   if (queryValue('review', 'pending') !== reviewFilter.value) reviewFilter.value = queryValue('review', 'pending')
   if (queryValue('visibility') !== visibilityFilter.value) visibilityFilter.value = queryValue('visibility')
+  const nextPage = Math.max(1, Number(queryValue('page', '1')) || 1)
+  if (nextPage !== page.value) page.value = nextPage
 })
 
 function displayGroups(values: unknown): string[] {
@@ -219,13 +230,13 @@ function authImageUrl(url?: string | null) {
         <el-option label="私密" value="private" />
       </el-select>
 
-      <span class="total">{{ photos.length }} 张</span>
+      <span class="total">共 {{ totalPhotos }} 张</span>
     </div>
 
     <el-alert v-if="error" type="error" :title="error.message" show-icon />
 
     <div v-loading="status === 'pending'" class="table-wrap">
-      <el-table :data="photos" stripe>
+      <el-table :data="photos">
         <el-table-column label="预览" width="88">
           <template #default="{ row }">
             <img class="thumb" :src="authImageUrl(row.thumbnailUrl || row.mediumUrl || row.originalUrl)" :alt="row.title" />
@@ -316,6 +327,11 @@ function authImageUrl(url?: string | null) {
       <el-empty v-if="status !== 'pending' && !photos.length" description="没有符合条件的照片" />
     </div>
 
+    <div v-if="status !== 'pending' && totalPhotos > pageSize" class="pagination-wrap">
+      <span class="pagination-total">共 {{ totalPhotos }} 张</span>
+      <el-pagination v-model:current-page="page" :page-size="pageSize" :total="totalPhotos" background layout="prev, pager, next" />
+    </div>
+
     <div v-if="status !== 'pending' && photos.length" class="mobile-photo-list">
       <article v-for="photo in photos" :key="photo.id" class="mobile-photo-card">
         <img :src="authImageUrl(photo.thumbnailUrl || photo.mediumUrl || photo.originalUrl)" :alt="photo.title" />
@@ -392,13 +408,18 @@ function authImageUrl(url?: string | null) {
 
 .hint {
   margin-bottom: 16px;
+  --el-alert-bg-color: rgba(132, 77, 26, .26);
+  --el-alert-border-color: rgba(217, 161, 80, .38);
+  --el-alert-title-color: #f0ca83;
+  --el-alert-description-color: #cfae72;
+  --el-alert-icon-color: #e6bc6d;
 }
 
 .toolbar {
   display: flex;
   gap: 10px;
   align-items: center;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
   margin-bottom: 14px;
 }
 
@@ -422,12 +443,28 @@ function authImageUrl(url?: string | null) {
 }
 
 .table-wrap {
-  background: rgba(255, 255, 255, .84);
-  border: 1px solid rgba(208, 213, 221, .9);
-  border-radius: 18px;
+  overflow: hidden;
+  background: #0e1a2a;
+  border: 1px solid rgba(148, 184, 214, .2);
+  border-radius: 14px;
   padding: 6px 12px 18px;
-  box-shadow: var(--shadow-light);
+  box-shadow: 0 12px 32px rgba(2, 10, 20, .18);
 }
+
+.table-wrap :deep(.el-table) {
+  --el-table-bg-color: #0e1a2a;
+  --el-table-tr-bg-color: #0e1a2a;
+  --el-table-header-bg-color: #111e2f;
+  --el-table-row-hover-bg-color: rgba(81, 199, 227, .08);
+  --el-table-border-color: rgba(148, 184, 214, .14);
+  color: #c8d9e1;
+}
+
+.table-wrap :deep(.el-table th.el-table__cell) { color: #9fb8c4; font-weight: 600; }
+.table-wrap :deep(.el-table td.el-table__cell),
+.table-wrap :deep(.el-table th.el-table__cell) { background: transparent; }
+.table-wrap :deep(.el-table__inner-wrapper::before) { background: rgba(148, 184, 214, .14); }
+.table-wrap :deep(.el-empty__description) { color: #829ba9; }
 
 .thumb {
   width: 58px;
@@ -468,6 +505,10 @@ function authImageUrl(url?: string | null) {
   flex-wrap: wrap;
   gap: 8px;
 }
+
+.pagination-wrap { display: flex; justify-content: flex-end; align-items: center; gap: 16px; margin-top: 16px; }
+.pagination-total { color: #8199a7; font: 12px var(--font-mono); }
+.pagination-wrap :deep(.el-pager li.is-active) { background: #3e9dea; color: #fff; }
 
 .preview-dialog :deep(.el-dialog__body) {
   padding-top: 0;
@@ -577,6 +618,11 @@ function authImageUrl(url?: string | null) {
   }
 
   .table-wrap { display: none; }
+  .toolbar { flex-wrap: wrap; }
+  .toolbar > :deep(.el-select) { flex: 1 1 calc(50% - 5px); min-width: 0; }
+  .search { flex-basis: 100%; }
+  .total { margin-left: 0; }
+  .pagination-wrap { justify-content: flex-start; overflow-x: auto; }
   .mobile-photo-list { display: grid; gap: 12px; }
   .mobile-photo-card { display: grid; grid-template-columns: 108px minmax(0,1fr); overflow: hidden; border: 1px solid rgba(148,184,214,.2); border-radius: 12px; background: rgba(14,26,42,.72); }.mobile-photo-card > img { width: 108px; height: 122px; object-fit: cover; background: var(--color-bg-secondary); }.mobile-photo-copy { display: grid; align-content: space-between; gap: 10px; padding: 12px; min-width: 0; }.mobile-photo-copy strong,.mobile-photo-copy span { display: block; }.mobile-photo-copy strong { color: #e4f3f8; font-size: 13px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }.mobile-photo-copy > div > span { margin-top: 4px; color: #91a9b7; font: 11px var(--font-mono); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }.mobile-status { display: flex; align-items: center; gap: 8px; }.mobile-status > span { margin: 0!important; }.mobile-actions { display: flex; align-items: center; flex-wrap: wrap; gap: 6px; }.mobile-actions a { color: #86dff1; font-size: 12px; text-decoration: none; }
 }

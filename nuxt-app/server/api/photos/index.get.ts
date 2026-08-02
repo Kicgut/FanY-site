@@ -46,15 +46,28 @@ export default defineEventHandler(async (event) => {
     }
   }
 
+  // Keep the paged rows and total aligned with the narrower management scope
+  // of a regular admin. Superadmins can manage every photo matched by filters.
+  const managementWhere = isAdmin && user?.role === ROLES.ADMIN
+    ? {
+        ...where,
+        OR: [
+          { uploadedBy: user.id },
+          { visibility: 'public' },
+          ...user.groups.map((group) => ({ visibility: 'groups', visibleTo: { contains: `group:${group}` } })),
+        ],
+      }
+    : where
+
   const [photos, total] = await prisma.$transaction([
     prisma.photo.findMany({
-      where,
+      where: managementWhere,
       include: { tags: true, albums: { include: { album: true } }, uploadedByUser: { select: { id: true, username: true, name: true } } },
       orderBy: [{ [sort]: 'desc' }, { id: 'desc' }],
       ...(Number.isInteger(cursor) && cursor > 0 ? { cursor: { id: cursor }, skip: 1 } : { skip: (page - 1) * limit }),
       take: limit,
     }),
-    prisma.photo.count({ where }),
+    prisma.photo.count({ where: managementWhere }),
   ])
   const visiblePhotos = photos.filter((photo) => {
     if (isAdmin) {
@@ -64,5 +77,5 @@ export default defineEventHandler(async (event) => {
     return canViewPhoto(user, photo)
   })
   const nextCursor = photos.length === limit ? String(photos[photos.length - 1]?.id || '') : null
-  return { success: true, photos: visiblePhotos.map((photo) => presentPhoto(photo, { includeOriginal: isAdmin, includeAdminMeta: isAdmin })), total: isAdmin ? visiblePhotos.length : total, page, limit, nextCursor }
+  return { success: true, photos: visiblePhotos.map((photo) => presentPhoto(photo, { includeOriginal: isAdmin, includeAdminMeta: isAdmin })), total, page, limit, nextCursor }
 })
