@@ -18,7 +18,9 @@ function visiblePhotoWhere(user: Awaited<ReturnType<typeof getRequestUser>>) {
       reviewStatus: 'approved',
       OR: [
         { visibility: 'public' },
-        ...user.groups.map((group) => ({ visibility: 'groups', visibleTo: { contains: `group:${group}` } })),
+        ...(user.groups.includes('all')
+          ? [{ visibility: 'groups' }]
+          : user.groups.map((group) => ({ visibility: 'groups', visibleTo: { contains: `group:${group}` } }))),
       ],
     },
   }

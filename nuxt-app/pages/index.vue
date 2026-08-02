@@ -34,7 +34,9 @@ const { data: articleResponse } = await useFetch<{ articles: Article[] }>('/api/
   query: { status: 'published', limit: 1 },
 })
 const { data: portfolioResponse } = await useFetch<{ success: boolean; data: { items: PortfolioItem[] } }>('/api/portfolio')
-const { data: albumResponse } = await useFetch<{ success: boolean; data: Album[] }>('/api/albums/public')
+const authFetch = useAuthFetch()
+const { authImageUrl } = usePhotoImageUrl()
+const { data: albumResponse } = await useAsyncData<{ success: boolean; data: Album[] }>('home-public-albums', () => authFetch('/api/albums/public'), { server: false })
 
 const latestArticle = computed(() => articleResponse.value?.articles?.[0] || null)
 const featuredWork = computed(() => portfolioResponse.value?.data?.items?.find(item => item.featured) || portfolioResponse.value?.data?.items?.[0] || null)
@@ -125,7 +127,7 @@ useSeoMeta({
         <section class="content-panel visual-panel">
           <div class="panel-heading"><span>VISUAL LOG</span><NuxtLink to="/albums">更多 <b>→</b></NuxtLink></div>
           <NuxtLink v-if="latestAlbum" :to="`/albums/${latestAlbum.id}`" class="visual-feature">
-            <div class="visual-grid"><img v-for="photo in latestAlbum.previewPhotos?.slice(0, 3)" :key="photo.id" :src="photo.thumbnailUrl || latestAlbum.coverUrl || ''" :alt="latestAlbum.name" loading="lazy"><div v-if="!latestAlbum.previewPhotos?.length && latestAlbum.coverUrl" class="visual-fallback"><img :src="latestAlbum.coverUrl" :alt="latestAlbum.name"></div></div>
+            <div class="visual-grid"><img v-for="photo in latestAlbum.previewPhotos?.slice(0, 3)" :key="photo.id" :src="authImageUrl(photo.thumbnailUrl || latestAlbum.coverUrl)" :alt="latestAlbum.name" loading="lazy"><div v-if="!latestAlbum.previewPhotos?.length && latestAlbum.coverUrl" class="visual-fallback"><img :src="authImageUrl(latestAlbum.coverUrl)" :alt="latestAlbum.name"></div></div>
             <div class="visual-footer"><span>{{ latestAlbum.name }} · {{ latestAlbum.photoCount }} 张</span><span>进入影像日志　→</span></div>
           </NuxtLink>
           <NuxtLink v-else to="/albums" class="empty-panel">还没有公开影像，去相册看看 →</NuxtLink>

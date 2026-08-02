@@ -3,6 +3,7 @@ interface Photo { id:number; title:string; description?:string|null; originalUrl
 interface GalleryResponse { success:boolean; photos:Photo[]; total:number }
 const route = useRoute()
 const router = useRouter()
+const { authImageUrl } = usePhotoImageUrl()
 const { data, pending, error } = await useAsyncData<Photo>(`photo-${route.params.id}`, () => useAuthFetch()(`/api/photos/${route.params.id}`), { server:false })
 const { data: galleryResponse } = await useAsyncData<GalleryResponse>('viewer-gallery', () => useAuthFetch()('/api/photos?limit=100&sort=takenAt'), { server:false })
 const photo = computed(() => data.value)
@@ -14,7 +15,8 @@ const canGoNext = computed(() => currentIndex.value >= 0 && currentIndex.value <
 const showInfo = ref(true)
 const original = ref(false)
 const fullscreen = ref(false)
-const imageSrc = computed(() => { const item=photo.value; if(!item)return ''; return original.value && item.allowOriginalDownload ? item.originalUrl || item.mediumUrl || item.thumbnailUrl : item.mediumUrl || item.thumbnailUrl || item.originalUrl || '' })
+const imageSrc = computed(() => { const item=photo.value; if(!item)return ''; return authImageUrl(original.value && item.allowOriginalDownload ? item.originalUrl || item.mediumUrl || item.thumbnailUrl : item.mediumUrl || item.thumbnailUrl || item.originalUrl || '') })
+function thumbnailSrc(item: Photo) { return authImageUrl(item.thumbnailUrl || item.mediumUrl || item.originalUrl) }
 function formatDate(value?:string|null) { return value ? new Date(value).toLocaleDateString('zh-CN',{year:'numeric',month:'2-digit',day:'2-digit'}) : '未标注日期' }
 function goBack() {
   const from = String(route.query.from || '')
@@ -39,7 +41,7 @@ useHead({title:computed(()=>photo.value?.title || '影像查看器')})
     <main v-if="pending" class="viewer-loading">正在打开影像…</main>
     <main v-else-if="error || !photo" class="viewer-loading">影像不可用<button @click="goBack">返回影像</button></main>
     <main v-else class="viewer-main">
-      <section class="stage"><div class="stage-controls"><button class="nav-button prev" :disabled="!canGoPrevious" aria-label="上一张" @click="goPrevious">‹</button><div class="image-wrap"><img :src="imageSrc" :alt="photo.title" @dblclick="fullscreen=!fullscreen" /></div><button class="nav-button next" :disabled="!canGoNext" aria-label="下一张" @click="goNext">›</button></div><div v-if="galleryPhotos.length" class="thumbnail-strip"><button v-for="item in galleryPhotos.slice(Math.max(0,currentIndex-2), currentIndex+3)" :key="item.id" :class="{active:item.id===photo.id}" @click="goToPhoto(item.id)"><img :src="item.thumbnailUrl || item.mediumUrl || item.originalUrl || ''" :alt="item.title" /></button></div></section>
+      <section class="stage"><div class="stage-controls"><button class="nav-button prev" :disabled="!canGoPrevious" aria-label="上一张" @click="goPrevious">‹</button><div class="image-wrap"><img :src="imageSrc" :alt="photo.title" @dblclick="fullscreen=!fullscreen" /></div><button class="nav-button next" :disabled="!canGoNext" aria-label="下一张" @click="goNext">›</button></div><div v-if="galleryPhotos.length" class="thumbnail-strip"><button v-for="item in galleryPhotos.slice(Math.max(0,currentIndex-2), currentIndex+3)" :key="item.id" :class="{active:item.id===photo.id}" @click="goToPhoto(item.id)"><img :src="thumbnailSrc(item)" :alt="item.title" /></button></div></section>
       <aside v-if="showInfo" class="detail-panel"><span class="panel-kicker">PHOTO DETAIL</span><h1>{{ photo.title }}</h1><p class="date">{{ formatDate(photo.takenAt) }}</p><p v-if="photo.description" class="description">{{ photo.description }}</p><div v-if="photo.tags?.length" class="tags">⌑ <span v-for="tag in photo.tags" :key="tag.id">{{ tag.name }}</span></div><div v-if="photo.albums?.[0]?.album" class="album-pill">▧ 相册：{{ photo.albums[0].album.name }}</div><section class="meta-section"><h2>拍摄信息</h2><dl><template v-if="photo.cameraModel"><dt>相机</dt><dd>{{ [photo.cameraMake,photo.cameraModel].filter(Boolean).join(' ') }}</dd></template><template v-if="photo.lens"><dt>镜头</dt><dd>{{ photo.lens }}</dd></template><template v-if="photo.focalLength"><dt>焦距</dt><dd>{{ photo.focalLength }}mm</dd></template><template v-if="photo.iso"><dt>ISO</dt><dd>{{ photo.iso }}</dd></template><dt v-if="photo.width">分辨率</dt><dd v-if="photo.width">{{ photo.width }} × {{ photo.height }}</dd></dl></section><section v-if="photo.location" class="meta-section"><h2>位置信息</h2><p class="location">● {{ photo.location }}</p></section><footer>▢ 原图仅在授权时提供</footer></aside>
     </main>
   </div>

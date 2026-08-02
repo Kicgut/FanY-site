@@ -94,3 +94,10 @@ ssh yyh-ubuntu-a "find /mnt/data/personal-website/photos -maxdepth 2 -type d -pr
 - 应用：权限 API 返回受控 URL，未向客户端泄漏 `/app/...` 或 `/mnt/data/...` 路径。
 
 以 `docs/operations/production-deployment.md`、`docs/operations/server-roles.md`、`docs/design/data-storage.md` 为当前运维事实来源；历史学习笔记不能覆盖当前代码和这些手册。
+## 构建失败经验（2026-08）
+
+- Docker Hub 基础镜像拉取失败时，先确认 Docker Desktop/daemon 已启动，再通过 `--build-arg HTTP_PROXY`、`HTTPS_PROXY` 和 `NO_PROXY` 传入代理；不要把代理地址写入仓库文件。
+- 本机 pnpm store 不能假定会被 Linux 容器复用；即使复制到容器，也可能显示 `reused 0`。如需尝试缓存，显式设置 `pnpm config set store-dir`，并把它视为加速手段而非离线保证。
+- npm 镜像源连接慢或超时时，优先使用代理访问 `https://registry.npmjs.org`，同时提高 pnpm 的 `fetch-timeout` 和 `fetch-retries`；构建日志应确认实际使用的 registry。
+- 生产构建必须在本机/Ubuntu/CI 完成；ECS 只接收已导出的镜像包，执行 SHA-256 校验、`docker load`、迁移、`compose up --no-build` 和健康检查。
+- 导出包上传前记录镜像 tag、归档 SHA-256 和 Git commit；ECS 磁盘不足时，先保留当前运行镜像、回滚 tag、当前发布包和数据库备份，再清理其余旧资源。

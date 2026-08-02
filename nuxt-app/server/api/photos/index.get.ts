@@ -27,7 +27,9 @@ export default defineEventHandler(async (event) => {
       where.OR = [
         { uploadedBy: user.id },
         { status: 'published', reviewStatus: 'approved', visibility: 'public' },
-        ...user.groups.map((group) => ({ status: 'published', reviewStatus: 'approved', visibility: 'groups', visibleTo: { contains: `group:${group}` } })),
+        ...(user.groups.includes('all')
+          ? [{ status: 'published', reviewStatus: 'approved', visibility: 'groups' }]
+          : user.groups.map((group) => ({ status: 'published', reviewStatus: 'approved', visibility: 'groups', visibleTo: { contains: `group:${group}` } }))),
       ]
     }
   } else if (query.status) {

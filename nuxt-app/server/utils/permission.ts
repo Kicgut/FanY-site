@@ -143,7 +143,7 @@ export function hasGroupIntersection(left: string | null | undefined, right: str
 
 export function userHasVisibleGroup(user: AuthUser | null | undefined, visibleTo: string | null | undefined): boolean {
   if (!user) return false
-  if (user.role === ROLES.SUPERADMIN) return true
+  if (user.role === ROLES.SUPERADMIN || user.groups.includes('all')) return true
   const groups = new Set(visibleGroups(visibleTo))
   return user.groups.some((group) => groups.has(group))
 }

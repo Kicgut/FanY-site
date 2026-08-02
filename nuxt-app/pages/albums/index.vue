@@ -5,6 +5,7 @@ interface Photo { id:number; title:string; description?:string|null; thumbnailUr
 const authFetch = useAuthFetch()
 const route = useRoute()
 const router = useRouter()
+const { authImageUrl } = usePhotoImageUrl()
 const activeView = computed(() => route.query.view === 'albums' ? 'albums' : 'photos')
 const query = ref(String(route.query.q || ''))
 const year = ref(String(route.query.year || 'all'))
@@ -43,7 +44,7 @@ const filteredPhotos = computed(() => {
 const totalPhotos = computed(() => photos.value.length)
 const featuredAlbum = computed(() => albums.value[0])
 const loading = computed(() => albumPending.value || photoPending.value)
-function imageSrc(photo:Photo) { return photo.thumbnailUrl || photo.mediumUrl || photo.originalUrl || '' }
+function imageSrc(photo:Photo) { return authImageUrl(photo.thumbnailUrl || photo.mediumUrl || photo.originalUrl) }
 function formatDate(value?:string|null) { return value ? new Date(value).toLocaleDateString('zh-CN',{year:'numeric',month:'2-digit',day:'2-digit'}) : '未标注日期' }
 function updateQuery(next:Record<string,any> = {}) { const value:any = { ...route.query, ...next }; Object.keys(value).forEach(k => { if (value[k] === undefined || value[k] === '' || value[k] === 'all' || value[k] === false || (Array.isArray(value[k]) && !value[k].length)) delete value[k] }); router.replace({ query:value }) }
 function switchView(view:'albums'|'photos') { updateQuery({view:view === 'photos' ? undefined : 'albums'}) }

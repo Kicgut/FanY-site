@@ -43,6 +43,7 @@ interface AlbumResponse {
 const route = useRoute()
 const albumId = route.params.id
 const authFetch = useAuthFetch()
+const { authImageUrl } = usePhotoImageUrl()
 
 const { data, pending, error } = await useAsyncData(`album-${albumId}`, () => authFetch<AlbumResponse>(`/api/albums/public/${albumId}`), { server: false })
 
@@ -104,8 +105,8 @@ const hasNext = computed(() => currentIndex.value < filteredPhotos.value.length 
 
 const currentPhotoSrc = computed(() => {
   if (!currentPhoto.value) return ''
-  if (originalLoaded.value && currentPhoto.value.allowOriginalDownload) return currentPhoto.value.originalUrl || currentPhoto.value.mediumUrl || ''
-  return currentPhoto.value.mediumUrl || currentPhoto.value.thumbnailUrl || currentPhoto.value.originalUrl
+  if (originalLoaded.value && currentPhoto.value.allowOriginalDownload) return authImageUrl(currentPhoto.value.originalUrl || currentPhoto.value.mediumUrl || '')
+  return authImageUrl(currentPhoto.value.mediumUrl || currentPhoto.value.thumbnailUrl || currentPhoto.value.originalUrl)
 })
 
 function openLightbox(photo: Photo) {
@@ -121,7 +122,7 @@ watch(currentPhoto, (photo) => {
   const next = photo ? filteredPhotos.value[currentIndex.value + 1] : null
   if (next?.mediumUrl) {
     const image = new Image()
-    image.src = next.mediumUrl
+    image.src = authImageUrl(next.mediumUrl)
   }
 })
 
@@ -275,7 +276,7 @@ useSeoMeta({
                 @click="openLightbox(photo)"
               >
                 <img
-                  :src="photo.thumbnailUrl || photo.mediumUrl || photo.originalUrl"
+                  :src="authImageUrl(photo.thumbnailUrl || photo.mediumUrl || photo.originalUrl)"
                   :alt="photo.title"
                   loading="lazy"
                   class="photo-img"

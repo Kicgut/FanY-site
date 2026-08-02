@@ -22,7 +22,9 @@ export default defineEventHandler(async (event) => {
   else if (user.role !== 'superadmin' && user.id !== album.createdBy) {
     photoWhere.OR = [
       { visibility: 'public' },
-      ...user.groups.map((group) => ({ visibility: 'groups', visibleTo: { contains: `group:${group}` } })),
+      ...(user.groups.includes('all')
+        ? [{ visibility: 'groups' }]
+        : user.groups.map((group) => ({ visibility: 'groups', visibleTo: { contains: `group:${group}` } }))),
     ]
   }
 
